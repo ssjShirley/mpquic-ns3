@@ -1,0 +1,9 @@
+# -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    obj = bld.create_ns3_program('leo-satellite-example', ['leo-satellite'])
+    obj.source = 'leo-satellite-example.cc'
+
+    obj = bld.create_ns3_program('mobility-example', ['leo-satellite'])
+    obj.source = 'mobility-example.cc'
+
