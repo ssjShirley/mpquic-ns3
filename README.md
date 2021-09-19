@@ -42,10 +42,6 @@ new methods:
     //for multipath
     uint8_t LookUpByAddr (Address &address);
     
-    //for mm congestion control
-    int FindMinRttPath();
-    double GetOliaApha(int pathId);
-    
     //for scheduler
     void CreateScheduler ();
 
