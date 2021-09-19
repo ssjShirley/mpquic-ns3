@@ -139,7 +139,7 @@ public:
     
 
 private:
-  double m_delay;
+
 };
 
 class MpQuicAddressInfo

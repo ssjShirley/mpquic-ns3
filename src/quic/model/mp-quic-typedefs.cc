@@ -34,14 +34,9 @@ MpQuicSubFlow::GetTypeId (void)
         .SetParent (Object::GetTypeId ())
         .AddAttribute ("CCType",
                    "congestion control type",
-                   StringValue ("new"),
+                   StringValue ("OLIA"),
                    MakeStringAccessor (&MpQuicSubFlow::m_ccType),
                    MakeStringChecker ())
-        .AddAttribute ("delay",
-                   "congestion control type",
-                   DoubleValue (0.04),
-                   MakeDoubleAccessor (&MpQuicSubFlow::m_delay),
-                   MakeDoubleChecker<double> (0))
         .AddTraceSource ("SubflowCwnd",
                        "An integer value to trace.",
                        MakeTraceSourceAccessor (&MpQuicSubFlow::m_cWnd),
@@ -65,7 +60,6 @@ MpQuicSubFlow::MpQuicSubFlow()
 {
     m_bandwidth   = 12500*0.5;
     m_cWnd        = 5840;                  // congestion window is initialized to one segment
-    // m_Bmin = 0;
     m_segmentSize = 1460;
     m_ssThresh    = 25000;              // initial value for a Quic connexion
     largestRtt = Seconds(0);
@@ -116,27 +110,14 @@ MpQuicSubFlow::UpdateRtt (SequenceNumber32 ack, Time ackDelay)
             }
         }
     }
-
-     
     if (!m.IsZero ())
     {
         lastMeasuredRtt = m - ackDelay;
-
-        // m_rtt->Measurement (m);                // Log the measurement
-        // lastMeasuredRtt = m_rtt->GetEstimate ();// - ackDelay;
-        // if (lastMeasuredRtt.Get().GetDouble() < 0){
-        //     lastMeasuredRtt = m_rtt->GetEstimate ();
-        // }
     }
-    
-    // std::cout<<Simulator::Now ().GetSeconds ()<<"flowid "<<routeId<<" seq "<<ack<<" measure: "<<lastMeasuredRtt.Get()<<"\n";
     m_rttTrace = lastMeasuredRtt;
     if (lastMeasuredRtt>largestRtt){
         largestRtt = lastMeasuredRtt;
     }
-
-    // std::cout<<Simulator::Now ().GetSeconds ()<<"flowid "<<routeId<<" seq "<<ack<<" measure: "<<m <<" measure: "<<lastMeasuredRtt <<"\n";
-   
 }
 
 
@@ -203,9 +184,7 @@ void
 MpQuicSubFlow::UpdateSsThresh(double snr, uint32_t ssh)
 {
     // m_ssThresh = 25000;
-    m_ssThresh = ssh;
-
-   
+    m_ssThresh = ssh; 
 }
 
 void
@@ -218,16 +197,6 @@ MpQuicSubFlow::UpdateCwndOnPacketLost()
     {
         m_cWnd = m_cWnd/2;
     } 
-    else 
-    {
-        if(m_throughput < m_sst[routeId] and lastMeasuredRtt.Get().GetSeconds() > m_delay)
-        {
-            m_cWnd = m_cWnd/2;
-            m_cwndState = "Congestion_Avoidance";
-            
-        }
-    }
-    
      
     m_lossCwnd = std::min(m_lossCwnd, m_cWnd.Get());
     // m_cWnd = m_cWnd/2;
