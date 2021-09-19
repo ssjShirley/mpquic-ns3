@@ -5,36 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            // Pipe Launch calls waf with appropriate arguments
             "name": "(gdb) Pipe Launch",
             "type": "cppdbg",
             "request": "launch",
-                      // my build folder is ${workspaceFolder}/build, substitute yours
+            //"program": "${workspaceFolder}/build/utils/ns3-dev-test-runner-debug",
             "program": "${workspaceFolder}/build/scratch/quic-tester-mp",
             "args": [],
-            "stopAtEntry": true,
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [
-                {
-                    "name": "LD_LIBRARY_PATH",
-                    "value": "./build/lib/"
-                }
-            ],
-            "externalConsole": true,
+            "environment": [],
+            "externalConsole": false,
             "pipeTransport": {
                 "debuggerPath": "",  // leave blank
                 "pipeProgram": "${workspaceFolder}/waf",
-                // pipeArgs is essentially the entire waf command line arguments
-                "pipeArgs": [
-                    "--run", "scratch/quic-tester-mp"
-                    "--command-template", "'",  // opening quote for command template
-                    "/usr/bin/gdb", "--interpreter=mi",  // --interpreter lets vscode talk to gdb
-                    "--args", 
-                    "%s",
-                    // "--suite=<test-suite>",  // must specify test suite here
-                    "'",  // closing quote for command template
-                ],
-                "pipeCwd": ""
+                // pipeArgs is essentially the entire waf command line arguments                
+                "pipeArgs": [                    
+                    "--command-template", "\"",                 // opening double quote for command template 
+                    "${debuggerCommand}",                       // gdb path and --interpreter arg already in debuggerCommand 
+                    "--args", "%s",                             // Need to add --args %s to the gdb call
+                    "\"",                                       // closing quote for command template
+                    "--run", "quic-tester-mp",      // Run call with the filename
+                    ],
+                    "quoteArgs":false,
+                    "pipeCwd": ""
             },
             "MIMode": "gdb",
             "setupCommands": [
