@@ -227,7 +227,7 @@ public:
    * \returns the new max data value
    */
   uint64_t GetMaxData ();
-
+bool vnReceived;
 private:
   Ptr<QuicSocketBase> m_socket;                 //!< The Quic socket this stack is associated with
   Ptr<Node> m_node;                             //!< The node this stack is associated with

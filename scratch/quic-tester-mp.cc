@@ -141,9 +141,9 @@ main (int argc, char *argv[])
    LogComponentEnableAll (LOG_PREFIX_NODE);
   //  LogComponentEnable ("QuicEchoClientApplication", log_precision);
   //  LogComponentEnable ("QuicEchoServerApplication", log_precision);
-   LogComponentEnable ("quic-tester", log_precision);
+  //  LogComponentEnable ("quic-tester", log_precision);
 //  LogComponentEnable ("QuicHeader", log_precision);
-    // LogComponentEnable ("QuicSocketBase", log_precision);
+    LogComponentEnable ("QuicSocketBase", log_precision);
  // LogComponentEnable ("QuicStreamBase", LOG_LEVEL_LOGIC);
 //  LogComponentEnable ("Socket", log_precision);
 //  LogComponentEnable ("Application", log_precision);
@@ -152,7 +152,7 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("QuicSocketFactory", log_precision);
 //  LogComponentEnable ("ObjectFactory", log_precision);
 //  //LogComponentEnable ("TypeId", log_precision);
-  // LogComponentEnable ("QuicL4Protocol", log_precision);
+  LogComponentEnable ("QuicL4Protocol", log_precision);
 //  LogComponentEnable ("QuicL5Protocol", log_precision);
 //  //LogComponentEnable ("ObjectBase", log_precision);
 //  LogComponentEnable ("QuicEchoHelper", log_precision);
@@ -164,8 +164,10 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
 
-  Config::SetDefault ("ns3::QuicScheduler::SchedulerType", StringValue ("rtt"));  
+  Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
   Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
+  Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
+  
   // Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue(10485760));

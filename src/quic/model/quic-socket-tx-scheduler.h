@@ -18,6 +18,8 @@
  * Authors: Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Umberto Paro <umberto.paro@me.com>
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          
  *
  */
 
@@ -153,7 +155,18 @@ public:
    * \param numBytes number of bytes of the QuicSocketTxItem requested
    * \return the item that contains the right packet
    */
-  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes);
+  //Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes);
+
+    /**
+     * ywj added
+   * \brief Get the next scheduled packet with a specified size
+   *
+   * \param numBytes number of bytes of the QuicSocketTxItem requested
+   * \param pathId the path on which the packet will be sent 
+   * \param Q the estimated data amount Q 
+   * \return the item that contains the right packet
+   */
+  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint32_t pathId, uint32_t Q);
 
   /**
    * Returns the total number of bytes in the application buffer
@@ -168,6 +181,12 @@ public:
    * \param retx true if the item is being retransmitted
    */
   void AddScheduleItem (Ptr<QuicSocketTxScheduleItem> item, bool retx);
+
+  /**
+   * indicate the offset in order to out-of-order schedule
+   */
+  uint32_t ofo_offset = 2920; 
+
 
 private:
   typedef std::priority_queue<Ptr<QuicSocketTxScheduleItem>, std::vector<Ptr<QuicSocketTxScheduleItem> >, CompareScheduleItems> QuicTxPacketList;        //!< container for data stored in the buffer

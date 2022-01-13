@@ -19,7 +19,8 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
 #include <stdint.h>
@@ -53,7 +54,8 @@ QuicSubheader::QuicSubheader ()
     m_firstAckBlock (0),
     m_data (0),
     m_length (0),
-    m_pathId (0)
+    m_pathId (0),
+    m_largestSeq (0)
 {
   m_reasonPhrase = std::vector<uint8_t> ();
   m_additionalAckBlocks = std::vector<uint32_t> ();
@@ -83,7 +85,7 @@ QuicSubheader::GetInstanceTypeId (void) const
 std::string
 QuicSubheader::FrameTypeToString () const
 {
-  static const char* frameTypeNames[24] = {
+  static const char* frameTypeNames[27] = {
     "PADDING",
     "RST_STREAM",
     "CONNECTION_CLOSE",
@@ -107,7 +109,10 @@ QuicSubheader::FrameTypeToString () const
     "STREAM100",
     "STREAM101",
     "STREAM110",
-    "STREAM111"
+    "STREAM111",
+    "ADD_ADDRESS",
+    "REMOVE_ADDRESS",
+    "MP_ACK"
   };
   std::string typeDescription = "";
 
@@ -154,7 +159,7 @@ uint32_t
 QuicSubheader::CalculateSubHeaderLength () const
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= STREAM111);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
   uint32_t len = 8;
 
   switch (m_frameType)
@@ -235,8 +240,6 @@ QuicSubheader::CalculateSubHeaderLength () const
 
       case ACK:
 
-        len += 8;
-        len += GetVarInt64Size (m_largestSeq);
         len += GetVarInt64Size (m_largestAcknowledged);
         len += GetVarInt64Size (m_ackDelay);
         len += GetVarInt64Size (m_ackBlockCount);
@@ -311,6 +314,33 @@ QuicSubheader::CalculateSubHeaderLength () const
         // The frame marks the end of the stream
         break;
 
+      case ADD_ADDRESS:
+        len += 64;
+        
+        break;
+
+      case REMOVE_ADDRESS:
+        len += 64;
+
+        break;
+      
+      case MP_ACK:
+
+        len += GetVarInt64Size (m_pathId);
+        len += GetVarInt64Size (m_largestSeq);
+        len += GetVarInt64Size (m_largestAcknowledged);
+        len += GetVarInt64Size (m_ackDelay);
+        len += GetVarInt64Size (m_ackBlockCount);
+        len += GetVarInt64Size (m_firstAckBlock);
+        for (uint64_t j = 0; j < m_ackBlockCount; j++)
+          {
+            len += GetVarInt64Size (m_gaps[j]);
+            len += GetVarInt64Size (m_additionalAckBlocks[j]);
+          }
+        break;
+      
+
+
     }
 
   NS_LOG_LOGIC ("CalculateSubHeaderLength - len" << len << " " << len / 8);
@@ -325,7 +355,7 @@ void
 QuicSubheader::Serialize (Buffer::Iterator start) const
 {
   NS_LOG_FUNCTION (this << (uint64_t)m_frameType);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= STREAM111);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
 
   Buffer::Iterator i = start;
   i.WriteU8 ((uint8_t)m_frameType);
@@ -415,8 +445,6 @@ QuicSubheader::Serialize (Buffer::Iterator start) const
 
       case ACK:
 
-        WriteVarInt64 (i, m_pathId);
-        WriteVarInt64 (i, m_largestSeq);
         WriteVarInt64 (i, m_largestAcknowledged);
         WriteVarInt64 (i, m_ackDelay);
         WriteVarInt64 (i, m_ackBlockCount);
@@ -490,6 +518,32 @@ QuicSubheader::Serialize (Buffer::Iterator start) const
         // The frame marks the end of the stream
         break;
 
+      case ADD_ADDRESS:
+        WriteTo(i, m_address);
+        WriteVarInt64 (i, m_pathId);
+        break;
+
+      case REMOVE_ADDRESS:
+        WriteTo(i, m_address);
+        WriteVarInt64 (i, m_pathId);
+        break;
+
+      case MP_ACK:
+
+        WriteVarInt64 (i, m_pathId);
+        WriteVarInt64 (i, m_largestSeq);
+        WriteVarInt64 (i, m_largestAcknowledged);
+        WriteVarInt64 (i, m_ackDelay);
+        WriteVarInt64 (i, m_ackBlockCount);
+        WriteVarInt64 (i, m_firstAckBlock);
+        for (uint64_t j = 0; j < m_ackBlockCount; j++)
+          {
+            WriteVarInt64 (i, m_gaps[j]);
+            WriteVarInt64 (i, m_additionalAckBlocks[j]);
+          }
+        break;
+      
+
     }
 }
 
@@ -501,7 +555,7 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
 
   NS_LOG_FUNCTION (this << (uint64_t)m_frameType);
 
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= STREAM111);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
 
   switch (m_frameType)
     {
@@ -588,8 +642,6 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
 
       case ACK:
 
-        m_pathId = ReadVarInt64(i);
-        m_largestSeq = ReadVarInt64 (i);
         m_largestAcknowledged = ReadVarInt64 (i);
         m_ackDelay = ReadVarInt64 (i);
         m_ackBlockCount = ReadVarInt64 (i);
@@ -663,6 +715,32 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
         // The frame marks the end of the stream
         break;
 
+      case ADD_ADDRESS:
+        ReadFrom(i, m_address, 7);
+        m_pathId = ReadVarInt64(i);
+        break;
+
+      case REMOVE_ADDRESS:
+        ReadFrom(i, m_address, 7);
+        m_pathId = ReadVarInt64(i);
+        break;
+
+
+      case MP_ACK:
+
+        m_pathId = ReadVarInt64(i);
+        m_largestSeq = ReadVarInt64 (i);
+        m_largestAcknowledged = ReadVarInt64 (i);
+        m_ackDelay = ReadVarInt64 (i);
+        m_ackBlockCount = ReadVarInt64 (i);
+        m_firstAckBlock = ReadVarInt64 (i);
+        for (uint64_t j = 0; j < m_ackBlockCount; j++)
+          {
+            m_gaps.push_back (ReadVarInt64 (i));
+            m_additionalAckBlocks.push_back (ReadVarInt64 (i));
+          }
+        break;
+
     }
 
   NS_LOG_INFO ("Deserialized a subheader of size " << GetSerializedSize ());
@@ -672,8 +750,8 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
 void
 QuicSubheader::Print (std::ostream &os) const
 {
-  NS_LOG_FUNCTION (this << (uint64_t) m_frameType);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= STREAM111);
+   NS_LOG_FUNCTION (this << (uint64_t) m_frameType);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
 
   os << "|" << FrameTypeToString () << "|\n";
   switch (m_frameType)
@@ -685,7 +763,7 @@ QuicSubheader::Print (std::ostream &os) const
 
       case RST_STREAM:
 
-        os << "|Stream Id " << m_streamId << "|\n";
+        //os << "|Stream Id " << m_streamId << "|\n";
         os << "|Application Error Code " << m_errorCode << "|\n";
         os << "|Final Offset " << m_offset << "|\n";
         break;
@@ -763,8 +841,6 @@ QuicSubheader::Print (std::ostream &os) const
 
       case ACK:
 
-        os << "|Path Id" << m_pathId << "|\n";
-        os << "|Largest Seq " << m_largestSeq << "|\n";
         os << "|Largest Acknowledged " << m_largestAcknowledged << "|\n";
         os << "|Ack Delay " << m_ackDelay << "|\n";
         os << "|Ack Block Count " << m_ackBlockCount << "|\n";
@@ -825,9 +901,9 @@ QuicSubheader::Print (std::ostream &os) const
 
       case STREAM110:
 
-        os << "|Stream Id " << m_streamId << "|\n";
+/*         os << "|Stream Id " << m_streamId << "|\n";
         os << "|Offset " << m_offset << "|\n";
-        os << "|Length " << m_length << "|\n";
+        os << "|Length " << m_length << "|\n"; */
         break;
 
       case STREAM111:
@@ -836,6 +912,31 @@ QuicSubheader::Print (std::ostream &os) const
         os << "|Offset " << m_offset << "|\n";
         os << "|Length " << m_length << "|\n";
         // The frame marks the end of the stream
+        break; 
+      
+      case ADD_ADDRESS:
+        os << "|ADD Address " << m_address << "|\n";
+        os << "|Path Id" << m_pathId << "|\n";
+        break;
+
+      case REMOVE_ADDRESS:
+        os << "|REMOVE Address " << m_address << "|\n";
+        os << "|Path Id" << m_pathId << "|\n";
+        break;
+
+      case MP_ACK:
+
+        os << "|Path Id" << m_pathId << "|\n";
+        os << "|Largest Seq " << m_largestSeq << "|\n";
+        os << "|Largest Acknowledged " << m_largestAcknowledged << "|\n";
+        os << "|Ack Delay " << m_ackDelay << "|\n";
+        os << "|Ack Block Count " << m_ackBlockCount << "|\n";
+        os << "|First Ack Block " << m_firstAckBlock << "|\n";
+        for (uint64_t j = 0; j < m_ackBlockCount; j++)
+          {
+            os << "|Gap " << m_gaps[j] << "|\n";
+            os << "|Additional Ack Block " << m_additionalAckBlocks[j] << "|\n";
+          }
         break;
     }
 }
@@ -1168,7 +1269,7 @@ QuicSubheader::CreateStopSending (uint64_t streamId, uint16_t applicationErrorCo
 }
 
 QuicSubheader
-QuicSubheader::CreateAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks, uint32_t pathId, uint32_t largestSeq)
+QuicSubheader::CreateAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks)
 {
   NS_LOG_INFO ("Created Ack Header");
 
@@ -1180,8 +1281,6 @@ QuicSubheader::CreateAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint3
   sub.SetFirstAckBlock (firstAckBlock);
   sub.SetGaps (gaps);
   sub.SetAdditionalAckBlocks (additionalAckBlocks);
-  sub.SetPathId(pathId);
-  sub.SetLargestSeq(largestSeq);
   return sub;
 }
 
@@ -1478,6 +1577,7 @@ uint64_t QuicSubheader::GetOffset () const
 
 void QuicSubheader::SetOffset (uint64_t offset)
 {
+  NS_LOG_FUNCTION (this <<"setOffset: "<< offset);
   m_offset = offset;
 }
 
@@ -1521,6 +1621,96 @@ void QuicSubheader::SetStreamId (uint64_t streamId)
   m_streamId = streamId;
 }
 
+
+
+uint64_t QuicSubheader::GetFirstAckBlock () const
+{
+  return m_firstAckBlock;
+}
+
+void QuicSubheader::SetFirstAckBlock (uint64_t firstAckBlock)
+{
+  m_firstAckBlock = firstAckBlock;
+}
+
+
+// For multipath implementation
+
+
+
+bool
+QuicSubheader::IsMpAck () const
+{
+  return m_frameType == MP_ACK;
+}
+
+
+bool
+QuicSubheader::IsAddAddress () const
+{
+  return m_frameType == ADD_ADDRESS;
+}
+
+
+bool
+QuicSubheader::IsRemoveAddress () const
+{
+  return m_frameType == REMOVE_ADDRESS;
+}
+
+QuicSubheader
+QuicSubheader::CreateAddAddress(Address addr, int16_t pathId)
+{
+  NS_LOG_INFO ("Create Add Address Header");
+  
+  QuicSubheader sub;
+  sub.SetFrameType(ADD_ADDRESS);
+  sub.SetAddress(addr);
+  sub.SetPathId(pathId);
+  return sub;
+}
+
+QuicSubheader
+QuicSubheader::CreateRemoveAddress(Address addr, int16_t pathId)
+{
+  NS_LOG_INFO ("Create Remove Address Header");
+  
+  QuicSubheader sub;
+  sub.SetFrameType(REMOVE_ADDRESS);
+  sub.SetAddress(addr);
+  sub.SetPathId(pathId);
+  return sub;
+}
+
+
+QuicSubheader
+QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks, uint32_t pathId, uint32_t largestSeq)
+{
+  NS_LOG_INFO ("Created Ack Header");
+
+  QuicSubheader sub;
+  sub.SetFrameType (MP_ACK);
+  sub.SetLargestAcknowledged (largestAcknowledged);
+  sub.SetAckDelay (ackDelay);
+  sub.SetAckBlockCount (gaps.size ());
+  sub.SetFirstAckBlock (firstAckBlock);
+  sub.SetGaps (gaps);
+  sub.SetAdditionalAckBlocks (additionalAckBlocks);
+  sub.SetPathId(pathId);
+  sub.SetLargestSeq(largestSeq);
+  return sub;
+}
+
+Address QuicSubheader::GetAddress () const
+{
+  return m_address;
+}
+
+void QuicSubheader::SetAddress (Address address)
+{
+  m_address = address;
+}
+
 uint32_t QuicSubheader::GetPathId() const {
 	return m_pathId;
 }
@@ -1535,23 +1725,6 @@ uint32_t QuicSubheader::GetLargestSeq() const {
 
 void QuicSubheader::SetLargestSeq(uint32_t largestSeq) {
 	m_largestSeq = largestSeq;
-}
-//uint128_t QuicSubheader::getStatelessResetToken() const {
-//	return m_statelessResetToken;
-//}
-//
-//void QuicSubheader::SetStatelessResetToken(uint128_t statelessResetToken) {
-//	m_statelessResetToken = statelessResetToken;
-//}
-
-uint64_t QuicSubheader::GetFirstAckBlock () const
-{
-  return m_firstAckBlock;
-}
-
-void QuicSubheader::SetFirstAckBlock (uint64_t firstAckBlock)
-{
-  m_firstAckBlock = firstAckBlock;
 }
 
 } // namespace ns3

@@ -18,6 +18,7 @@
  * Authors: Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Umberto Paro <umberto.paro@me.com>
+ *          Wenjun Yang <wenjunyang@uvic.ca>
  *
  */
 
@@ -192,10 +193,10 @@ QuicSocketTxScheduler::AddScheduleItem (Ptr<QuicSocketTxScheduleItem> item, bool
 }
 
 Ptr<QuicSocketTxItem>
-QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
+QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes, uint32_t pathId, uint32_t Q)
 {
   NS_LOG_FUNCTION (this << numBytes);
-
+  // std::cout<<"I got pathId: "<<pathId<<" and Q: "<<Q<<std::endl;
   bool firstSegment = true;
   Ptr<Packet> currentPacket = 0;
   Ptr<QuicSocketTxItem> currentItem = 0;
@@ -204,6 +205,29 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
   outItem->m_isStream0 = false;
   outItem->m_packet = Create<Packet> ();
   uint32_t outItemSize = 0;
+
+  //onFast, onSlow, updated, Q, 
+
+  // if (onFast) // onFast = 1 means we are using the fast path
+  // {
+  //   if (SP0+numBytes < Q)
+  //   {
+  //     oldOffset = SP0;
+  //     newOffset = ..;
+  //     SP0 += numBytes;
+  //   }else{
+  //     SP0 = SP1;
+  //     oldOffset = SP1;
+  //     newOffset = ;
+  //     SP0 += numBytes;
+  //   }
+  // }else if (onSlow){  //onSlow = 1 means we are using the slow path
+  //   oldOffset = SP1;
+  //   newOffset = ..;
+  //   SP1 += numBytes;
+  // }
+
+
 
 
   while (m_appSize > 0 && outItemSize < numBytes)
@@ -220,9 +244,17 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
           NS_LOG_LOGIC ("Add complete frame to the outItem - size "
                         << currentItem->m_packet->GetSize ()
                         << " m_appSize " << m_appSize);
+
+          // std::cout<<"Add complete frame to the outItem - size "
+          //               << currentItem->m_packet->GetSize ()
+          //               << " m_appSize " << m_appSize<<std::endl;
+
           QuicSubheader qsb;
           currentPacket->PeekHeader (qsb);
           NS_LOG_INFO ("Packet: stream " << qsb.GetStreamId () << ", offset " << qsb.GetOffset ());
+
+          std::cout<<"Packet: stream " << qsb.GetStreamId () << ", offset " << qsb.GetOffset ()<<std::endl;
+
           QuicSocketTxItem::MergeItems (*outItem, *currentItem);
           outItemSize += currentItem->m_packet->GetSize ();
 
@@ -239,6 +271,11 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
 
           // new packet size
           int newPacketSizeInt = (int)numBytes - outItemSize - qsb.GetSerializedSize ();
+          // std::cout<<"--**** QuicSocketTxScheduler::GetNewSegment numBytes: "<<(int)numBytes
+          //         <<" outItemSize: "
+          //         <<outItemSize
+          //         <<" qsb.GetSerializedSize ():"
+          //         <<qsb.GetSerializedSize ()<<std::endl; 
           if (newPacketSizeInt <= 0)
             {
               NS_LOG_INFO ("Not enough bytes even for the header");
@@ -249,16 +286,18 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
           else
             {
               NS_LOG_INFO ("Split packet on stream " << qsb.GetStreamId () << ", sending " << newPacketSizeInt << " bytes from offset " << qsb.GetOffset ());
+              // std::cout<<"Split packet on stream " << qsb.GetStreamId () << ", sending " << newPacketSizeInt << " bytes from offset " << qsb.GetOffset ()<<std::endl;
 
               currentPacket->RemoveHeader (qsb);
               uint32_t newPacketSize = (uint32_t)newPacketSizeInt;
 
               NS_LOG_LOGIC ("Add incomplete frame to the outItem");
+              // std::cout<<"Add incomplete frame to the outItem"<<std::endl;
               uint32_t totPacketSize = currentItem->m_packet->GetSize ();
               NS_LOG_LOGIC ("Extracted " << outItemSize << " bytes");
-
-              uint32_t oldOffset = qsb.GetOffset ();
+              uint32_t oldOffset = qsb.GetOffset();
               uint32_t newOffset = oldOffset + newPacketSize;
+              // std::cout<<"--))) QuicSocketTxScheduler::GetNewSegment"<<" oldOffset: "<<oldOffset<<" new offset: "<<newOffset<<" newpacket size: "<<newPacketSize<<std::endl;
               bool oldOffBit = !(oldOffset == 0);
               bool newOffBit = true;
               uint32_t oldLength = qsb.GetLength ();
@@ -286,7 +325,7 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
               firstPartPacket->Print (std::cerr);
 
               NS_LOG_INFO ("Split packet, putting second part back in application buffer - stream " << newQsbToBuffer.GetStreamId () << ", storing from offset " << newQsbToBuffer.GetOffset ());
-
+              // std::cout<<"Split packet, putting second part back in application buffer - stream " << newQsbToBuffer.GetStreamId () << ", storing from offset " << newQsbToBuffer.GetOffset ()<<std::endl;
 
               Ptr<Packet> secondPartPacket = currentItem->m_packet->CreateFragment (
                 newPacketSize, newLength);
@@ -304,6 +343,7 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
 
 
               NS_LOG_LOGIC ("Buffer size: " << m_appSize << " (put back " << toBeBuffered->m_packet->GetSize () << " bytes)");
+              // std::cout<<"Buffer size: " << m_appSize << " (put back " << toBeBuffered->m_packet->GetSize () << " bytes)"<<std::endl;
               break; // at most one segment
             }
         }
@@ -312,7 +352,7 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes)
   NS_LOG_INFO ("Update: remaining App Size " << m_appSize << ", object size " << outItemSize);
 
   //Print(std::cout);
-
+  ofo_offset += numBytes;
   return outItem;
 }
 

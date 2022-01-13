@@ -65,7 +65,7 @@ public:
     HANDSHAKE  = 3,           //!< Handshake
     ZRTT_PROTECTED  = 4,      //!< 0-Rtt Protected
     NONE = 5,                  //!< No type byte
-    ANNOUNCE = 6               //!< Announce for multipath
+
   } TypeLong_t;
 
   /**
@@ -154,16 +154,6 @@ public:
    */
   static QuicHeader Create0RTT (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber);
 
-
-  /**
-   * Create the header for an Announce Protected packet
-   *
-   * \param connectionId the ID of the connection
-   * \param version the version of the connection
-   * \param packetNumber the packet number
-   * \return the generated QuicHeader
-   */
-  static QuicHeader CreateAnnounce (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber);
 
   /**
    * Create the header for a Version Negotiation packet, sends to the client a list of supported versions
@@ -314,12 +304,6 @@ public:
    * \return true if the header is 0-Rtt Protected, false otherwise
    */
   bool IsORTT () const;
-
-  /**
-   * \brief Check if the header is Announce Protected
-   * \return true if the header is Announce Protected, false otherwise
-   */
-  bool IsAnnounce () const;
 
   /**
    * \brief Check if the header has the connection id

@@ -20,7 +20,8 @@
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
  *          Umberto Paro <umberto.paro@me.com>
- *
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
 #define __STDC_LIMIT_MACROS
@@ -32,58 +33,58 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/nstime.h"
 #include "quic-socket.h"
-#include "quic-congestion-ops.h"
+#include "mp-quic-congestion-ops.h"
 #include "quic-socket-base.h"
 
 namespace ns3 {
 
-NS_LOG_COMPONENT_DEFINE ("QuicCongestionControl");
+NS_LOG_COMPONENT_DEFINE ("MpQuicCongestionControl");
 
-NS_OBJECT_ENSURE_REGISTERED (QuicCongestionOps);
+NS_OBJECT_ENSURE_REGISTERED (MpQuicCongestionOps);
 
 TypeId
-QuicCongestionOps::GetTypeId (void)
+MpQuicCongestionOps::GetTypeId (void)
 {
-  static TypeId tid = TypeId ("ns3::QuicCongestionControl")
+  static TypeId tid = TypeId ("ns3::MpQuicCongestionControl")
     .SetParent<TcpNewReno> ()
     .SetGroupName ("Internet")
-    .AddConstructor<QuicCongestionOps> ()
+    .AddConstructor<MpQuicCongestionOps> ()
   ;
   return tid;
 }
 
-QuicCongestionOps::QuicCongestionOps (void)
+MpQuicCongestionOps::MpQuicCongestionOps (void)
   : TcpNewReno ()
 {
   NS_LOG_FUNCTION (this);
 }
 
-QuicCongestionOps::QuicCongestionOps (
-  const QuicCongestionOps& sock)
+MpQuicCongestionOps::MpQuicCongestionOps (
+  const MpQuicCongestionOps& sock)
   : TcpNewReno (sock)
 {
   NS_LOG_FUNCTION (this);
 }
 
-QuicCongestionOps::~QuicCongestionOps (void)
+MpQuicCongestionOps::~MpQuicCongestionOps (void)
 {}
 
 std::string
-QuicCongestionOps::GetName () const
+MpQuicCongestionOps::GetName () const
 {
-  return "QuicCongestionControl";
+  return "MpQuicCongestionControl";
 }
 
 Ptr<TcpCongestionOps>
-QuicCongestionOps::Fork ()
+MpQuicCongestionOps::Fork ()
 {
-  return CopyObject<QuicCongestionOps> (this);
+  return CopyObject<MpQuicCongestionOps> (this);
 }
 
 // Quic DRAFT 10
 
 void
-QuicCongestionOps::OnPacketSent (Ptr<TcpSocketState> tcb,
+MpQuicCongestionOps::OnPacketSent (Ptr<TcpSocketState> tcb,
                                  SequenceNumber32 packetNumber,
                                  bool isAckOnly)
 {
@@ -96,7 +97,7 @@ QuicCongestionOps::OnPacketSent (Ptr<TcpSocketState> tcb,
 }
 
 void
-QuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
+MpQuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
                                   QuicSubheader &ack,
                                   std::vector<Ptr<QuicSocketTxItem> > newAcks,
                                   const struct RateSample *rs)
@@ -133,7 +134,7 @@ QuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
 }
 
 void
-QuicCongestionOps::UpdateRtt (Ptr<TcpSocketState> tcb, Time latestRtt,
+MpQuicCongestionOps::UpdateRtt (Ptr<TcpSocketState> tcb, Time latestRtt,
                               Time ackDelay)
 {
   NS_LOG_FUNCTION (this);
@@ -174,7 +175,7 @@ QuicCongestionOps::UpdateRtt (Ptr<TcpSocketState> tcb, Time latestRtt,
 }
 
 void
-QuicCongestionOps::OnPacketAcked (Ptr<TcpSocketState> tcb,
+MpQuicCongestionOps::OnPacketAcked (Ptr<TcpSocketState> tcb,
                                   Ptr<QuicSocketTxItem> ackedPacket)
 {
   NS_LOG_FUNCTION (this);
@@ -196,7 +197,7 @@ QuicCongestionOps::OnPacketAcked (Ptr<TcpSocketState> tcb,
 }
 
 bool
-QuicCongestionOps::InRecovery (Ptr<TcpSocketState> tcb,
+MpQuicCongestionOps::InRecovery (Ptr<TcpSocketState> tcb,
                                SequenceNumber32 packetNumber)
 {
   NS_LOG_FUNCTION (this << packetNumber.GetValue ());
@@ -207,7 +208,7 @@ QuicCongestionOps::InRecovery (Ptr<TcpSocketState> tcb,
 }
 
 void
-QuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
+MpQuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
                                     Ptr<QuicSocketTxItem> ackedPacket)
 {
   NS_LOG_FUNCTION (this);
@@ -241,7 +242,7 @@ QuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
 }
 
 void
-QuicCongestionOps::OnPacketsLost (
+MpQuicCongestionOps::OnPacketsLost (
   Ptr<TcpSocketState> tcb, std::vector<Ptr<QuicSocketTxItem> > lostPackets)
 {
   NS_LOG_LOGIC (this);
@@ -265,7 +266,7 @@ QuicCongestionOps::OnPacketsLost (
 }
 
 void
-QuicCongestionOps::OnRetransmissionTimeoutVerified (
+MpQuicCongestionOps::OnRetransmissionTimeoutVerified (
   Ptr<TcpSocketState> tcb)
 {
   NS_LOG_FUNCTION (this);

@@ -20,11 +20,12 @@
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
  *          Umberto Paro <umberto.paro@me.com>
- *
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
-#ifndef QUICCONGESTIONOPS_H
-#define QUICCONGESTIONOPS_H
+#ifndef MPMpQUICCONGESTIONOPS_H
+#define MPMpQUICCONGESTIONOPS_H
 
 #include "ns3/timer.h"
 #include "ns3/object.h"
@@ -50,7 +51,7 @@ namespace ns3 {
  *
  * The congestion control is splitted from the main socket code, and it is a
  * pluggable component. An interface has been defined; variables are maintained
- * in the QuicSocketState class, while subclasses of QuicCongestionOps operate
+ * in the QuicSocketState class, while subclasses of MpQuicCongestionOps operate
  * over an instance of that class.
  *
  * The design extends TcpNewReno to provide compatibility with the TCP congestion
@@ -58,7 +59,7 @@ namespace ns3 {
  * QUIC-related capabilities.
  *
  */
-class QuicCongestionOps : public TcpNewReno
+class MpQuicCongestionOps : public TcpNewReno
 {
 public:
   /**
@@ -67,9 +68,9 @@ public:
    */
   static TypeId GetTypeId (void);
 
-  QuicCongestionOps ();
-  QuicCongestionOps (const QuicCongestionOps& sock);
-  ~QuicCongestionOps ();
+  MpQuicCongestionOps ();
+  MpQuicCongestionOps (const MpQuicCongestionOps& sock);
+  ~MpQuicCongestionOps ();
 
   /**
    * \brief Get the name of the congestion control algorithm
@@ -85,7 +86,7 @@ public:
    */
   Ptr<TcpCongestionOps> Fork ();
 
-  // QuicCongestionControl Draft10
+  // MpQuicCongestionControl Draft10
 
   /**
    * \brief Method called when a packet is sent. It updates the quantities in the tcb
@@ -118,7 +119,7 @@ public:
   virtual void OnPacketsLost (Ptr<TcpSocketState> tcb, std::vector<Ptr<QuicSocketTxItem> > lostPackets);
 
 protected:
-  // QuicCongestionControl Draft10
+  // MpQuicCongestionControl Draft10
 
   /**
    * \brief Method called to update the Rtt. It updates the quantities in the tcb.

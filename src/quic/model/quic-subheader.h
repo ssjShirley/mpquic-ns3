@@ -130,7 +130,11 @@ public:
     STREAM100 = 0x14,          //!< Stream (offset=1, length=0, fin=0)
     STREAM101 = 0x15,          //!< Stream (offset=1, length=0, fin=1)
     STREAM110 = 0x16,          //!< Stream (offset=1, length=1, fin=0)
-    STREAM111 = 0x17           //!< Stream (offset=1, length=1, fin=1)
+    STREAM111 = 0x17,          //!< Stream (offset=1, length=1, fin=1)
+    ADD_ADDRESS = 0x18,        //!< Multipath Implementation: Add address
+    REMOVE_ADDRESS = 0x19,     //!< Multipath Implementation: Remove address
+    MP_ACK = 0x1A              //!< Multipath Implementation: Mp Ack
+
   } TypeFrame_t;
 
   /**
@@ -332,7 +336,7 @@ public:
    * \param additionalAckBlocks the vector where each field contains the number of contiguous acknowledged packets preceding the largest packet number
    * \return the generated QuicSubheader
    */
-  static QuicSubheader CreateAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks, uint32_t pathId, uint32_t largestSeq);
+  static QuicSubheader CreateAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks);
 
   /**
    * Create a Path Response subheader
@@ -581,16 +585,6 @@ public:
    */
   void SetStreamId (uint64_t streamId);
 
-
-  uint32_t GetPathId() const;
-
-
-  void SetPathId(uint32_t pathId);
-
-  uint32_t GetLargestSeq() const;
-
-  void SetLargestSeq(uint32_t largestSeq);
-
   /**
    * \brief Get the first ack block
    * \return The first ack block for this QuicSubheader
@@ -733,6 +727,110 @@ public:
    */
   uint32_t CalculateSubHeaderLength () const;
 
+
+  // For multipath implementation
+
+  /**
+   * @brief 
+   * 
+   * @return true 
+   * @return false 
+   */
+  bool IsMpAck () const;
+
+  /**
+   * @brief 
+   * 
+   * @return true 
+   * @return false 
+   */
+  bool IsAddAddress () const;
+
+  /**
+   * @brief 
+   * 
+   * @return true 
+   * @return false 
+   */
+  bool IsRemoveAddress () const;
+
+  
+  /**
+   * Create a Add Address object
+   * 
+   * \param addr 
+   * \return QuicSubheader 
+   */
+  static QuicSubheader CreateAddAddress(Address addr, int16_t pathId);
+
+
+  /**
+   * Create a Remove Address object
+   * 
+   * \param addr 
+   * \return QuicSubheader 
+   */
+  static QuicSubheader CreateRemoveAddress(Address addr, int16_t pathId);
+
+
+  /**
+   * Create a Ack subheader
+   *
+   * \param largestAcknowledged the largest packet number the peer is acknowledging
+   * \param ackDelay the time in microseconds that the largest acknowledged packet, was received by this peer to when this ACK was sent
+   * \param firstAckBlock the number of contiguous packets preceding the Largest Acknowledged that are being acknowledged
+   * \param gaps the vector where each field contains the number of contiguous unacknowledged packets preceding the packet number one lower than the smallest in the preceding ack block
+   * \param additionalAckBlocks the vector where each field contains the number of contiguous acknowledged packets preceding the largest packet number
+   * \param pathId subflow identification
+   * \param largestSeq
+   * 
+   * \return the generated QuicSubheader
+   */
+  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint32_t pathId, uint32_t largestSeq);
+
+  /**
+   * @brief Get the Path Id object
+   * 
+   * @return uint32_t 
+   */
+  uint32_t GetPathId() const;
+
+  /**
+   * @brief Set the Path Id object
+   * 
+   * @param pathId 
+   */
+  void SetPathId(uint32_t pathId);
+
+  /**
+   * @brief Get the Largest Seq object
+   * 
+   * @return uint32_t 
+   */
+  uint32_t GetLargestSeq() const;
+
+  /**
+   * @brief Set the Largest Seq object
+   * 
+   * @param largestSeq 
+   */
+  void SetLargestSeq(uint32_t largestSeq);
+
+  /**
+   * @brief Get the Address object
+   * 
+   * @return Address 
+   */
+  Address GetAddress () const;
+
+  /**
+   * @brief Set the Address object
+   * 
+   * @param address 
+   */
+  void SetAddress (Address address);
+
+
 private:
   uint8_t m_frameType;                          //!< Frame type
   uint64_t m_streamId;                          //!< Stream id
@@ -754,8 +852,9 @@ private:
   std::vector<uint32_t> m_gaps;                 //!< Gaps vector
   uint8_t m_data;                               //!< Data word
   uint64_t m_length;                            //!< Length
-  uint32_t m_pathId;                             //!< Path Id
-  uint32_t m_largestSeq;                        //!< seq
+  uint16_t m_pathId;                            //!< Multipath Implementation: Path Id
+  uint32_t m_largestSeq;                        //!< Multipath Implementation: largest seq
+  Address m_address;                            //!< Multipath Implementation: Address
 };
 
 } // namespace ns3

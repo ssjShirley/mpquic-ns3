@@ -19,6 +19,8 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  *
  */
 /*
@@ -133,9 +135,18 @@ QuicStreamBase::Send (Ptr<Packet> frame)
         {
           if (!m_streamSendPendingDataEvent.IsRunning ())
             {
+              // std::cout<<"quic-stream-base.cc ----tst"<<std::endl;
+              //m_streamSendPendingDataEvent = Simulator::Schedule (TimeStep (1), &QuicStreamBase::SendPendingData, this);
+              // if (m_quicl5->vnReceived)
+              // {
+                // std::cout<<"****m_quicl5->vnReceived = 1";
+              //   SendPendingData();
+              //   m_quicl5->vnReceived = 0;
 
-              m_streamSendPendingDataEvent = Simulator::ScheduleNow (&QuicStreamBase::SendPendingData, this);
-             
+              // }else{
+                m_streamSendPendingDataEvent = Simulator::ScheduleNow (&QuicStreamBase::SendPendingData, this);
+                // std::cout<<"quic-stream-base.cc ----sendpendingdata"<<std::endl;
+              // }
             }
         }
       return sent;
@@ -254,6 +265,7 @@ QuicStreamBase::SendDataFrame (SequenceNumber32 seq, uint32_t maxSize)
   bool lengthBit = true;
 
   QuicSubheader sub = QuicSubheader::CreateStreamSubHeader (m_streamId, (uint64_t)seq.GetValue (), frame->GetSize (), m_sentSize != 0, lengthBit, m_fin);
+  // std::cout<<"size"<< frame->GetSize ()<<std::endl;
   m_sentSize += frame->GetSize ();
 
   frame->AddHeader (sub);
@@ -428,10 +440,13 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
         }
       SetStreamStateRecvIf (m_streamStateRecv == RECV and m_fin, SIZE_KNOWN);
 
-      if (m_recvSize == sub.GetOffset ())
+
+//  std::cout<<"--///--Received a frame with the size " << sub.GetLength ()<<" expected offset: "<<m_recvSize<<" actual offset:"<<sub.GetOffset ()<<std::endl;
+      if (m_recvSize == sub.GetOffset ()) 
         {
 
           NS_LOG_INFO ("Received a frame with the correct order of size " << sub.GetLength ());
+         
           m_recvSize += sub.GetLength ();
 
           if (m_maxAdvertisedData == 0 || m_recvSize + m_rxBuffer->Available () > m_maxAdvertisedData + m_maxDataInterval)
@@ -483,6 +498,7 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
               NS_LOG_LOGIC ("Received window set to offset " << sub.GetMaxStreamData ());
             }
           NS_LOG_INFO ("Buffering unordered received frame - offset " << m_recvSize << ", frame offset " << sub.GetOffset ());
+          std::cout<<"quic-stream-base.cc  Buffering unordered received frame of size " << sub.GetLength () <<" m_recvSize: "<<m_recvSize<< ", frame offset " << sub.GetOffset ()<<std::endl;
           if (!m_rxBuffer->Add (frame, sub) && frame->GetSize () > 0)
             {
               // Insert failed: No or duplicate data, or RX buffer full

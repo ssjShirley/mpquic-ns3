@@ -11,7 +11,6 @@ def build(bld):
     module.source = [
         'model/quic-congestion-ops.cc',
         'model/quic-socket.cc',
-        'model/quic-scheduler.cc',
         'model/quic-socket-base.cc',
         'model/quic-socket-factory.cc',
         'model/quic-l4-protocol.cc',
@@ -30,7 +29,9 @@ def build(bld):
         'model/quic-transport-parameters.cc',
         'model/quic-bbr.cc',
         'model/mp-quic-typedefs.cc',
-        'helper/quic-helper.cc',
+        'model/mp-quic-scheduler.cc',
+        'model/mp-quic-path-manager.cc',
+        'helper/quic-helper.cc'
         ]
 
     module_test = bld.create_ns3_module_test_library('quic')
@@ -45,7 +46,6 @@ def build(bld):
     headers.source = [
         'model/quic-congestion-ops.h',
         'model/quic-socket.h',
-        'model/quic-scheduler.h',
         'model/quic-socket-base.h',
         'model/quic-socket-factory.h',
         'model/quic-l4-protocol.h',
@@ -65,7 +65,9 @@ def build(bld):
         'model/quic-bbr.h',
         'helper/quic-helper.h',
         'model/mp-quic-typedefs.h',
-        'model/windowed-filter.h', 
+        'model/mp-quic-scheduler.h',
+        'model/mp-quic-path-manager.h',
+        'model/windowed-filter.h'
         ]
 
     if bld.env.ENABLE_EXAMPLES:

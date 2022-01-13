@@ -5,7 +5,41 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Pipe Launch",
+            "name": "(gdb) mpquic",
+            "type": "cppdbg",
+            "request": "launch",
+            //"program": "${workspaceFolder}/build/utils/ns3-dev-test-runner-debug",
+            "program": "${workspaceFolder}/build/scratch/mpquic-example",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "pipeTransport": {
+                "debuggerPath": "",  // leave blank
+                "pipeProgram": "${workspaceFolder}/waf",
+                // pipeArgs is essentially the entire waf command line arguments                
+                "pipeArgs": [                    
+                    "--command-template", "\"",                 // opening double quote for command template 
+                    "${debuggerCommand}",                       // gdb path and --interpreter arg already in debuggerCommand 
+                    "--args", "%s",                             // Need to add --args %s to the gdb call
+                    "\"",                                       // closing quote for command template
+                    "--run", "mpquic-example",      // Run call with the filename
+                    ],
+                    "quoteArgs":false,
+                    "pipeCwd": ""
+            },
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) quic",
             "type": "cppdbg",
             "request": "launch",
             //"program": "${workspaceFolder}/build/utils/ns3-dev-test-runner-debug",
@@ -24,7 +58,7 @@
                     "${debuggerCommand}",                       // gdb path and --interpreter arg already in debuggerCommand 
                     "--args", "%s",                             // Need to add --args %s to the gdb call
                     "\"",                                       // closing quote for command template
-                    "--run", "quic-tester-mp",      // Run call with the filename
+                    "--run", "mpquic-example",      // Run call with the filename
                     ],
                     "quoteArgs":false,
                     "pipeCwd": ""

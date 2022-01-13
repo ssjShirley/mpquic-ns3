@@ -20,6 +20,8 @@
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
  *          Umberto Paro <umberto.paro@me.com>
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  *
  */
 /*
@@ -70,7 +72,7 @@
 #include <ns3/core-module.h>
 #include <boost/assign/list_of.hpp>
 
-#include "quic-scheduler.h"
+#include "mp-quic-scheduler.h"
 
 namespace ns3 {
 
@@ -176,7 +178,7 @@ QuicSocketBase::GetTypeId (void)
                    MakeDoubleAccessor (&QuicSocketState::m_kTimeReorderingFraction),
                    MakeDoubleChecker<double> (0))
     .AddAttribute ("kUsingTimeLossDetection", "Whether time based loss detection is in use", 
-                   BooleanValue (false),
+                   BooleanValue (true),
                    MakeBooleanAccessor (&QuicSocketState::m_kUsingTimeLossDetection),
                    MakeBooleanChecker ())
     .AddAttribute ("kMinTLPTimeout", "Minimum time in the future a tail loss probe alarm may be set for",
@@ -184,7 +186,7 @@ QuicSocketBase::GetTypeId (void)
                    MakeTimeAccessor (&QuicSocketState::m_kMinTLPTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kMinRTOTimeout", "Minimum time in the future an RTO alarm may be set for",
-                   TimeValue (MilliSeconds (200)),
+                   TimeValue (MilliSeconds (20)),
                    MakeTimeAccessor (&QuicSocketState::m_kMinRTOTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kDelayedAckTimeout", "The length of the peer's delayed ACK timer",
@@ -227,6 +229,11 @@ QuicSocketBase::GetTypeId (void)
                    PointerValue (),
                    MakePointerAccessor (&QuicSocketBase::m_tcb),
                    MakePointerChecker<QuicSocketState> ())
+    .AddAttribute ("EnableMultipath",
+                   "When true, multipath is supported",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&QuicSocketBase::m_enableMultipath),
+                   MakeBooleanChecker ())
     // .AddTraceSource ("RTO", "Retransmission timeout",
     //                  MakeTraceSourceAccessor (&QuicSocketBase::m_rto),
     //                  "ns3::Time::TracedValueCallback").AddTraceSource (
@@ -348,7 +355,7 @@ QuicSocketState::GetTypeId (void)
                    MakeDoubleAccessor (&QuicSocketState::m_kTimeReorderingFraction),
                    MakeDoubleChecker<double> (0))
     .AddAttribute ("kUsingTimeLossDetection",
-                   "Whether time based loss detection is in use", BooleanValue (false),
+                   "Whether time based loss detection is in use", BooleanValue (true),
                    MakeBooleanAccessor (&QuicSocketState::m_kUsingTimeLossDetection),
                    MakeBooleanChecker ())
     .AddAttribute ("kMinTLPTimeout",
@@ -358,7 +365,7 @@ QuicSocketState::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("kMinRTOTimeout",
                    "Minimum time in the future an RTO alarm may be set for",
-                   TimeValue (MilliSeconds (200)),
+                   TimeValue (MilliSeconds (20)),
                    MakeTimeAccessor (&QuicSocketState::m_kMinRTOTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kDelayedAckTimeout", "The lenght of the peer's delayed ack timer",
@@ -405,10 +412,10 @@ QuicSocketState::QuicSocketState ()
     m_kReorderingThreshold (3),
     m_kTimeReorderingFraction (9 / 8),
     m_kUsingTimeLossDetection (
-      false),
+      true),
     m_kMinTLPTimeout (MilliSeconds (10)),
     m_kMinRTOTimeout (
-      MilliSeconds (200)),
+      MilliSeconds (20)),
     m_kDelayedAckTimeout (MilliSeconds (25)),
     m_alarmType (0),
     m_nextAlarmTrigger (Seconds (100)),
@@ -467,7 +474,6 @@ QuicSocketState::QuicSocketState (const QuicSocketState &other)
 
 QuicSocketBase::QuicSocketBase (void)
   :  QuicSocket (),
-    m_subflows (0),
     m_endPoint (0),
     m_endPoint6 (0),
     m_node (0),
@@ -509,7 +515,11 @@ QuicSocketBase::QuicSocketBase (void)
     m_lastRtt (Seconds (0.0)),
     m_queue_ack (false),
     m_numPacketsReceivedSinceLastAckSent (0),
-    m_pacingTimer (Timer::REMOVE_ON_DESTROY)
+    m_pacingTimer (Timer::REMOVE_ON_DESTROY),
+    m_enableMultipath(false),
+    m_pathManager(0),
+    m_scheduler (0),
+    m_subflows (0)
 {
   NS_LOG_FUNCTION (this);
 
@@ -565,6 +575,9 @@ QuicSocketBase::QuicSocketBase (void)
                                           MakeCallback (&QuicSocketBase::UpdateHighTxMark, this));
   NS_ASSERT_MSG (ok == true, "Failed connection to highest sequence trace");
 
+  CreatePathManager();
+  CreateScheduler();
+
 }
 
 QuicSocketBase::QuicSocketBase (const QuicSocketBase& sock)   // Copy constructor
@@ -605,13 +618,16 @@ QuicSocketBase::QuicSocketBase (const QuicSocketBase& sock)   // Copy constructo
     m_pacingTimer (Timer::REMOVE_ON_DESTROY),
     m_txTrace (sock.m_txTrace),
     m_rxTrace (sock.m_rxTrace),
-    m_scheduler (0)
+    m_enableMultipath(sock.m_enableMultipath),
+    m_pathManager(sock.m_pathManager),
+    m_scheduler (sock.m_scheduler),
+    m_subflows (sock.m_subflows)
 {
   NS_LOG_FUNCTION (this);
 
-
   m_txBuffer = CopyObject (sock.m_txBuffer);
   m_rxBuffer = CopyObject (sock.m_rxBuffer);
+
   m_receivedPacketNumbers = std::vector<SequenceNumber32> ();
 
 
@@ -640,6 +656,8 @@ QuicSocketBase::QuicSocketBase (const QuicSocketBase& sock)   // Copy constructo
       m_tcb->m_nextTxSequence = SequenceNumber32 (0);
       // (uint32_t) rand->GetValue (0, pow (2, 32) - 1025));
     }
+  
+  m_pathManager->SetSocket(this);
 }
 
 QuicSocketBase::~QuicSocketBase (void)
@@ -686,7 +704,6 @@ NS_LOG_INFO("QuicSocketBase::Bind (void): ");
 int
 QuicSocketBase::Bind (const Address &address)
 {
-NS_LOG_INFO("QuicSocketBase::Bind (Address &address): "<<InetSocketAddress::ConvertFrom (address).GetIpv4());
   NS_LOG_FUNCTION (this);
   if (InetSocketAddress::IsMatchingType (address))
     {
@@ -807,9 +824,6 @@ QuicSocketBase::Connect (const Address & address)
   NS_LOG_FUNCTION (this);
 
 
-  Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
-  sFlow->routeId  = (m_subflows.size() == 0 ? 0:m_subflows[m_subflows.size() - 1]->routeId + 1);
-
   if (InetSocketAddress::IsMatchingType (address))
     {
       if (m_endPoint == nullptr)
@@ -821,18 +835,20 @@ QuicSocketBase::Connect (const Address & address)
             }
           NS_ASSERT (m_endPoint != nullptr);
         }
-
-      //shirley
       InetSocketAddress transport = InetSocketAddress::ConvertFrom (address);
       m_endPoint->SetPeer (transport.GetIpv4 (), transport.GetPort ());
-      sFlow->dAddr    = transport.GetIpv4 ();
-      sFlow->dPort    = transport.GetPort ();
-      sFlow->sAddr = m_endPoint->GetLocalAddress ();
-      sFlow->sPort = m_endPoint->GetLocalPort ();
-      m_subflows.insert(m_subflows.end(), sFlow);
-      m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (transport.GetIpv4 (), sFlow->routeId));
       m_endPoint6 = nullptr;
 
+      // For multipath implementation
+      Ptr<MpQuicSubFlow> subflow0 = m_pathManager->InitialSubflow0(transport.GetIpv4 (), transport.GetPort (), m_endPoint->GetLocalAddress (), m_endPoint->GetLocalPort ());
+      
+
+      // Get the appropriate local address and port number from the routing protocol and set up endpoint
+      /*if (SetupEndpoint () != 0)
+        {
+          NS_LOG_ERROR ("Route to destination does not exist ?!");
+          return -1;
+        }*/
     }
   else if (Inet6SocketAddress::IsMatchingType (address))
     {
@@ -858,6 +874,12 @@ QuicSocketBase::Connect (const Address & address)
       m_endPoint6->SetPeer (v6Addr, transport.GetPort ());
       m_endPoint = nullptr;
 
+      // Get the appropriate local address and port number from the routing protocol and set up endpoint
+      /*if (SetupEndpoint6 () != 0)
+        {
+          NS_LOG_ERROR ("Route to destination does not exist ?!");
+          return -1;
+        }*/
     }
   else
     {
@@ -896,7 +918,7 @@ QuicSocketBase::Connect (const Address & address)
       NS_LOG_INFO (
         "CONNECTION not authenticated: cannot perform 0-RTT Handshake");
       // connect the underlying UDP socket
-      std::cout<<this<<"Client found the Server " << InetSocketAddress::ConvertFrom (address).GetIpv4 ()<<std::endl;
+      // std::cout<<this<<"Client found the Server " << InetSocketAddress::ConvertFrom (address).GetIpv4 ()<<std::endl;
       m_quicl4->UdpConnect (address, this);
       return DoConnect ();
     }
@@ -948,6 +970,15 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
 {
   NS_LOG_FUNCTION (this);
 
+  //ywj: 
+  uint32_t win = AvailableWindow (m_lastUsedsFlowIdx); 
+
+  if (win == 0){
+    m_lastUsedsFlowIdx = getSubflowToUse ();
+  }
+  //ywj: before using m_txBuffer, have to set its state to the current used subflow's socket state
+  m_txBuffer->SetQuicSocketState(m_subflows[m_lastUsedsFlowIdx]->m_tcb);
+
   if (m_socketState != IDLE)
     {
       bool done = m_txBuffer->Add (frame);
@@ -958,7 +989,12 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
         }
       else
         {
-          uint32_t win = AvailableWindow ();
+          //ywj: total availabl window 
+          uint32_t win;
+          for (uint8_t i = 0; i < m_subflows.size(); i++){
+            win += AvailableWindow (i);
+          }
+          
           NS_LOG_DEBUG (
             "Added packet to the buffer - txBufSize = " << m_txBuffer->AppSize ()
                                                         << " AvailableWindow = " << win << " state " << QuicStateName[m_socketState]);
@@ -969,9 +1005,15 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
         {
           if (!m_sendPendingDataEvent.IsRunning ())
             {
+              // std::cout<<"4444 quic-socket-base.cc !m_sendPendingDataEvent.IsRunning!!!!! m_connected: "<<m_connected<<std::endl;
+              //SendPendingData(m_connected);
+              //Simulator::ScheduleNow (&QuicSocketBase::handler, this, 10, 5);
+ 
                 m_sendPendingDataEvent = Simulator::Schedule (
                   TimeStep (1), &QuicSocketBase::SendPendingData, this,
                   m_connected);
+                  // std::cout<<"----555555"<<m_connected<<std::endl;
+              
             }
         }
       if (done)
@@ -987,6 +1029,19 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
       return -1;
     }
 }
+
+uint8_t
+QuicSocketBase::getSubflowToUse ()
+{
+	NS_LOG_FUNCTION (this);
+  uint8_t nextSubFlow = 0;
+  nextSubFlow = (m_lastUsedsFlowIdx + 1) % m_subflows.size();
+
+  return nextSubFlow;
+}
+
+
+
 
 uint32_t
 QuicSocketBase::SendPendingData (bool withAck)
@@ -1010,36 +1065,39 @@ QuicSocketBase::SendPendingData (bool withAck)
   while (m_txBuffer->GetNumFrameStream0InBuffer () > 0)
     {
       // check pacing timer
-      if (m_tcb->m_pacing)
-        {
-          NS_LOG_DEBUG ("Pacing is enabled");
-          if (m_pacingTimer.IsRunning ())
-            {
-              NS_LOG_INFO ("Skipping Packet due to pacing - for " << m_pacingTimer.GetDelayLeft ());
-              break;
-            }
-          NS_LOG_DEBUG ("Pacing Timer is not running");
-        }
+      if (m_subflows[0]->m_tcb->m_pacing)
+      {
+        NS_LOG_DEBUG ("Pacing is enabled");
+        if (m_pacingTimer.IsRunning ())
+          {
+            NS_LOG_INFO ("Skipping Packet due to pacing - for " << m_pacingTimer.GetDelayLeft ());
+            break;
+          }
+        NS_LOG_DEBUG ("Pacing Timer is not running");
+      }
+
+      uint32_t win = AvailableWindow (0); //just use first subflow to deal with stream 0
+      uint32_t connWin = ConnectionWindow (0);
+      uint32_t bytesInFlight = BytesInFlight (0);
+      
+      NS_LOG_DEBUG (
+      "BEFORE stream 0 Available Window " << win
+                                        << " Connection RWnd " << connWin
+                                        << " BytesInFlight " << bytesInFlight
+                                        << " BufferedSize " << m_txBuffer->AppSize ()
+                                        << " MaxPacketSize " << GetSegSize ());
+
 
       NS_LOG_DEBUG ("Send a frame for stream 0");
-      SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
-      NS_LOG_INFO ("SN " << m_tcb->m_nextTxSequence);
+      //SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
+      SequenceNumber32 next = ++m_subflows[0]->m_nextPktNum;
+      NS_LOG_INFO ("SN " << m_subflows[0]->m_nextPktNum);
 
-      uint32_t win = AvailableWindow ();
-      uint32_t connWin = ConnectionWindow ();
-      uint32_t bytesInFlight = BytesInFlight ();
-      NS_LOG_DEBUG (
-        "BEFORE stream 0 Available Window " << win
-                                            << " Connection RWnd " << connWin
-                                            << " BytesInFlight " << bytesInFlight
-                                            << " BufferedSize " << m_txBuffer->AppSize ()
-                                            << " MaxPacketSize " << GetSegSize ());
-
-      SendDataPacket (next, 0, m_queue_ack, 0);
+      SendDataPacket (next, 0, m_subflows[0]->m_queue_ack, 0);
       
-      win = AvailableWindow ();
-      connWin = ConnectionWindow ();
-      bytesInFlight = BytesInFlight ();
+      win = AvailableWindow (0);
+      connWin = ConnectionWindow (0);
+      bytesInFlight = BytesInFlight (0);
       NS_LOG_DEBUG (
         "AFTER stream 0 Available Window " << win
                                            << " Connection RWnd " << connWin
@@ -1049,9 +1107,21 @@ QuicSocketBase::SendPendingData (bool withAck)
 
       ++nPacketsSent;
     }
-  uint32_t availableWindow = AvailableWindow ();
+  uint32_t win = AvailableWindow (m_lastUsedsFlowIdx); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
+  uint32_t connWin = ConnectionWindow (m_lastUsedsFlowIdx);
+  uint32_t bytesInFlight = BytesInFlight (m_lastUsedsFlowIdx);
 
-  while (availableWindow > 0 and m_txBuffer->AppSize () > 0)
+  // if (win == 0){
+  //   m_lastUsedsFlowIdx = getSubflowToUse ();
+  //   std::cout<<" i am in get subflowtouse, now the m_lastUsedsFlowIdx: "<< m_lastUsedsFlowIdx
+  //           <<"m_subflows[m_lastUsedsFlowIdx].m_nextPktNum: "<<m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum<<std::endl;
+  // }
+  m_lastUsedsFlowIdx = getSubflowToUse ();
+  // std::cout<<"****, now the m_lastUsedsFlowIdx: "<< (int)m_lastUsedsFlowIdx
+  //            <<"m_subflows[m_lastUsedsFlowIdx].m_nextPktNum: "<<m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum<<std::endl;
+  Ptr<MpQuicSubFlow> sFlow = m_subflows[m_lastUsedsFlowIdx];
+  // to do list: getSubflowToUse 
+  while (win > 0 and m_txBuffer->AppSize () > 0)
     {
       // check draining period
       if (m_drainingPeriodEvent.IsRunning ())
@@ -1061,7 +1131,7 @@ QuicSocketBase::SendPendingData (bool withAck)
         }
 
       // check pacing timer
-      if (m_tcb->m_pacing)
+      if (m_subflows[m_lastUsedsFlowIdx]->m_tcb->m_pacing)
         {
           NS_LOG_DEBUG ("Pacing is enabled");
           if (m_pacingTimer.IsRunning ())
@@ -1081,38 +1151,37 @@ QuicSocketBase::SendPendingData (bool withAck)
 
       uint32_t availableData = m_txBuffer->AppSize ();
 
-      if (availableData < availableWindow and !m_closeOnEmpty)
+      if (availableData < win and !m_closeOnEmpty)
         {
           NS_LOG_INFO ("Ask the app for more data before trying to send");
           NotifySend (GetTxAvailable ());
         }
 
-      if (availableWindow < GetSegSize () and availableData > availableWindow and !m_closeOnEmpty)
+      if (win < GetSegSize () and availableData > win and !m_closeOnEmpty)
         {
           NS_LOG_INFO ("Preventing Silly Window Syndrome. Wait to Send.");
           break;
         }
 
-      SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
+      //SequenceNumber32 next = ++sFlow->m_tcb->m_nextTxSequence;
+      SequenceNumber32 next = ++sFlow->m_nextPktNum;
 
-      uint32_t s = std::min (availableWindow, GetSegSize ());
+      uint32_t s = std::min (win, GetSegSize ());
+      // std::cout<<"ssssss"<<s<<std::endl;
 
-      uint32_t win = AvailableWindow ();
-      uint32_t connWin = ConnectionWindow ();
-      uint32_t bytesInFlight = BytesInFlight ();
       NS_LOG_DEBUG (
         "BEFORE Available Window " << win
-                                   << " Connection RWnd " << connWin
-                                   << " BytesInFlight " << bytesInFlight
-                                   << " BufferedSize " << m_txBuffer->AppSize ()
-                                   << " MaxPacketSize " << GetSegSize ());
+                                  << " Connection RWnd " << connWin
+                                  << " BytesInFlight " << bytesInFlight
+                                  << " BufferedSize " << m_txBuffer->AppSize ()
+                                  << " MaxPacketSize " << GetSegSize ());
 
       // uint32_t sz =
-      SendDataPacket (next, s, withAck);
+      SendDataPacket (next, s, withAck, m_lastUsedsFlowIdx);
 
-      win = AvailableWindow ();
-      connWin = ConnectionWindow ();
-      bytesInFlight = BytesInFlight ();
+      win = AvailableWindow (m_lastUsedsFlowIdx);
+      connWin = ConnectionWindow (m_lastUsedsFlowIdx);
+      bytesInFlight = BytesInFlight (m_lastUsedsFlowIdx);
       NS_LOG_DEBUG (
         "AFTER Available Window " << win
                                   << " Connection RWnd " << connWin
@@ -1122,7 +1191,6 @@ QuicSocketBase::SendPendingData (bool withAck)
 
       ++nPacketsSent;
 
-      availableWindow = AvailableWindow ();
     }
 
   if (nPacketsSent > 0)
@@ -1157,17 +1225,17 @@ QuicSocketBase::GetSegSize (void) const
 }
 
 void
-QuicSocketBase::MaybeQueueAck ()
+QuicSocketBase::MaybeQueueAck (uint8_t pathId)
 {
   NS_LOG_FUNCTION (this);
-  ++m_numPacketsReceivedSinceLastAckSent;
-  NS_LOG_INFO ("m_numPacketsReceivedSinceLastAckSent " << m_numPacketsReceivedSinceLastAckSent << " m_queue_ack " << m_queue_ack);
+  ++m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent;
+  NS_LOG_INFO ("m_numPacketsReceivedSinceLastAckSent " << m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent << " m_queue_ack " << m_subflows[pathId]->m_queue_ack);
 
   // handle the list of m_receivedPacketNumbers
-  if (m_receivedPacketNumbers.empty ())
+  if (m_subflows[pathId]->m_receivedPacketNumbers.empty ())
     {
       NS_LOG_INFO ("Nothing to ACK");
-      m_queue_ack = false;
+      m_subflows[pathId]->m_queue_ack = false;
       return;
     }
 
@@ -1177,45 +1245,45 @@ QuicSocketBase::MaybeQueueAck ()
   //   return;
   // }
 
-  if (m_numPacketsReceivedSinceLastAckSent > m_tcb->m_kMaxPacketsReceivedBeforeAckSend)
+  if (m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent > m_subflows[pathId]->m_tcb->m_kMaxPacketsReceivedBeforeAckSend)
     {
       NS_LOG_INFO ("immediately send ACK - max number of unacked packets reached");
-      m_queue_ack = true;
-      if (!m_sendAckEvent.IsRunning ())
+      m_subflows[pathId]->m_queue_ack = true;
+      if (!m_subflows[pathId]->m_sendAckEvent.IsRunning ())
         {
-          m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this);
+          m_subflows[pathId]->m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this, pathId);
         }
     }
 
   if (HasReceivedMissing ())  // immediately queue the ACK
     {
       NS_LOG_INFO ("immediately send ACK - some packets have been received out of order");
-      m_queue_ack = true;
-      if (!m_sendAckEvent.IsRunning ())
+      m_subflows[pathId]->m_queue_ack = true;
+      if (!m_subflows[pathId]->m_sendAckEvent.IsRunning ())
         {
-          m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this);
+          m_subflows[pathId]->m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this, pathId);
         }
     }
 
-  if (!m_queue_ack)
+  if (!m_subflows[pathId]->m_queue_ack)
     {
-      if (m_numPacketsReceivedSinceLastAckSent > 2) // QUIC decimation option
+      if (m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent > 2) // QUIC decimation option
         {
           NS_LOG_INFO ("immediately send ACK - more than 2 packets received");
-          m_queue_ack = true;
-          if (!m_sendAckEvent.IsRunning ())
+          m_subflows[pathId]->m_queue_ack = true;
+          if (!m_subflows[pathId]->m_sendAckEvent.IsRunning ())
             {
-              m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this);
+              m_subflows[pathId]->m_sendAckEvent = Simulator::Schedule (TimeStep (1), &QuicSocketBase::SendAck, this, pathId);
             }
         }
       else
         {
-          if (!m_delAckEvent.IsRunning ())
+          if (!m_subflows[pathId]->m_delAckEvent.IsRunning ())
             {
               NS_LOG_INFO ("Schedule a delayed ACK");
               // schedule a delayed ACK
-              m_delAckEvent = Simulator::Schedule (
-                m_tcb->m_kDelayedAckTimeout, &QuicSocketBase::SendAck, this);
+              m_subflows[pathId]->m_delAckEvent = Simulator::Schedule (
+                m_subflows[pathId]->m_tcb->m_kDelayedAckTimeout, &QuicSocketBase::SendAck, this, pathId);
             }
           else
             {
@@ -1233,58 +1301,58 @@ QuicSocketBase::HasReceivedMissing ()
 }
 
 void
-QuicSocketBase::SendAck ()
+QuicSocketBase::SendAck (uint8_t pathId)
 {
   NS_LOG_FUNCTION (this);
-  m_delAckEvent.Cancel ();
-  m_sendAckEvent.Cancel ();
-  m_queue_ack = false;
+  m_subflows[pathId]->m_delAckEvent.Cancel ();
+  m_subflows[pathId]->m_sendAckEvent.Cancel ();
+  m_subflows[pathId]->m_queue_ack = false;
 
-  m_numPacketsReceivedSinceLastAckSent = 0;
+  m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent = 0;
 
-  for (int pathId = 0; pathId < static_cast<int>(m_subflows.size()); pathId++) {
-    Ptr<Packet> p = Create<Packet> ();
-    if (!m_subflows[pathId]->m_receivedSeqNumbers.empty()){
-      p->AddAtEnd (OnSendingAckFrame (pathId));
-      SequenceNumber32 packetNumber = ++m_tcb->m_nextTxSequence;
-      QuicHeader head;
-      head = QuicHeader::CreateShort (m_connectionId, packetNumber,
-                                      !m_omit_connection_id, m_keyPhase);
+  
+  Ptr<Packet> p = Create<Packet> ();
+  if (!m_subflows[pathId]->m_receivedSeqNumbers.empty()){
+    p->AddAtEnd (OnSendingAckFrame (pathId));
+    SequenceNumber32 packetNumber = ++m_subflows[pathId]->m_nextPktNum;
+    QuicHeader head;
+    head = QuicHeader::CreateShort (m_connectionId, packetNumber,
+                                    !m_omit_connection_id, m_keyPhase);
 
-      m_txBuffer->UpdateAckSent (packetNumber, p->GetSerializedSize () + head.GetSerializedSize ());
+    m_txBuffer->UpdateAckSent (packetNumber, p->GetSerializedSize () + head.GetSerializedSize ());
 
-      NS_LOG_INFO ("Send ACK packet with header " << head);
+    NS_LOG_INFO ("Send ACK packet with header " << head);
 
-      head.SetPathId(pathId);
-      head.SetSeq(++m_subflows[pathId]->m_nextPktNum);
-      // Ptr<Packet> packetSent = Create<Packet> ();
-      // packetSent->AddHeader (head);
-      // packetSent->AddAtEnd (p);
-      m_subflows[pathId]->Add(head.GetSeq());
+    head.SetPathId(pathId);
+    head.SetSeq(m_subflows[pathId]->m_nextPktNum);
+    // Ptr<Packet> packetSent = Create<Packet> ();
+    // packetSent->AddHeader (head);
+    // packetSent->AddAtEnd (p);
+    m_subflows[pathId]->Add(head.GetSeq());
 
-      // std::cout<<"---send ack---\n";
+    // std::cout<<"---send ack---\n";
 
-      m_quicl4->SendPacket (this, p, head);
-      m_txTrace (p, head, this);
-      m_subflows[pathId]->m_receivedSeqNumbers.clear();
-    }
+    m_quicl4->SendPacket (this, p, head);
+    m_txTrace (p, head, this);
+    m_subflows[pathId]->m_receivedSeqNumbers.clear();
   }
+  
   
   
 }
 
-uint32_t
-QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
-                                uint32_t maxSize, bool withAck)
-{
-  int pathId = 0;
-  if (m_scheduler){
-    m_scheduler->SetMinPath(FindMinRttPath());
-    pathId = m_scheduler->GetSend();
-  }
+// uint32_t
+// QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
+//                                 uint32_t maxSize, bool withAck)
+// {
+//   int pathId = 0;
+//   if (m_scheduler){
+//     m_scheduler->SetMinPath(FindMinRttPath());
+//     pathId = m_scheduler->GetSend();
+//   }
   
-  return SendDataPacket (packetNumber,maxSize, withAck, pathId);
-}
+//   return SendDataPacket (packetNumber,maxSize, withAck, pathId);
+// }
 
 
 uint32_t
@@ -1293,8 +1361,10 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
 {
   NS_LOG_FUNCTION (this << packetNumber << maxSize << withAck);
 
+   Ptr<MpQuicSubFlow> sFlow = m_subflows[pathId];
+
   // std::cout<<" maxSize "<<maxSize<<" cwnd"<<pathId<<" = "<<m_subflows[pathId]->m_cWnd<<"\n";
-  maxSize = std::min (m_subflows[pathId]->m_cWnd.Get(), maxSize);
+  maxSize = std::min (sFlow->m_cWnd.Get(), maxSize);
   // std::cout<<" send size "<<maxSize<<"\n";
 
   if (!m_drainingPeriodEvent.IsRunning ())
@@ -1322,30 +1392,31 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
     {
       NS_LOG_LOGIC (
         this << " SendDataPacket - sending packet " << packetNumber.GetValue () << " of size " << maxSize << " at time " << Simulator::Now ().GetSeconds ());
+      // std::cout<<this << " SendDataPacket - sending packet " << packetNumber.GetValue () << " of size " << maxSize << " at time " << Simulator::Now ().GetSeconds ()<<std::endl;
       m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout,
                                                 &QuicSocketBase::Close, this);
-      p = m_txBuffer->NextSequence (maxSize, packetNumber);
+      p = m_txBuffer->NextSequence (maxSize, packetNumber,pathId,10);
     }
 
   uint32_t sz = p->GetSize ();
 
   // check whether the connection is appLimited, i.e. not enough data to fill a packet
-  if (sz < maxSize and m_txBuffer->AppSize () == 0 and m_tcb->m_bytesInFlight.Get () < m_tcb->m_cWnd)
+  if (sz < maxSize and m_txBuffer->AppSize () == 0 and sFlow->m_tcb->m_bytesInFlight.Get () < sFlow->m_tcb->m_cWnd)
     {
       NS_LOG_LOGIC ("Connection is Application-Limited. sz = " << sz << " < maxSize = " << maxSize);
-      m_tcb->m_appLimitedUntil = m_tcb->m_delivered + m_tcb->m_bytesInFlight.Get () ? : 1U;
+      sFlow->m_tcb->m_appLimitedUntil = sFlow->m_tcb->m_delivered + sFlow->m_tcb->m_bytesInFlight.Get () ? : 1U;
     }
 
   // perform pacing
-  if (m_tcb->m_pacing)
+  if (sFlow->m_tcb->m_pacing)
     {
       NS_LOG_DEBUG ("Pacing is enabled");
       if (m_pacingTimer.IsExpired ())
         {
-          NS_LOG_DEBUG ("Current Pacing Rate " << m_tcb->m_pacingRate);
+          NS_LOG_DEBUG ("Current Pacing Rate " << sFlow->m_tcb->m_pacingRate);
           NS_LOG_DEBUG ("Pacing Timer is in expired state, activate it. Expires in " <<
-                        m_tcb->m_pacingRate.Get ().CalculateBytesTxTime (sz));
-          m_pacingTimer.Schedule (m_tcb->m_pacingRate.Get ().CalculateBytesTxTime (sz));
+                        sFlow->m_tcb->m_pacingRate.Get ().CalculateBytesTxTime (sz));
+          m_pacingTimer.Schedule (sFlow->m_tcb->m_pacingRate.Get ().CalculateBytesTxTime (sz));
         }
       else
         {
@@ -1355,7 +1426,7 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
 
   bool isAckOnly = ((sz == 0) & (withAck));
 
-  if (withAck && !m_subflows[pathId]->m_receivedSeqNumbers.empty() && !m_receivedPacketNumbers.empty ())
+  if (withAck && !sFlow->m_receivedSeqNumbers.empty() && !m_subflows[pathId]->m_receivedPacketNumbers.empty ())
     {
       p->AddAtEnd (OnSendingAckFrame (pathId));
     }
@@ -1420,17 +1491,17 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
   
 
   head.SetPathId(pathId);
-  head.SetSeq(++m_subflows[pathId]->m_nextPktNum);
+  head.SetSeq(sFlow->m_nextPktNum);
   // Ptr<Packet> packetSent = Create<Packet> ();
   // packetSent->AddHeader (head);
   // packetSent->AddAtEnd (p);
-  m_subflows[pathId]->Add(head.GetSeq());
+  sFlow->Add(head.GetSeq());
 
   m_quicl4->SendPacket (this, p, head);
   m_txTrace (p, head, this);
   NotifyDataSent (sz);
 
-  m_txBuffer->UpdatePacketSent (packetNumber, sz);
+  m_txBuffer->UpdatePacketSent (packetNumber, sz, pathId);
 
   // if (!m_quicCongestionControlLegacy)
   //   {
@@ -1439,14 +1510,16 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber,
   //   }
   if (!isAckOnly)
     {
-      SetReTxTimeout ();
+      SetReTxTimeout (pathId);
     }
 
   return sz;
 }
 
+//ywj: SetReTxTimeout () => SetReTxTimeout (uint8_t pathId)
+
 void
-QuicSocketBase::SetReTxTimeout ()
+QuicSocketBase::SetReTxTimeout (uint8_t pathId)
 {
   //TODO check for special packets
   NS_LOG_FUNCTION (this);
@@ -1455,13 +1528,13 @@ QuicSocketBase::SetReTxTimeout ()
   //if (numRetransmittablePacketsOutstanding == 0)
   if (false)
     {
-      m_tcb->m_lossDetectionAlarm.Cancel ();
+      m_subflows[pathId]->m_tcb->m_lossDetectionAlarm.Cancel ();
       return;
     }
 
-  if (m_tcb->m_kUsingTimeLossDetection)
+  if (m_subflows[pathId]->m_tcb->m_kUsingTimeLossDetection)
     {
-      m_tcb->m_lossTime = Simulator::Now () + m_tcb->m_kTimeReorderingFraction * m_tcb->m_smoothedRtt;
+      m_subflows[pathId]->m_tcb->m_lossTime = Simulator::Now () + m_subflows[pathId]->m_tcb->m_kTimeReorderingFraction * m_subflows[pathId]->m_tcb->m_smoothedRtt;
     }
 
   Time alarmDuration;
@@ -1470,63 +1543,66 @@ QuicSocketBase::SetReTxTimeout ()
     {
       NS_LOG_INFO ("Connecting, set alarm");
       // Handshake retransmission alarm.
-      if (m_tcb->m_smoothedRtt == Seconds (0))
+      if (m_subflows[pathId]->m_tcb->m_smoothedRtt == Seconds (0))
         {
-          alarmDuration = 2 * m_tcb->m_kDefaultInitialRtt;
+          alarmDuration = 2 * m_subflows[pathId]->m_tcb->m_kDefaultInitialRtt;
         }
       else
         {
-          alarmDuration = 2 * m_tcb->m_smoothedRtt;
+          alarmDuration = 2 * m_subflows[pathId]->m_tcb->m_smoothedRtt;
         }
-      alarmDuration = std::max (alarmDuration + m_tcb->m_maxAckDelay,
-                                m_tcb->m_kMinTLPTimeout);
-      alarmDuration = alarmDuration * (2 ^ m_tcb->m_handshakeCount);
-      m_tcb->m_alarmType = 0;
+      alarmDuration = std::max (alarmDuration + m_subflows[pathId]->m_tcb->m_maxAckDelay,
+                                m_subflows[pathId]->m_tcb->m_kMinTLPTimeout);
+      alarmDuration = alarmDuration * (2 ^ m_subflows[pathId]->m_tcb->m_handshakeCount);
+      m_subflows[pathId]->m_tcb->m_alarmType = 0;
     }
-  else if (m_tcb->m_lossTime != Seconds (0))
+  else if (m_subflows[pathId]->m_tcb->m_lossTime != Seconds (0))
     {
       NS_LOG_INFO ("Early retransmit timer");
       // Early retransmit timer or time loss detection.
-      alarmDuration = m_tcb->m_lossTime - m_tcb->m_timeOfLastSentPacket;
-      m_tcb->m_alarmType = 1;
+      alarmDuration = m_subflows[pathId]->m_tcb->m_lossTime - m_subflows[pathId]->m_tcb->m_timeOfLastSentPacket;
+      m_subflows[pathId]->m_tcb->m_alarmType = 1;
     }
-  else if (m_tcb->m_tlpCount < m_tcb->m_kMaxTLPs)
+  else if (m_subflows[pathId]->m_tcb->m_tlpCount < m_subflows[pathId]->m_tcb->m_kMaxTLPs)
     {
-      NS_LOG_LOGIC ("m_tcb->m_tlpCount < m_tcb->m_kMaxTLPs");
+      NS_LOG_LOGIC ("m_subflows[pathId]->m_tcb->m_tlpCount < m_subflows[pathId]->m_tcb->m_kMaxTLPs");
       // Tail Loss Probe
       alarmDuration = std::max (
-        (3 / 2) * m_tcb->m_smoothedRtt + m_tcb->m_maxAckDelay,
-        m_tcb->m_kMinTLPTimeout);
-      m_tcb->m_alarmType = 2;
+        (3 / 2) * m_subflows[pathId]->m_tcb->m_smoothedRtt + m_subflows[pathId]->m_tcb->m_maxAckDelay,
+        m_subflows[pathId]->m_tcb->m_kMinTLPTimeout);
+      m_subflows[pathId]->m_tcb->m_alarmType = 2;
     }
   else
     {
       NS_LOG_LOGIC ("RTO");
-      alarmDuration = m_tcb->m_smoothedRtt + 4 * m_tcb->m_rttVar
-        + m_tcb->m_maxAckDelay;
-      alarmDuration = std::max (alarmDuration, m_tcb->m_kMinRTOTimeout);
-      alarmDuration = alarmDuration * (2 ^ m_tcb->m_rtoCount);
-      m_tcb->m_alarmType = 3;
+      alarmDuration = m_subflows[pathId]->m_tcb->m_smoothedRtt + 4 * m_subflows[pathId]->m_tcb->m_rttVar
+        + m_subflows[pathId]->m_tcb->m_maxAckDelay;
+      alarmDuration = std::max (alarmDuration, m_subflows[pathId]->m_tcb->m_kMinRTOTimeout);
+      alarmDuration = alarmDuration * (2 ^ m_subflows[pathId]->m_tcb->m_rtoCount);
+      m_subflows[pathId]->m_tcb->m_alarmType = 3;
     }
   NS_LOG_INFO ("Schedule ReTxTimeout at time " << Simulator::Now ().GetSeconds () << " to expire at time " << (Simulator::Now () + alarmDuration).GetSeconds ());
   NS_LOG_INFO ("Alarm after " << alarmDuration.GetSeconds () << " seconds");
-  m_tcb->m_lossDetectionAlarm = Simulator::Schedule (alarmDuration,
-                                                     &QuicSocketBase::ReTxTimeout, this);
-  m_tcb->m_nextAlarmTrigger = Simulator::Now () + alarmDuration;
+  //ywj: pass pathId to &QuicSocketBase::ReTxTimeout
+  m_subflows[pathId]->m_tcb->m_lossDetectionAlarm = Simulator::Schedule (alarmDuration,
+                                                     &QuicSocketBase::ReTxTimeout, this, pathId);
+  m_subflows[pathId]->m_tcb->m_nextAlarmTrigger = Simulator::Now () + alarmDuration;
 }
 
+//ywj: DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets) => DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets, uint8_t pathId)
 void
-QuicSocketBase::DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets)
+QuicSocketBase::DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets, uint8_t pathId)
 {
   NS_LOG_FUNCTION (this);
   // Get packets to retransmit
-  SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
-  uint32_t toRetx = m_txBuffer->Retransmission (next);
+  SequenceNumber32 next = ++m_subflows[pathId]->m_nextPktNum;
+  uint32_t toRetx = m_txBuffer->Retransmission (next, pathId);
   NS_LOG_INFO (toRetx << " bytes to retransmit");
+  // std::cout<<"---kkkkkk"<<toRetx << " bytes to retransmit"<<std::endl;
   NS_LOG_DEBUG ("Send the retransmitted frame");
-  uint32_t win = AvailableWindow ();
-  uint32_t connWin = ConnectionWindow ();
-  uint32_t bytesInFlight = BytesInFlight ();
+  uint32_t win = AvailableWindow (pathId);
+  uint32_t connWin = ConnectionWindow (pathId);
+  uint32_t bytesInFlight = BytesInFlight (pathId);
   NS_LOG_DEBUG (
     "BEFORE Available Window " << win
                                << " Connection RWnd " << connWin
@@ -1535,14 +1611,15 @@ QuicSocketBase::DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets)
                                << " MaxPacketSize " << GetSegSize ());
 
   // Send the retransmitted data
-  NS_LOG_INFO ("Retransmitted packet, next sequence number " << m_tcb->m_nextTxSequence);
-  SendDataPacket (next, toRetx, m_connected);
+  NS_LOG_INFO ("Retransmitted packet, next sequence number " << m_subflows[pathId]->m_nextPktNum);
+  SendDataPacket (next, toRetx, m_connected,pathId);
 }
 
+//ywj: ReTxTimeout () => ReTxTimeout (uint8_t pathId)
 void
-QuicSocketBase::ReTxTimeout ()
+QuicSocketBase::ReTxTimeout (uint8_t pathId)
 {
-  if (Simulator::Now () < m_tcb->m_nextAlarmTrigger)
+  if (Simulator::Now () < m_subflows[pathId]->m_tcb->m_nextAlarmTrigger)
     {
       NS_LOG_INFO ("Canceled alarm");
       return;
@@ -1550,16 +1627,16 @@ QuicSocketBase::ReTxTimeout ()
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO ("ReTxTimeout Expired at time " << Simulator::Now ().GetSeconds ());
   // Handshake packets are outstanding)
-  if (m_tcb->m_alarmType == 0 && (m_socketState == CONNECTING_CLT || m_socketState == CONNECTING_SVR))
+  if (m_subflows[pathId]->m_tcb->m_alarmType == 0 && (m_socketState == CONNECTING_CLT || m_socketState == CONNECTING_SVR))
     {
       // Handshake retransmission alarm.
       //TODO retransmit handshake packets
       //RetransmitAllHandshakePackets();
-      m_tcb->m_handshakeCount++;
+      m_subflows[pathId]->m_tcb->m_handshakeCount++;
     }
-  else if (m_tcb->m_alarmType == 1 && m_tcb->m_lossTime != Seconds (0))
+  else if (m_subflows[pathId]->m_tcb->m_alarmType == 1 && m_subflows[pathId]->m_tcb->m_lossTime != Seconds (0))
     {
-      std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets ();
+      std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets (pathId);
       NS_LOG_INFO ("RTO triggered: early retransmit");
       // Early retransmit or Time Loss Detection.
       // if (m_quicCongestionControlLegacy)
@@ -1583,61 +1660,62 @@ QuicSocketBase::ReTxTimeout ()
       //   }
       // Retransmit all lost packets immediately
       // m_subflows[sub.GetPathId()]->UpdateCwndOnPacketLost();
-      DoRetransmit (lostPackets);
+      DoRetransmit (lostPackets, pathId);
     }
-  else if (m_tcb->m_alarmType == 2 && m_tcb->m_tlpCount < m_tcb->m_kMaxTLPs)
+  else if (m_subflows[pathId]->m_tcb->m_alarmType == 2 && m_subflows[pathId]->m_tcb->m_tlpCount < m_subflows[pathId]->m_tcb->m_kMaxTLPs)
     {
       // Tail Loss Probe. Send one new data packet, do not retransmit - IETF Draft QUIC Recovery, Sec. 4.3.2
-      SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
+      SequenceNumber32 next = ++m_subflows[pathId]->m_nextPktNum;
       NS_LOG_INFO ("TLP triggered");
-      uint32_t s = std::min (ConnectionWindow (), GetSegSize ());
+      uint32_t s = std::min (ConnectionWindow (pathId), GetSegSize ());
 
       // cancel pacing to send packet immediately
       m_pacingTimer.Cancel ();
 
-      SendDataPacket (next, s, m_connected);
-      m_tcb->m_tlpCount++;
+      SendDataPacket (next, s, m_connected,pathId);
+      m_subflows[pathId]->m_tcb->m_tlpCount++;
     }
-  else if (m_tcb->m_alarmType == 3)
+  else if (m_subflows[pathId]->m_tcb->m_alarmType == 3)
     {
       // RTO.
-      if (m_tcb->m_rtoCount == 0)
+      if (m_subflows[pathId]->m_tcb->m_rtoCount == 0)
         {
-          m_tcb->m_largestSentBeforeRto = m_tcb->m_highTxMark;
+          m_subflows[pathId]->m_tcb->m_largestSentBeforeRto = m_subflows[pathId]->m_tcb->m_highTxMark;
         }
       // RTO. Send two new data packets, do not retransmit - IETF Draft QUIC Recovery, Sec. 4.3.3
       NS_LOG_INFO ("RTO triggered");
-      SequenceNumber32 next = ++m_tcb->m_nextTxSequence;
-      uint32_t s = std::min (AvailableWindow (), GetSegSize ());
+      SequenceNumber32 next = ++m_subflows[pathId]->m_nextPktNum;
+      uint32_t s = std::min (AvailableWindow (pathId), GetSegSize ());
 
       // cancel pacing to send packet immediately
       m_pacingTimer.Cancel ();
 
-      SendDataPacket (next, s, m_connected);
-      next = ++m_tcb->m_nextTxSequence;
+      SendDataPacket (next, s, m_connected,pathId);
+      next = ++m_subflows[pathId]->m_nextPktNum;
 
-      s = std::min (AvailableWindow (), GetSegSize ());
+      s = std::min (AvailableWindow (pathId), GetSegSize ());
 
       // cancel pacing, again
       m_pacingTimer.Cancel ();
 
-      SendDataPacket (next, s, m_connected);
+      SendDataPacket (next, s, m_connected,pathId);
 
-      m_tcb->m_rtoCount++;
+      m_subflows[pathId]->m_tcb->m_rtoCount++;
     }
 }
 
+//ywj: AvailableWindow () => AvailableWindow (uint8_t pathId) 
 uint32_t
-QuicSocketBase::AvailableWindow () const
+QuicSocketBase::AvailableWindow (uint8_t pathId) 
 {
   NS_LOG_FUNCTION (this);
 
 
-  NS_LOG_DEBUG ("m_max_data " << m_max_data << " m_tcb->m_cWnd.Get () " << m_tcb->m_cWnd.Get ());
+  NS_LOG_DEBUG ("m_max_data " << m_max_data << " m_tcb->m_cWnd.Get () " << m_subflows[pathId]->m_tcb->m_cWnd.Get ());
   // uint32_t win = std::min (m_max_data, m_tcb->m_cWnd.Get ());   // Number of bytes allowed to be outstanding
   
-  uint32_t win = std::min (m_max_data, m_subflows[0]->m_cWnd.Get());
-  uint32_t inflight = BytesInFlight ();   // Number of outstanding bytes
+  uint32_t win = std::min (m_max_data, m_subflows[pathId]->m_cWnd.Get());
+  uint32_t inflight = BytesInFlight (pathId);   // Number of outstanding bytes
 
   if (inflight > win)
     {
@@ -1652,12 +1730,13 @@ QuicSocketBase::AvailableWindow () const
 
 }
 
+//ywj: unnecessary for now
 uint32_t
-QuicSocketBase::ConnectionWindow () const
+QuicSocketBase::ConnectionWindow (uint8_t pathId)
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t inFlight = BytesInFlight ();
+  uint32_t inFlight = BytesInFlight (pathId);
 
   NS_LOG_INFO (
     "Returning calculated Connection: MaxData " << m_max_data << " InFlight: " << inFlight);
@@ -1665,15 +1744,16 @@ QuicSocketBase::ConnectionWindow () const
   return (inFlight > m_max_data) ? 0 : m_max_data - inFlight;
 }
 
+//ywj: BytesInFlight () => BytesInFlight (uint8_t pathId)
 uint32_t
-QuicSocketBase::BytesInFlight () const
+QuicSocketBase::BytesInFlight (uint8_t pathId) 
 {
   NS_LOG_FUNCTION (this);
 
-  uint32_t bytesInFlight = m_txBuffer->BytesInFlight ();
+  uint32_t bytesInFlight = m_txBuffer->BytesInFlight (pathId);
 
   NS_LOG_INFO ("Returning calculated bytesInFlight: " << bytesInFlight);
-  m_tcb->m_bytesInFlight = bytesInFlight;
+  m_subflows[pathId]->m_bytesInFlight = bytesInFlight;
   return bytesInFlight;
 }
 
@@ -1796,7 +1876,7 @@ QuicSocketBase::SendConnectionClosePacket (uint16_t errorCode, std::string phras
   NS_LOG_FUNCTION (this);
 
   Ptr<Packet> p = Create<Packet> ();
-  SequenceNumber32 packetNumber = ++m_tcb->m_nextTxSequence;
+  SequenceNumber32 packetNumber = ++m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum;
 
   QuicSubheader qsb = QuicSubheader::CreateConnectionClose (errorCode, phrase.c_str ());
   p->AddHeader (qsb);
@@ -1811,7 +1891,7 @@ QuicSocketBase::SendConnectionClosePacket (uint16_t errorCode, std::string phras
   NS_LOG_DEBUG ("Send Connection Close packet with header " << head);
   
   head.SetPathId(0);
-  head.SetSeq(++m_subflows[0]->m_nextPktNum);
+  head.SetSeq(m_subflows[0]->m_nextPktNum);
   // Ptr<Packet> packetSent = Create<Packet> ();
   // packetSent->AddHeader (head);
   // packetSent->AddAtEnd (p);
@@ -1922,7 +2002,6 @@ QuicSocketBase::SetupCallback (void)
     }
   else
     {
-// std::cout<<"<><><><><><>QuicSocketBase::SetupCallback()"<<std::endl;
       m_quicl4->SetRecvCallback (
         MakeCallback (&QuicSocketBase::ReceivedData, this), this);
     }
@@ -2065,12 +2144,20 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
         supportedVersions);
 
       // Set initial congestion window and Ssthresh
-      m_tcb->m_cWnd = m_tcb->m_initialCWnd;
-      m_tcb->m_ssThresh = m_tcb->m_initialSsThresh;
+      m_subflows[0]->m_tcb->m_cWnd = m_subflows[0]->m_tcb->m_initialCWnd;
+      m_subflows[0]->m_tcb->m_ssThresh = m_subflows[0]->m_tcb->m_initialSsThresh;
       //server (receiver)
       head.SetPathId(0);
-      head.SetSeq(++m_subflows[0]->m_nextPktNum);
+      head.SetSeq(m_subflows[0]->m_nextPktNum);
+      // Ptr<Packet> packetSent = Create<Packet> ();
+      // packetSent->AddHeader (head);
+      // packetSent->AddAtEnd (p);
       m_subflows[0]->Add(head.GetSeq());
+      // Set initial congestion window and Ssthresh for sub flow
+      // m_subflows[0]->InitialRateEvent();
+      // m_subflows[0]->SetInitialCwnd(5840);
+      // m_subflows[0]->m_ssThresh = m_tcb->m_initialSsThresh;
+
       m_quicl4->SendPacket (this, p, head);
       m_txTrace (p, head, this);
       NotifyDataSent (p->GetSize ());
@@ -2080,11 +2167,11 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
     {
       //client(sender)
       // Set initial congestion window and Ssthresh
-      m_tcb->m_cWnd = m_tcb->m_initialCWnd;
-      m_tcb->m_ssThresh = m_tcb->m_initialSsThresh;
+      m_subflows[0]->m_tcb->m_cWnd = m_subflows[0]->m_tcb->m_initialCWnd;
+      m_subflows[0]->m_tcb->m_ssThresh = m_subflows[0]->m_tcb->m_initialSsThresh;
       // Set initial congestion window and Ssthresh for sub flow
       m_subflows[0]->SetInitialCwnd(5840);
-
+      m_subflows[0]->InitialRateEvent();
       // m_subflows[0]->m_ssThresh = m_tcb->m_initialSsThresh;
       bool x = m_subflows[0]->TraceConnectWithoutContext ("SubflowCwnd", MakeCallback (&QuicSocketBase::TraceCwnd0,this));
       m_subflows[0]->TraceConnectWithoutContext ("Throughput", MakeCallback (&QuicSocketBase::TraceThroughput0,this));
@@ -2127,7 +2214,7 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
       p->AddAtEnd (payload);
 
       m_quicl5->DispatchSend (p, 0);
-      m_congestionControl->CongestionStateSet (m_tcb,
+      m_congestionControl->CongestionStateSet (m_subflows[0]->m_tcb,
                                                TcpSocketState::CA_OPEN);
     }
   else if (type == QuicHeader::ZRTT_PROTECTED)
@@ -2138,44 +2225,6 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
 
       m_quicl5->DispatchSend (p, 0);
 
-    }
- else if (type == QuicHeader::ANNOUNCE)
-    {
-      NS_LOG_INFO ("Create ANNOUNCE");
-      Ptr<Packet> p = Create<Packet> ();
-      p->AddHeader (OnSendingTransportParameters ());
-      m_subSocket = true;
-      Bind(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(2,0).GetLocal()));
-      
-      //client (sender)
-      //create subflow
-      m_subSocket = false;
-      m_quicl4->UdpConnect (InetSocketAddress("10.1.2.2",9), this);
-      Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
-      sFlow->routeId  = (m_subflows.size() == 0 ? 0:m_subflows[m_subflows.size() - 1]->routeId + 1);
-      sFlow->dAddr    = InetSocketAddress("10.1.2.2").GetIpv4 ();
-      sFlow->sAddr = m_endPoint->GetLocalAddress ();
-      sFlow->sPort = m_endPoint->GetLocalPort ();
-      bool x = sFlow->TraceConnectWithoutContext ("SubflowCwnd", MakeCallback (&QuicSocketBase::TraceCwnd1, this));
-      sFlow->TraceConnectWithoutContext ("Throughput", MakeCallback (&QuicSocketBase::TraceThroughput1,this));
-      sFlow->TraceConnectWithoutContext ("RTT", MakeCallback (&QuicSocketBase::TraceRTT1, this));
-      std::cout<<x;
-      //client create subflow
-      m_subflows.insert(m_subflows.end(), sFlow);
-      m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (InetSocketAddress("10.1.2.2").GetIpv4 (), sFlow->routeId));
-
-      QuicHeader head;
-      head = QuicHeader::CreateAnnounce (m_connectionId, m_vers, ++m_tcb->m_nextTxSequence);
-
-      head.SetPathId(1);
-      head.SetSeq(++m_subflows[1]->m_nextPktNum);
-      m_subflows[1]->Add(head.GetSeq());
-      // Set initial congestion window and Ssthresh for sub flow
-      m_subflows[1]->SetInitialCwnd(5840);
-
-      m_quicl4->SendPacket (this, p, head);
-      m_txTrace (p, head, this);
-      NotifyDataSent (p->GetSize ());
     }
   else
     {
@@ -2261,6 +2310,26 @@ QuicSocketBase::OnReceivedFrame (QuicSubheader &sub)
         NS_LOG_INFO ("Received PATH_RESPONSE frame");
         break;
 
+      case QuicSubheader::ADD_ADDRESS:
+        // TODO check if it matches what was sent in a PATH_CHALLENGE
+        // otherwise abort with a UNSOLICITED_PATH_RESPONSE error
+        NS_LOG_INFO ("Received ADD_ADDRESS frame");
+        OnReceivedAddAddressFrame (sub);
+        break;
+
+      case QuicSubheader::REMOVE_ADDRESS:
+        // TODO check if it matches what was sent in a PATH_CHALLENGE
+        // otherwise abort with a UNSOLICITED_PATH_RESPONSE error
+        NS_LOG_INFO ("Received REMOVE_ADDRESS frame");
+        break;
+
+      case QuicSubheader::MP_ACK:
+        // TODO check if it matches what was sent in a PATH_CHALLENGE
+        // otherwise abort with a UNSOLICITED_PATH_RESPONSE error
+        NS_LOG_INFO ("Received MP_ACK frame");
+        OnReceivedAckFrame (sub);
+        break;
+
       default:
         AbortConnection (
           QuicSubheader::TransportErrorCodes_t::PROTOCOL_VIOLATION,
@@ -2275,7 +2344,7 @@ QuicSocketBase::OnSendingAckFrame (int pathId)
 {
   NS_LOG_FUNCTION (this);
 
-  NS_ABORT_MSG_IF (m_receivedPacketNumbers.empty (),
+  NS_ABORT_MSG_IF (m_subflows[pathId]->m_receivedPacketNumbers.empty (),
                    " Sending Ack Frame without packets to acknowledge");
 
 //m_delAckEvent.Cancel();
@@ -2283,21 +2352,29 @@ QuicSocketBase::OnSendingAckFrame (int pathId)
 
   NS_LOG_INFO ("Attach an ACK frame to the packet");
 
-  std::sort (m_receivedPacketNumbers.begin (), m_receivedPacketNumbers.end (),
+  std::sort (m_subflows[pathId]->m_receivedPacketNumbers.begin (), m_subflows[pathId]->m_receivedPacketNumbers.end (),
              std::greater<SequenceNumber32> ());
 
-  SequenceNumber32 largestAcknowledged = *(m_receivedPacketNumbers.begin ());
+  SequenceNumber32 largestAcknowledged = *(m_subflows[pathId]->m_receivedPacketNumbers.begin ());
 
   uint32_t ackBlockCount = 0;
   std::vector<uint32_t> additionalAckBlocks;
   std::vector<uint32_t> gaps;
 
   std::vector<SequenceNumber32>::const_iterator curr_rec_it =
-    m_receivedPacketNumbers.begin ();
+    m_subflows[pathId]->m_receivedPacketNumbers.begin ();
   std::vector<SequenceNumber32>::const_iterator next_rec_it =
-    m_receivedPacketNumbers.begin () + 1;
+    m_subflows[pathId]->m_receivedPacketNumbers.begin () + 1;
 
-  for (; next_rec_it != m_receivedPacketNumbers.end ();
+  // for (; curr_rec_it1 != m_subflows[pathId]->m_receivedPacketNumbers.end ();
+  //     ++curr_rec_it1)
+  // {
+  //   std::cout<<"---pathId: "<< pathId
+  //             <<" I received packets: "<<(*curr_rec_it1).GetValue()
+  //             <<" largest acked packet: "<<largestAcknowledged.GetValue()<<std::endl;
+  // }
+
+  for (; next_rec_it != m_subflows[pathId]->m_receivedPacketNumbers.end ();
        ++curr_rec_it, ++next_rec_it)
     {
 
@@ -2319,7 +2396,7 @@ QuicSocketBase::OnSendingAckFrame (int pathId)
 
   Time delay = Simulator::Now () - m_lastReceived;
   uint64_t ack_delay = delay.GetMicroSeconds ();
-  QuicSubheader sub = QuicSubheader::CreateAck (
+  QuicSubheader sub = QuicSubheader::CreateMpAck (
     largestAcknowledged.GetValue (), ack_delay, largestAcknowledged.GetValue (),
     gaps, additionalAckBlocks, pathId, m_subflows[pathId]->m_receivedSeqNumbers.back().GetValue());
 
@@ -2327,15 +2404,15 @@ QuicSocketBase::OnSendingAckFrame (int pathId)
   
   ackFrame->AddHeader (sub);
 
-  if (m_lastMaxData < m_maxDataInterval)
+  if (m_subflows[pathId]->m_lastMaxData < m_subflows[pathId]->m_maxDataInterval)
     {
-      m_lastMaxData++;
+      m_subflows[pathId]->m_lastMaxData++;
     }
   else
     {
       QuicSubheader maxData = QuicSubheader::CreateMaxData (m_quicl5->GetMaxData ());
       ackFrame->AddHeader (maxData);
-      m_lastMaxData = 0;
+      m_subflows[pathId]->m_lastMaxData = 0;
     }
   // std::cout<<"subheader pathid "<<sub.GetPathId()<<"\n";
   return ackFrame;
@@ -2348,21 +2425,22 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   NS_LOG_INFO ("Process ACK");
 
   Time ackDelay = MicroSeconds (sub.GetAckDelay ());
-  m_subflows[sub.GetPathId()]->UpdateRtt(SequenceNumber32(sub.GetLargestSeq()),ackDelay);
+  uint8_t pathId = sub.GetPathId();
+  m_subflows[pathId]->UpdateRtt(SequenceNumber32(sub.GetLargestSeq()),ackDelay);
   // std::cout<<"ack frame received: pathid:"<<sub.GetPathId()<<" largest seq:"<<sub.GetLargestSeq()<<" ack delay:"<<ackDelay<<" large acked:"<<sub.GetLargestAcknowledged()<<std::endl;
   // Generate RateSample
   struct RateSample * rs = m_txBuffer->GetRateSample ();
-  rs->m_priorInFlight = m_tcb->m_bytesInFlight.Get ();
+  rs->m_priorInFlight = m_subflows[pathId]->m_tcb->m_bytesInFlight.Get ();
 
-  uint32_t lostOut = m_txBuffer->GetLost ();
-  uint32_t delivered = m_tcb->m_delivered;
+  uint32_t lostOut = m_txBuffer->GetLost (pathId);
+  uint32_t delivered = m_subflows[pathId]->m_tcb->m_delivered;
 
-  uint32_t previousWindow = m_txBuffer->BytesInFlight ();
+  uint32_t previousWindow = m_txBuffer->BytesInFlight (pathId);
 
   std::vector<uint32_t> additionalAckBlocks = sub.GetAdditionalAckBlocks ();
   std::vector<uint32_t> gaps = sub.GetGaps ();
   uint32_t largestAcknowledged = sub.GetLargestAcknowledged ();
-  m_tcb->m_lastAckedSeq = largestAcknowledged;
+  m_subflows[pathId]->m_tcb->m_lastAckedSeq = largestAcknowledged;
   uint32_t ackBlockCount = sub.GetAckBlockCount ();
 
   
@@ -2372,9 +2450,9 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
     "Received Corrupted Ack Frame.");
   
   std::vector<Ptr<QuicSocketTxItem> > ackedPackets = m_txBuffer->OnAckUpdate (
-    m_tcb, largestAcknowledged, additionalAckBlocks, gaps);
+    m_subflows[pathId]->m_tcb, largestAcknowledged, additionalAckBlocks, gaps, pathId);
   
-  double alpha = GetOliaApha(sub.GetPathId());
+  double alpha = GetOliaApha(pathId);
   double r0 = m_subflows[0]->GetRate();
   double r1 = 0;
   double maxRtt1 = 0;
@@ -2393,27 +2471,27 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
 
 
   // Count newly acked bytes
-  uint32_t ackedBytes = previousWindow - m_txBuffer->BytesInFlight ();
+  uint32_t ackedBytes = previousWindow - m_txBuffer->BytesInFlight (pathId);
   
   // m_subflows[sub.GetPathId()]->UpdateSsThresh(ue_sinr[sub.GetPathId()],ue_Bmin[sub.GetPathId()]);
-  m_subflows[sub.GetPathId()]->CwndOnAckReceived(alpha, sum_rate, max_rate, ackedPackets,ackedBytes);
+  m_subflows[pathId]->CwndOnAckReceived(alpha, sum_rate, max_rate, ackedPackets,ackedBytes);
 
   m_txBuffer->GenerateRateSample ();
-  rs->m_packetLoss = std::abs ((int) lostOut - (int) m_txBuffer->GetLost ());
-  m_tcb->m_lastAckedSackedBytes = m_tcb->m_delivered - delivered;
+  rs->m_packetLoss = std::abs ((int) lostOut - (int) m_txBuffer->GetLost (pathId));
+  m_subflows[pathId]->m_tcb->m_lastAckedSackedBytes = m_subflows[pathId]->m_tcb->m_delivered - delivered;
   // RTO packet acknowledged - IETF Draft QUIC Recovery, Sec. 4.3.3
-  if (m_tcb->m_rtoCount > 0)
+  if (m_subflows[pathId]->m_tcb->m_rtoCount > 0)
     {
       // Packets after the RTO have been acknowledged
-      if (m_tcb->m_largestSentBeforeRto.GetValue () < largestAcknowledged)
+      if (m_subflows[pathId]->m_tcb->m_largestSentBeforeRto.GetValue () < largestAcknowledged)
         {
 
           uint32_t newPackets = (largestAcknowledged
-                                 - m_tcb->m_largestSentBeforeRto.GetValue ()) / GetSegSize ();
+                                 - m_subflows[pathId]->m_tcb->m_largestSentBeforeRto.GetValue ()) / GetSegSize ();
           // uint32_t inFlightBeforeRto = m_txBuffer->BytesInFlight ();
-          m_txBuffer->ResetSentList (newPackets);
+          m_txBuffer->ResetSentList (pathId, newPackets);
           std::vector<Ptr<QuicSocketTxItem> > lostPackets =
-            m_txBuffer->DetectLostPackets ();
+            m_txBuffer->DetectLostPackets (pathId);
           // if (m_quicCongestionControlLegacy && !lostPackets.empty ())
           //   {
           //     // Reset congestion window and go into loss mode
@@ -2428,19 +2506,19 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
         }
       else
         {
-          m_tcb->m_rtoCount = 0;
+          m_subflows[pathId]->m_tcb->m_rtoCount = 0;
         }
     }
 
   // Tail loss probe packet acknowledged - IETF Draft QUIC Recovery, Sec. 4.3.2
-  if (m_tcb->m_tlpCount > 0 && !ackedPackets.empty ())
+  if (m_subflows[pathId]->m_tcb->m_tlpCount > 0 && !ackedPackets.empty ())
     {
-      m_tcb->m_tlpCount = 0;
+      m_subflows[pathId]->m_tcb->m_tlpCount = 0;
     }
 
   // Find lost packets
   std::vector<Ptr<QuicSocketTxItem> > lostPackets =
-    m_txBuffer->DetectLostPackets ();
+    m_txBuffer->DetectLostPackets (pathId);
   // Recover from losses
   if (!lostPackets.empty ())
     {
@@ -2464,8 +2542,8 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
       //     DynamicCast<QuicCongestionOps> (m_congestionControl)->OnPacketsLost (
       //       m_tcb, lostPackets);
       //   }
-      m_subflows[sub.GetPathId()]->UpdateCwndOnPacketLost();
-      DoRetransmit (lostPackets);
+      m_subflows[pathId]->UpdateCwndOnPacketLost();
+      DoRetransmit (lostPackets,pathId);
     }
   /* else */ 
   if (ackedBytes > 0)
@@ -2536,7 +2614,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   SendPendingData (m_connected);
 
   // Compute timers
-  SetReTxTimeout ();
+  SetReTxTimeout (pathId);
 }
 
 QuicTransportParameters
@@ -2548,7 +2626,7 @@ QuicSocketBase::OnSendingTransportParameters ()
   transportParameters = transportParameters.CreateTransportParameters (
     m_initial_max_stream_data, m_max_data, m_initial_max_stream_id_bidi,
     (uint16_t) m_idleTimeout.Get ().GetSeconds (),
-    (uint8_t) m_omit_connection_id, m_tcb->m_segmentSize,
+    (uint8_t) m_omit_connection_id, m_subflows[0]->m_tcb->m_segmentSize,
     m_ack_delay_exponent, m_initial_max_stream_id_uni);
 
   return transportParameters;
@@ -2617,7 +2695,7 @@ QuicSocketBase::OnReceivedTransportParameters (
 //   }
 
   NS_LOG_DEBUG (
-    "Before applying received transport parameters " << " m_initial_max_stream_data " << m_initial_max_stream_data << " m_max_data " << m_max_data << " m_initial_max_stream_id_bidi " << m_initial_max_stream_id_bidi << " m_idleTimeout " << m_idleTimeout << " m_omit_connection_id " << m_omit_connection_id << " m_tcb->m_segmentSize " << m_tcb->m_segmentSize << " m_ack_delay_exponent " << m_ack_delay_exponent << " m_initial_max_stream_id_uni " << m_initial_max_stream_id_uni);
+    "Before applying received transport parameters " << " m_initial_max_stream_data " << m_initial_max_stream_data << " m_max_data " << m_max_data << " m_initial_max_stream_id_bidi " << m_initial_max_stream_id_bidi << " m_idleTimeout " << m_idleTimeout << " m_omit_connection_id " << m_omit_connection_id << " m_tcb->m_segmentSize " << m_subflows[0]->m_tcb->m_segmentSize << " m_ack_delay_exponent " << m_ack_delay_exponent << " m_initial_max_stream_id_uni " << m_initial_max_stream_id_uni);
 
   m_initial_max_stream_data = std::min (
     transportParameters.GetInitialMaxStreamData (),
@@ -2640,7 +2718,7 @@ QuicSocketBase::OnReceivedTransportParameters (
 
   SetSegSize (
     std::min ((uint32_t) transportParameters.GetMaxPacketSize (),
-              m_tcb->m_segmentSize));
+              m_subflows[0]->m_tcb->m_segmentSize));
 
 //m_stateless_reset_token = std::min(transportParameters.getStatelessResetToken(), m_stateless_reset_token);
   m_ack_delay_exponent = std::min (transportParameters.GetAckDelayExponent (),
@@ -2651,7 +2729,7 @@ QuicSocketBase::OnReceivedTransportParameters (
     m_initial_max_stream_id_uni);
 
   NS_LOG_DEBUG (
-    "After applying received transport parameters " << " m_initial_max_stream_data " << m_initial_max_stream_data << " m_max_data " << m_max_data << " m_initial_max_stream_id_bidi " << m_initial_max_stream_id_bidi << " m_idleTimeout " << m_idleTimeout << " m_omit_connection_id " << m_omit_connection_id << " m_tcb->m_segmentSize " << m_tcb->m_segmentSize << " m_ack_delay_exponent " << m_ack_delay_exponent << " m_initial_max_stream_id_uni " << m_initial_max_stream_id_uni);
+    "After applying received transport parameters " << " m_initial_max_stream_data " << m_initial_max_stream_data << " m_max_data " << m_max_data << " m_initial_max_stream_id_bidi " << m_initial_max_stream_id_bidi << " m_idleTimeout " << m_idleTimeout << " m_omit_connection_id " << m_omit_connection_id << " m_tcb->m_segmentSize " << m_subflows[0]->m_tcb->m_segmentSize << " m_ack_delay_exponent " << m_ack_delay_exponent << " m_initial_max_stream_id_uni " << m_initial_max_stream_id_uni);
 }
 
 int
@@ -2695,7 +2773,7 @@ QuicSocketBase::DoFastConnect (void)
     {
       SetState (OPEN);
       Simulator::ScheduleNow (&QuicSocketBase::ConnectionSucceeded, this);
-      m_congestionControl->CongestionStateSet (m_tcb,
+      m_congestionControl->CongestionStateSet (m_subflows[0]->m_tcb,
                                                TcpSocketState::CA_OPEN);
       QuicHeader q;
       SendInitialHandshake (QuicHeader::ZRTT_PROTECTED, q, 0);
@@ -2759,14 +2837,6 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
   m_rxTrace (p, quicHeader, this);
 
   int pathId = quicHeader.GetPathId();
-  // InetSocketAddress transport = InetSocketAddress::ConvertFrom (address);
-  // Ipv4Address ipv4 = transport.GetIpv4 ();
-  // uint16_t port = transport.GetPort ();
-  // std::cout<<this<<Simulator::Now()<< " Recv pkt " << quicHeader.GetPacketNumber () 
-  //             <<"pathId: "<<pathId
-  //             << " recv seq " << quicHeader.GetSeq () 
-  //             << " data size " << p->GetSize () 
-  //             <<"\n";
 
   NS_LOG_INFO ("Received packet of size " << p->GetSize ());
 
@@ -2776,8 +2846,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
       m_idleTimeoutEvent.Cancel ();   // reset the IDLE timeout
       NS_LOG_LOGIC (
         this << " ReceivedData Schedule Close at time " << Simulator::Now ().GetSeconds () << " to expire at time " << (Simulator::Now () + m_idleTimeout.Get ()).GetSeconds ());
-      m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout,
-                                                &QuicSocketBase::Close, this);
+      m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout, &QuicSocketBase::Close, this);
     }
   else   // If the socket is in Draining Period, discard the packets
     {
@@ -2800,7 +2869,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
       m_couldContainTransportParameters = true;
 
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
-      m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
+      m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
       m_subflows[pathId]->m_receivedSeqNumbers.push_back (quicHeader.GetSeq ());
 
       m_connected = true;
@@ -2810,7 +2879,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
           QuicHeader::PHASE_ONE;
       SetState (OPEN);
       Simulator::ScheduleNow (&QuicSocketBase::ConnectionSucceeded, this);
-      m_congestionControl->CongestionStateSet (m_tcb,
+      m_congestionControl->CongestionStateSet (m_subflows[0]->m_tcb,
                                                TcpSocketState::CA_OPEN);
       m_couldContainTransportParameters = false;
 
@@ -2837,7 +2906,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
         }
 
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
-      m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
+      m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
       m_subflows[pathId]->m_receivedSeqNumbers.push_back (quicHeader.GetSeq ());
 
       if (IsVersionSupported (quicHeader.GetVersion ()))
@@ -2850,12 +2919,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
         {
           NS_LOG_INFO (this << " WRONG VERSION " << quicHeader.GetVersion ());
           unsupportedVersion = true;
-          SendInitialHandshake (QuicHeader::VERSION_NEGOTIATION, quicHeader,
-                                p);
-          //after send version_Nego msg, server will bind another address to receive new subflow establishment request from client
-          m_subSocket = true;
-          std::cout<<"()())()()()()()()m_node->GetObject<Ipv4>()->GetAddress(2,0).GetLocal()): "<<m_node->GetObject<Ipv4>()->GetAddress(1,0).GetLocal()<<std::endl;
-          Bind(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(2,0).GetLocal()));
+          SendInitialHandshake (QuicHeader::VERSION_NEGOTIATION, quicHeader,p);
         }
       
       return;
@@ -2867,48 +2931,49 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
       m_subflows[0]->UpdateRtt(SequenceNumber32(2),MicroSeconds(0));
 
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
-      m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
+      m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
       m_subflows[pathId]->m_receivedSeqNumbers.push_back (quicHeader.GetSeq ());
 
       SetState (OPEN);
       Simulator::ScheduleNow(&QuicSocketBase::ConnectionSucceeded, this);
-      m_congestionControl->CongestionStateSet (m_tcb,
+      m_congestionControl->CongestionStateSet (m_subflows[0]->m_tcb,
                                                TcpSocketState::CA_OPEN);
       m_couldContainTransportParameters = false;
       //create subflow
       SendInitialHandshake (QuicHeader::HANDSHAKE, quicHeader, p);
-      SendInitialHandshake (QuicHeader::ANNOUNCE, quicHeader, p);
+      // SendInitialHandshake (QuicHeader::ANNOUNCE, quicHeader, p);
       // m_sendAnnounce = true;
       
-      CreateScheduler();
+      // CreateScheduler();
 
       return;
     }
   else if (quicHeader.IsHandshake () and m_socketState == CONNECTING_SVR)
     {
       NS_LOG_INFO ("Server receives HANDSHAKE");
-      //shirley
-      if (m_couldContainTransportParameters){
-        m_couldContainTransportParameters = false;
-        onlyAckFrames = m_quicl5->DispatchRecv (p, address);
-        m_couldContainTransportParameters = true;
-      } else {
-        onlyAckFrames = m_quicl5->DispatchRecv (p, address);
+
+      //For multipath implementation
+      int16_t addrNum = m_node->GetObject<Ipv4>()->GetNInterfaces();
+      if (m_enableMultipath && addrNum > 2)
+      {
+        for(int16_t num = 2; num < addrNum; num++)
+        {
+          Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal()), num-1);
+       
+          // SendAddAddress();
+        }
       }
-      
+
+      onlyAckFrames = m_quicl5->DispatchRecv (p, address);
       
 
-      m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
+      m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
       m_subflows[pathId]->m_receivedSeqNumbers.push_back (quicHeader.GetSeq ());
 
       SetState (OPEN);
       Simulator::ScheduleNow (&QuicSocketBase::ConnectionSucceeded, this);
-      m_congestionControl->CongestionStateSet (m_tcb,
-                                               TcpSocketState::CA_OPEN);
+      m_congestionControl->CongestionStateSet (m_subflows[0]->m_tcb,TcpSocketState::CA_OPEN);
       SendPendingData (true);
-      if (m_couldContainTransportParameters) {
-        m_couldContainTransportParameters = false;
-      }
 
       return;
     }
@@ -2964,20 +3029,20 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
         }
       return;
     }
-  else if (quicHeader.IsAnnounce ()) //for multipath
-        {
-          // ssj: if server receives announce from client, creating a new scheduler.
-          CreateScheduler();
-          return;
-        }
+  // else if (quicHeader.IsAnnounce ()) //for multipath
+  //       {
+  //         // ssj: if server receives announce from client, creating a new scheduler.
+  //         CreateScheduler();
+  //         return;
+  //       }
   else if (quicHeader.IsShort () and m_socketState == OPEN)
     {
       // TODOACK here?
       // we need to check if the packet contains only an ACK frame
       // in this case we cannot explicitely ACK it!
       // check if delayed ACK is used
-
-      m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
+      
+      m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
       m_subflows[pathId]->m_receivedSeqNumbers.push_back (quicHeader.GetSeq ());
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
 
@@ -3001,7 +3066,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
     {
       m_lastReceived = Simulator::Now ();
       NS_LOG_DEBUG ("Call MaybeQueueAck");
-      MaybeQueueAck ();
+      MaybeQueueAck (pathId);
     }
 
 }
@@ -3094,24 +3159,24 @@ QuicSocketBase::AbortConnection (uint16_t transportErrorCode,
     {
       case CONNECTING_CLT:
         quicHeader = QuicHeader::CreateInitial (m_connectionId, m_vers,
-                                                m_tcb->m_nextTxSequence++);
+                                                m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum++);
         break;
       case CONNECTING_SVR:
         quicHeader = QuicHeader::CreateHandshake (m_connectionId, m_vers,
-                                                  m_tcb->m_nextTxSequence++);
+                                                  m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum++);
         break;
       case OPEN:
         quicHeader =
           !m_connected ?
           QuicHeader::CreateHandshake (m_connectionId, m_vers,
-                                       m_tcb->m_nextTxSequence++) :
+                                       m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum++) :
           QuicHeader::CreateShort (m_connectionId,
-                                   m_tcb->m_nextTxSequence++,
+                                   m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum++,
                                    !m_omit_connection_id, m_keyPhase);
         break;
       case CLOSING:
         quicHeader = QuicHeader::CreateShort (m_connectionId,
-                                              m_tcb->m_nextTxSequence++,
+                                              m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum++,
                                               !m_omit_connection_id,
                                               m_keyPhase);
         break;
@@ -3123,10 +3188,13 @@ QuicSocketBase::AbortConnection (uint16_t transportErrorCode,
   Ptr<Packet> packet = Create<Packet> ();
   packet->AddAtEnd (frame);
   uint32_t sz = packet->GetSize ();
+  // quicHeader.SetPathId(1);
 
-  //Shirley
   quicHeader.SetPathId(0);
-  quicHeader.SetSeq(++m_subflows[0]->m_nextPktNum);
+  quicHeader.SetSeq(m_subflows[0]->m_nextPktNum);
+  // Ptr<Packet> packetSent = Create<Packet> ();
+  // packetSent->AddHeader (quicHeader);
+  // packetSent->AddAtEnd (packet);
   m_subflows[0]->Add(quicHeader.GetSeq());
 
   m_quicl4->SendPacket (this, packet, quicHeader);
@@ -3369,49 +3437,81 @@ QuicSocketBase::NotifyPacingPerformed (void)
   SendPendingData (m_connected);
 }
 
-//ywj
-uint8_t
-QuicSocketBase::LookUpByAddr (Address &address)
-{
-   uint8_t sFlowIdx;
-   InetSocketAddress transport = InetSocketAddress::ConvertFrom (address);
-   Ipv4Address ipv4 = transport.GetIpv4 ();
-   uint16_t port = transport.GetPort ();
-   
 
-   auto result = m_addrIdPair.find(ipv4);
-   if (result == m_addrIdPair.end())   //no found src in the existing addr_id map
-     {
-        m_subSocket = true;
-        //server create subflow when receive announce
-        m_subSocket = false;
-        m_quicl4->UdpConnect (transport, this);
-        
-        sFlowIdx = m_subflows.size();
-        Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
-        sFlow->routeId   = m_subflows[m_subflows.size() - 1]->routeId + 1;
-        sFlow->dAddr    =  m_endPoint->GetLocalAddress ();
-        sFlow->dPort    = m_endPoint->GetLocalPort ();
-        sFlow->sAddr = ipv4;
-        sFlow->sPort = port;
-        m_subflows.insert(m_subflows.end(), sFlow);
-        m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (ipv4, sFlowIdx));
-     }
-   else
-     {
-        sFlowIdx = m_addrIdPair[ipv4];
 
-     }
-    return sFlowIdx;
-        
-}
-
-//shirley
 void
 QuicSocketBase::CreateScheduler ()
 {
   NS_LOG_FUNCTION (this);
-  m_scheduler = CreateObject<QuicScheduler> ();
+  m_scheduler = CreateObject<MpQuicScheduler> ();
+}
+
+void
+QuicSocketBase::CreatePathManager()
+{
+  NS_LOG_FUNCTION (this);
+  m_pathManager = CreateObject<MpQuicPathManager> ();
+  m_pathManager->SetSocket(this);
+}
+
+void 
+QuicSocketBase::SubflowInsert(Ptr<MpQuicSubFlow> sflow)
+{
+  NS_LOG_FUNCTION (this);
+  m_subflows.insert(m_subflows.end(), sflow);
+}
+
+
+void
+QuicSocketBase::SendAddAddress(Address address, int16_t pathId)
+{
+  NS_LOG_FUNCTION (this);
+  QuicSubheader sub = QuicSubheader::CreateAddAddress (address, pathId);
+  Ptr<Packet> frame = Create<Packet> ();
+  frame->AddHeader (sub);
+  Ptr<Packet> p = Create<Packet> ();
+  p->AddAtEnd(frame);
+  SequenceNumber32 packetNumber = ++m_subflows[0]->m_nextPktNum;
+  QuicHeader head;
+  head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
+
+  NS_LOG_INFO ("Send ADD_ADDRESS packet with header " << head);
+
+  head.SetPathId(0);
+  m_quicl4->SendPacket (this, p, head);
+}
+
+
+
+void
+QuicSocketBase::OnReceivedAddAddressFrame (QuicSubheader &sub)
+{
+  NS_LOG_FUNCTION (this);
+  uint16_t pathId = sub.GetPathId();
+  Address peerAddr = sub.GetAddress();
+  Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId,0).GetLocal());
+  m_quicl4->AddPath(pathId, this, localAddr, peerAddr);
+  m_pathManager->AddSubflowWithPeerAddress(localAddr, peerAddr, pathId);
+}
+
+
+void
+QuicSocketBase::SendPathChallenge(int16_t pathId)
+{
+  NS_LOG_FUNCTION (this);
+  QuicSubheader sub = QuicSubheader::CreatePathChallenge (0);
+  Ptr<Packet> frame = Create<Packet> ();
+  frame->AddHeader (sub);
+  Ptr<Packet> p = Create<Packet> ();
+  p->AddAtEnd(frame);
+  SequenceNumber32 packetNumber = ++m_subflows[pathId]->m_nextPktNum;
+  QuicHeader head;
+  head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
+
+  NS_LOG_INFO ("Send PATH_CHALLENGE packet with header " << head);
+
+  head.SetPathId(pathId);
+  m_quicl4->SendPacket (this, p, head);
 }
 
 int
@@ -3475,5 +3575,114 @@ QuicSocketBase::GetOliaApha(int pathId)
   }
 
 }
+
+// uint32_t
+// QuicSocketBase::TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData)
+// {
+
+//   //printk("T= %ld\n",T);
+//   //u32 increment=0;
+//   if (T < RTT/2) return 0;
+//   if (RTT/2 <= T < 3*RTT/2) return cwnd*1460;
+//   else if (3*RTT/2 <= T < RTO){
+//     if(flag == 1){
+//       p0 = 1;
+//       totalData = cwnd*1460;
+//     }
+    
+//     flag++; 
+//     uint32_t cwnd1;
+//     uint32_t cwnd2;
+//     uint32_t cwnd3;
+//     int sst1,sst2,sst3;
+//     double T1,T2,T3;
+//     uint32_t p1,p2,p3;         //传输w个包丢失r个的概率
+//     if(cwnd<4){                //如果cwnd<4，发生了丢包将一定进入超时重传
+//       if(cwnd*1460<sst)
+//         cwnd1 = (cwnd)*2;         //慢启动情况
+//       else {
+//         cwnd1 = cwnd+1;
+//       }
+//       sst1 = sst;    
+//       p1 = p0*pow((1-p),cwnd);
+//       T1 = T - RTT;
+//       totalData = totalData+(p1*cwnd1)*1460;
+//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  //递归
+//     }else{          
+//       if(cwnd*1400<sst)
+//         cwnd1 = (cwnd)*2;         //慢启动情况
+//       else {
+//             cwnd1 = cwnd+1;
+//       }
+//       cwnd3 = cwnd/2;        //快速重传情况      
+//       sst1 = sst;
+//       T1 = T - RTT;
+//       sst3 = cwnd*1460/2;  
+//       T3 = T - 2*RTT;   
+//       int cwnd0 = (int)cwnd ;      //取小于等于cwnd的整数
+//       p1 = p0*pow((1-p),cwnd0);///(fac(cwnd0-3) * fac(3))
+//       p2 = p0*((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3);             
+//       p3 = p0*(1-pow(1-p,cwnd0)-((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3));
+//       totalData = totalData+(p1*cwnd1+p3*cwnd3)*1460;
+//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
+//       TotalData(T3,sFlowIdx,cwnd3,sst3,p,p3,flag,RTT,RTO,totalData);  
+//     }
+//     return totalData;
+//   }else{
+//     if(flag==1){
+//       p0=1;
+//       totalData=cwnd*1460;
+//     }
+    
+//     flag++; 
+//     uint32_t cwnd1;
+//     uint32_t cwnd2;
+//     uint32_t cwnd3;
+//     int sst1,sst2,sst3;
+//     double T1,T2,T3;
+//     uint32_t p1,p2,p3;         //传输w个包丢失r个的概率
+//     if(cwnd<4){                //如果cwnd<4，发生了丢包将一定进入超时重传
+//       if(cwnd*1460<sst)
+//         cwnd1 = (cwnd)*2;         //慢启动情况
+//       else {
+//             cwnd1 = cwnd+1;
+//       }
+        
+//       cwnd2 = 1;              //超时重传情
+//       sst1 = sst;          
+//       sst2 = cwnd*1460/2;
+//       T1 = T - RTT;
+//       T2 = T - RTT/2-RTO;
+//       p1 = p0*pow((1-p),cwnd);
+//       p2 = p0*(1-pow((1-p),cwnd));
+//       totalData = totalData+(p1*cwnd1+p2*cwnd2)*1460;
+//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
+//       TotalData(T2,sFlowIdx,cwnd2,sst2,p,p2,flag,RTT,RTO,totalData);  
+//     }else{          
+//       if(cwnd*1400<sst)
+//         cwnd1 = (cwnd)*2;         //慢启动情况
+//       else {
+//             cwnd1 = cwnd+1;
+//       }
+//       cwnd2 = 1;             //超时重传情况
+//       cwnd3 = cwnd/2;        //快速重传情况      
+//       sst1 = sst;
+//       sst2 = cwnd*1460/2;
+//       sst3 = cwnd*1460/2;     
+//       T1 = T - RTT;
+//       T2 = T - RTT/2-RTO;
+//       T3 = T - 2*RTT;
+//       int cwnd0 = (int)cwnd ;      //取小于等于cwnd的整数
+//       p1 = p0*pow((1-p),cwnd0);///(fac(cwnd0-3) * fac(3))
+//       p2 = p0*((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3);             
+//       p3 = p0*(1-pow(1-p,cwnd0)-((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3));
+//       totalData = totalData+(p1*cwnd1+p2*cwnd2+p3*cwnd3)*1460;
+//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
+//       TotalData(T2,sFlowIdx,cwnd2,sst2,p,p2,flag,RTT,RTO,totalData); 
+//       TotalData(T3,sFlowIdx,cwnd3,sst3,p,p3,flag,RTT,RTO,totalData);  
+//     }
+//     return totalData;
+//   }
+// }
 
 } // namespace ns3

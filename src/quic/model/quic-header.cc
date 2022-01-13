@@ -62,8 +62,7 @@ QuicHeader::TypeToString () const
     "Retry",
     "Handshake",
     "0-RTT Protected",
-    "None",
-    "Announce"
+    "None"
   };
   static const char* shortTypeNames[4] = {
     "1 Octet",
@@ -301,20 +300,6 @@ QuicHeader::Print (std::ostream &os) const
 }
 
 
-QuicHeader
-QuicHeader::CreateAnnounce (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber)
-{
-  NS_LOG_INFO ("Create Announce Helper called");
-
-  QuicHeader head;
-  head.SetFormat (QuicHeader::LONG);
-  head.SetTypeByte (QuicHeader::ANNOUNCE);
-  head.SetConnectionID (connectionId);
-  head.SetVersion (version);
-  head.SetPacketNumber (packetNumber);
-
-  return head;
-}
 
 QuicHeader
 QuicHeader::CreateInitial (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber)
@@ -576,11 +561,6 @@ QuicHeader::IsHandshake () const
   return m_type == HANDSHAKE;
 }
 
-bool
-QuicHeader::IsAnnounce () const
-{
-  return m_type == ANNOUNCE;
-}
 
 
 bool

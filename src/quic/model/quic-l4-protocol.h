@@ -19,7 +19,8 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *
+ *          Wenjun Yang <wenjunyang@uvic.ca>
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
 #ifndef QUICL4PROTOCOL_H
@@ -57,13 +58,11 @@ public:
   static TypeId GetTypeId (void);
   TypeId GetInstanceTypeId (void) const;
 
-  //ywj: a vector contains multiple udpSockets
-  std::vector< Ptr<Socket> > m_udpSocketList;
-
   Ptr<Socket> m_budpSocket;          //!< The UDP socket this binding is associated with
   Ptr<Socket> m_budpSocket6;         //!< The IPv6 UDP this binding is associated with
   Ptr<QuicSocketBase> m_quicSocket;  //!< The quic socket associated with this binding
   bool m_listenerBinding;            //!< A flag that indicates if in this binding resides the listening socket
+  int16_t m_pathId;                  //!< Multipath Implementation: path id
 };
 
 /**
@@ -410,6 +409,9 @@ public:
   virtual int GetProtocolNumber (void) const;
   virtual IpL4Protocol::DownTargetCallback GetDownTarget (void) const;
   virtual IpL4Protocol::DownTargetCallback6 GetDownTarget6 (void) const;
+
+  //For Multipath Implementation
+  int AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress);
 
 protected:
   virtual void DoDispose (void);
