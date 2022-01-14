@@ -53,33 +53,37 @@ MpQuicPathManager::~MpQuicPathManager ()
 }
 
 Ptr<MpQuicSubFlow>
-MpQuicPathManager::InitialSubflow0 (Ipv4Address pIpv4, uint16_t pPort, Ipv4Address lIpv4, uint16_t lPort)
+MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
 {
   NS_LOG_FUNCTION(this);
 
   Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
   sFlow->m_flowId    = 0; 
-  sFlow->m_peerAddr  = pIpv4;
-  sFlow->m_peerPort  = pPort;
-  sFlow->m_localAddr = lIpv4;
-  sFlow->m_localPort = lPort;
+  sFlow->m_peerAddr  = peerAddress;
+  sFlow->m_localAddr = localAddress;
+  sFlow->m_subflowState = MpQuicSubFlow::ACTIVE;
   m_socket->SubflowInsert(sFlow);
-  m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (pIpv4, 0));
+  // m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (pIpv4, 0));
   return sFlow;
 
 }
 
 Ptr<MpQuicSubFlow>
-MpQuicPathManager::AddSubflow(Address address, int16_t pathId)
+MpQuicPathManager::AddSubflow(Address localAddress, Address peerAddress, int16_t pathId)
 {
     
   NS_LOG_FUNCTION(this);
   Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
   sFlow->m_flowId    = pathId; 
-  sFlow->m_localAddr = InetSocketAddress::ConvertFrom (address).GetIpv4();
-  sFlow->m_localPort = InetSocketAddress::ConvertFrom (address).GetPort();
+  sFlow->m_localAddr = localAddress;
+  sFlow->m_peerAddr = peerAddress;
+
+  sFlow->m_subflowState = MpQuicSubFlow::PENDING;
+
   m_socket->SubflowInsert(sFlow);
-  m_socket->SendAddAddress(address, pathId);
+  m_socket->AddPath(localAddress, peerAddress, pathId);
+  m_socket->SendAddAddress(localAddress, pathId);
+  
   return sFlow;
 
 }
@@ -92,10 +96,9 @@ MpQuicPathManager::AddSubflowWithPeerAddress(Address localAddress, Address peerA
   NS_LOG_FUNCTION(this);
   Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
   sFlow->m_flowId     = pathId; 
-  sFlow->m_localAddr  = InetSocketAddress::ConvertFrom (localAddress).GetIpv4();
-  sFlow->m_localPort  = InetSocketAddress::ConvertFrom (localAddress).GetPort();
-  sFlow->m_peerAddr   = InetSocketAddress::ConvertFrom (peerAddress).GetIpv4();
-  sFlow->m_peerPort   = InetSocketAddress::ConvertFrom (peerAddress).GetPort();
+  sFlow->m_localAddr  = localAddress;
+  sFlow->m_peerAddr   = peerAddress;
+  sFlow->m_subflowState = MpQuicSubFlow::PENDING;
   m_socket->SubflowInsert(sFlow);
   m_socket->SendPathChallenge(pathId);
   return sFlow;
@@ -108,6 +111,7 @@ MpQuicPathManager::SetSocket(Ptr<QuicSocketBase> sock)
   NS_LOG_FUNCTION (this);
   m_socket = sock;
 }
+
 
 // //ywj
 // uint8_t

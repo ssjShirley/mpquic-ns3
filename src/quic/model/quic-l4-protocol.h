@@ -411,7 +411,9 @@ public:
   virtual IpL4Protocol::DownTargetCallback6 GetDownTarget6 (void) const;
 
   //For Multipath Implementation
+  void Allow0RTTHandshake (bool allow0RTT);
   int AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress);
+  int ReDoUdpConnect(uint16_t pathId, Address peerAddress);
 
 protected:
   virtual void DoDispose (void);

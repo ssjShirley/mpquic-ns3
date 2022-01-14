@@ -1703,6 +1703,7 @@ QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uin
 
 Address QuicSubheader::GetAddress () const
 {
+  m_address.Register();
   return m_address;
 }
 

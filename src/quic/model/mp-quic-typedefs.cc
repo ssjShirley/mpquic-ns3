@@ -60,8 +60,6 @@ MpQuicSubFlow::GetTypeId (void)
 
 MpQuicSubFlow::MpQuicSubFlow()
     : routeId (0),
-      sAddr (Ipv4Address::GetZero ()), sPort (0),
-      dAddr (Ipv4Address::GetZero ()), dPort (0),
       m_lastMaxData(0),
       m_maxDataInterval(10)
 {
@@ -118,7 +116,6 @@ std::vector<uint32_t> MpQuicSubFlow::m_sst = boost::assign::list_of(50000)(50000
 MpQuicSubFlow::~MpQuicSubFlow()
 {
     routeId     = 0;
-    sAddr       = Ipv4Address::GetZero ();
     m_bandwidth   = 12500*0.5;
     m_cWnd        = 1460;
     // m_Bmin = 0;

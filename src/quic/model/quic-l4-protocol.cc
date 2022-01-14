@@ -232,7 +232,7 @@ QuicL4Protocol::UdpBind (const Address &address, Ptr<QuicSocketBase> socket)
       for (it = m_quicUdpBindingList.begin (); it != m_quicUdpBindingList.end (); ++it)
         {
           Ptr<QuicUdpBinding> item = *it;
-          if (item->m_quicSocket == socket and  item->m_budpSocket6 == nullptr)
+          if (item->m_quicSocket == socket and  item->m_budpSocket == nullptr)
             {
               Ptr<Socket> udpSocket = CreateUdpSocket ();
               res = udpSocket->Bind (address);
@@ -445,9 +445,10 @@ QuicL4Protocol::ForwardUp (Ptr<Socket> sock)
 
       QuicHeader header;
       packet->RemoveHeader (header);
-
+      NS_LOG_INFO(" Recv pkt " << header.GetPacketNumber () 
+                <<" pathId: "<<header.GetPathId());
       //  std::cout<<this<< " Recv pkt " << header.GetPacketNumber () 
-      //           <<"pathId: "<<header.GetPathId()
+      //           <<" pathId: "<<header.GetPathId()
       //           << " recv seq " << header.GetSeq () 
       //           << " data size " << packet->GetSize () 
       //           <<"\n";
@@ -986,6 +987,7 @@ QuicL4Protocol::Is0RTTHandshakeAllowed () const
 int
 QuicL4Protocol::AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress)
 {
+  NS_LOG_FUNCTION (this);
   int res = -1;
   if (InetSocketAddress::IsMatchingType (localAddress))
     {
@@ -1018,6 +1020,27 @@ QuicL4Protocol::AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAdd
   return -1;
 }
 
+void
+QuicL4Protocol::Allow0RTTHandshake (bool allow0RTT)
+{
+  m_0RTTHandshakeStart = allow0RTT;
+}
+
+int
+QuicL4Protocol::ReDoUdpConnect(uint16_t pathId, Address peerAddress)
+{
+  QuicUdpBindingList::iterator it;
+  Ptr<QuicSocketBase> socket;
+  for (it = m_quicUdpBindingList.begin (); it != m_quicUdpBindingList.end (); ++it)
+    {
+      Ptr<QuicUdpBinding> item = *it;
+      if (item->m_pathId == pathId)
+        {
+          return item->m_budpSocket->Connect(peerAddress);
+        }
+    }
+    return -1;
+}
 
 } // namespace ns3
 

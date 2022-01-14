@@ -124,6 +124,8 @@ QuicHeader::CalculateHeaderLength () const
     {
       len = 8 + 64 * HasConnectionId () + GetPacketNumLen () + 8 + 32;
     }
+  
+  len += 16+32;
   return len / 8;
 }
 
@@ -204,7 +206,7 @@ QuicHeader::Serialize (Buffer::Iterator start) const
           break;
         }
     }
-  i.WriteU8 (m_pathId);
+  i.WriteHtonU16 (m_pathId);
   i.WriteHtonU32 (m_seq.GetValue ());
 }
 
@@ -261,7 +263,7 @@ QuicHeader::Deserialize (Buffer::Iterator start)
         }
     }
 
-  SetPathId(i.ReadU8());
+  SetPathId(i.ReadNtohU16 ());
   SetSeq(SequenceNumber32 (i.ReadNtohU32 ()));
 
   NS_LOG_INFO ("Deserialize::Serialized Size " << CalculateHeaderLength ());
@@ -297,6 +299,7 @@ QuicHeader::Print (std::ostream &os) const
       os << "PacketNumber " << m_packetNumber << "|\n|";
     }
   os << "PathID " << unsigned(m_pathId) << "|\n";
+  os << "Seq " << m_seq << "|\n";
 }
 
 
@@ -518,14 +521,14 @@ QuicHeader::IsVersionNegotiation () const
   return m_type == VERSION_NEGOTIATION;
 }
 
-uint8_t
+uint16_t
 QuicHeader::GetPathId () const
 {
   return m_pathId;
 }
 
 void
-QuicHeader::SetPathId (uint8_t pathId)
+QuicHeader::SetPathId (uint16_t pathId)
 {
   m_pathId = pathId;
 }

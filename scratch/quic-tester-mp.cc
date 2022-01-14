@@ -167,7 +167,7 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
   Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
   Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
-  
+
   // Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue(10485760));
@@ -187,7 +187,7 @@ main (int argc, char *argv[])
   std::vector<std::string> rate(2);
   std::vector<std::string> delay(2);
 
-  rate[0]="100Mbps";
+  rate[0]="1Mbps";
   delay[0]="10ms";
   rate[1]="100Mbps";
   delay[1]="10ms";

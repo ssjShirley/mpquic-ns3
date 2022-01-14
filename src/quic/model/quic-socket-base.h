@@ -660,7 +660,13 @@ public:
   
   void SendAddAddress(Address address, int16_t pathId);
   void SendPathChallenge(int16_t pathId);
+  void SendPathResponse (int16_t pathId);
+
   void SubflowInsert(Ptr<MpQuicSubFlow> sflow);
+  void AddPath(Address address, Address from, int16_t pathId);
+
+
+
 
 protected:
   // Implementation of QuicSocket virtuals
@@ -914,11 +920,16 @@ protected:
   Ptr<MpQuicPathManager> m_pathManager;
   Ptr<MpQuicScheduler> m_scheduler;
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
+  uint16_t m_currentPathId;
+  Address m_currentFromAddress;
   
 
-  void CreatePathManager();
+  void CreatePathManager ();
   void CreateScheduler ();
+  void CreateNewSubflows ();
   void OnReceivedAddAddressFrame (QuicSubheader &sub);
+  void OnReceivedPathChallengeFrame (QuicSubheader &sub);
+  void OnReceivedPathResponseFrame (QuicSubheader &sub);
 
   
   //ywj: path scheduler

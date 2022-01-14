@@ -178,7 +178,7 @@ QuicSocketBase::GetTypeId (void)
                    MakeDoubleAccessor (&QuicSocketState::m_kTimeReorderingFraction),
                    MakeDoubleChecker<double> (0))
     .AddAttribute ("kUsingTimeLossDetection", "Whether time based loss detection is in use", 
-                   BooleanValue (true),
+                   BooleanValue (false),
                    MakeBooleanAccessor (&QuicSocketState::m_kUsingTimeLossDetection),
                    MakeBooleanChecker ())
     .AddAttribute ("kMinTLPTimeout", "Minimum time in the future a tail loss probe alarm may be set for",
@@ -186,7 +186,7 @@ QuicSocketBase::GetTypeId (void)
                    MakeTimeAccessor (&QuicSocketState::m_kMinTLPTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kMinRTOTimeout", "Minimum time in the future an RTO alarm may be set for",
-                   TimeValue (MilliSeconds (20)),
+                   TimeValue (MilliSeconds (200)),
                    MakeTimeAccessor (&QuicSocketState::m_kMinRTOTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kDelayedAckTimeout", "The length of the peer's delayed ACK timer",
@@ -355,7 +355,7 @@ QuicSocketState::GetTypeId (void)
                    MakeDoubleAccessor (&QuicSocketState::m_kTimeReorderingFraction),
                    MakeDoubleChecker<double> (0))
     .AddAttribute ("kUsingTimeLossDetection",
-                   "Whether time based loss detection is in use", BooleanValue (true),
+                   "Whether time based loss detection is in use", BooleanValue (false),
                    MakeBooleanAccessor (&QuicSocketState::m_kUsingTimeLossDetection),
                    MakeBooleanChecker ())
     .AddAttribute ("kMinTLPTimeout",
@@ -365,7 +365,7 @@ QuicSocketState::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("kMinRTOTimeout",
                    "Minimum time in the future an RTO alarm may be set for",
-                   TimeValue (MilliSeconds (20)),
+                   TimeValue (MilliSeconds (200)),
                    MakeTimeAccessor (&QuicSocketState::m_kMinRTOTimeout),
                    MakeTimeChecker ())
     .AddAttribute ("kDelayedAckTimeout", "The lenght of the peer's delayed ack timer",
@@ -412,10 +412,10 @@ QuicSocketState::QuicSocketState ()
     m_kReorderingThreshold (3),
     m_kTimeReorderingFraction (9 / 8),
     m_kUsingTimeLossDetection (
-      true),
+      false),
     m_kMinTLPTimeout (MilliSeconds (10)),
     m_kMinRTOTimeout (
-      MilliSeconds (20)),
+      MilliSeconds (200)),
     m_kDelayedAckTimeout (MilliSeconds (25)),
     m_alarmType (0),
     m_nextAlarmTrigger (Seconds (100)),
@@ -688,7 +688,6 @@ QuicSocketBase::~QuicSocketBase (void)
 int
 QuicSocketBase::Bind (void)
 {
-NS_LOG_INFO("QuicSocketBase::Bind (void): ");
   //NS_LOG_FUNCTION (this);
   m_endPoint = m_quicl4->Allocate ();
   if (0 == m_endPoint)
@@ -840,7 +839,7 @@ QuicSocketBase::Connect (const Address & address)
       m_endPoint6 = nullptr;
 
       // For multipath implementation
-      Ptr<MpQuicSubFlow> subflow0 = m_pathManager->InitialSubflow0(transport.GetIpv4 (), transport.GetPort (), m_endPoint->GetLocalAddress (), m_endPoint->GetLocalPort ());
+      Ptr<MpQuicSubFlow> subflow0 = m_pathManager->InitialSubflow0(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(1,0).GetLocal()), address);
       
 
       // Get the appropriate local address and port number from the routing protocol and set up endpoint
@@ -1005,14 +1004,9 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
         {
           if (!m_sendPendingDataEvent.IsRunning ())
             {
-              // std::cout<<"4444 quic-socket-base.cc !m_sendPendingDataEvent.IsRunning!!!!! m_connected: "<<m_connected<<std::endl;
-              //SendPendingData(m_connected);
-              //Simulator::ScheduleNow (&QuicSocketBase::handler, this, 10, 5);
- 
                 m_sendPendingDataEvent = Simulator::Schedule (
                   TimeStep (1), &QuicSocketBase::SendPendingData, this,
                   m_connected);
-                  // std::cout<<"----555555"<<m_connected<<std::endl;
               
             }
         }
@@ -1119,6 +1113,7 @@ QuicSocketBase::SendPendingData (bool withAck)
   m_lastUsedsFlowIdx = getSubflowToUse ();
   // std::cout<<"****, now the m_lastUsedsFlowIdx: "<< (int)m_lastUsedsFlowIdx
   //            <<"m_subflows[m_lastUsedsFlowIdx].m_nextPktNum: "<<m_subflows[m_lastUsedsFlowIdx]->m_nextPktNum<<std::endl;
+
   Ptr<MpQuicSubFlow> sFlow = m_subflows[m_lastUsedsFlowIdx];
   // to do list: getSubflowToUse 
   while (win > 0 and m_txBuffer->AppSize () > 0)
@@ -2302,12 +2297,14 @@ QuicSocketBase::OnReceivedFrame (QuicSubheader &sub)
         // TODO reply with a PATH_RESPONSE with the same value
         // as that carried by the PATH_CHALLENGE
         NS_LOG_INFO ("Received PATH_CHALLENGE frame");
+        OnReceivedPathChallengeFrame(sub);
         break;
 
       case QuicSubheader::PATH_RESPONSE:
         // TODO check if it matches what was sent in a PATH_CHALLENGE
         // otherwise abort with a UNSOLICITED_PATH_RESPONSE error
         NS_LOG_INFO ("Received PATH_RESPONSE frame");
+        OnReceivedPathResponseFrame(sub);
         break;
 
       case QuicSubheader::ADD_ADDRESS:
@@ -2836,7 +2833,10 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
   NS_LOG_FUNCTION (this);
   m_rxTrace (p, quicHeader, this);
 
+  //For multipath Implementation
   int pathId = quicHeader.GetPathId();
+  m_currentPathId = pathId;
+  m_currentFromAddress = address;
 
   NS_LOG_INFO ("Received packet of size " << p->GetSize ());
 
@@ -2953,16 +2953,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
       NS_LOG_INFO ("Server receives HANDSHAKE");
 
       //For multipath implementation
-      int16_t addrNum = m_node->GetObject<Ipv4>()->GetNInterfaces();
-      if (m_enableMultipath && addrNum > 2)
-      {
-        for(int16_t num = 2; num < addrNum; num++)
-        {
-          Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal()), num-1);
-       
-          // SendAddAddress();
-        }
-      }
+      CreateNewSubflows();
 
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
       
@@ -3455,12 +3446,37 @@ QuicSocketBase::CreatePathManager()
 }
 
 void 
+QuicSocketBase::CreateNewSubflows ()
+{
+  NS_LOG_FUNCTION (this);
+  int16_t addrNum = m_node->GetObject<Ipv4>()->GetNInterfaces();
+  if (m_enableMultipath && addrNum > 2)
+  {
+    m_quicl4->Allow0RTTHandshake(true);
+    for(int16_t num = 2; num < addrNum; num++)
+    {
+      Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal()), m_currentFromAddress, num-1);
+    
+      // SendAddAddress();
+    }
+    
+  }
+}
+
+
+void 
 QuicSocketBase::SubflowInsert(Ptr<MpQuicSubFlow> sflow)
 {
   NS_LOG_FUNCTION (this);
   m_subflows.insert(m_subflows.end(), sflow);
 }
 
+void
+QuicSocketBase::AddPath(Address address, Address from, int16_t pathId)
+{
+  NS_LOG_FUNCTION (this);
+  m_quicl4->AddPath(pathId, this, address, from);
+}
 
 void
 QuicSocketBase::SendAddAddress(Address address, int16_t pathId)
@@ -3474,23 +3490,22 @@ QuicSocketBase::SendAddAddress(Address address, int16_t pathId)
   SequenceNumber32 packetNumber = ++m_subflows[0]->m_nextPktNum;
   QuicHeader head;
   head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
-
+  head.SetPathId(0);
   NS_LOG_INFO ("Send ADD_ADDRESS packet with header " << head);
 
-  head.SetPathId(0);
   m_quicl4->SendPacket (this, p, head);
+
 }
-
-
 
 void
 QuicSocketBase::OnReceivedAddAddressFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   uint16_t pathId = sub.GetPathId();
-  Address peerAddr = sub.GetAddress();
-  Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId,0).GetLocal());
+  Address peerAddr = InetSocketAddress("10.1.2.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
+  Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId+1,0).GetLocal());
   m_quicl4->AddPath(pathId, this, localAddr, peerAddr);
+  m_quicl4->Allow0RTTHandshake(true);
   m_pathManager->AddSubflowWithPeerAddress(localAddr, peerAddr, pathId);
 }
 
@@ -3499,7 +3514,7 @@ void
 QuicSocketBase::SendPathChallenge(int16_t pathId)
 {
   NS_LOG_FUNCTION (this);
-  QuicSubheader sub = QuicSubheader::CreatePathChallenge (0);
+  QuicSubheader sub = QuicSubheader::CreatePathChallenge (pathId);
   Ptr<Packet> frame = Create<Packet> ();
   frame->AddHeader (sub);
   Ptr<Packet> p = Create<Packet> ();
@@ -3507,11 +3522,47 @@ QuicSocketBase::SendPathChallenge(int16_t pathId)
   SequenceNumber32 packetNumber = ++m_subflows[pathId]->m_nextPktNum;
   QuicHeader head;
   head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
+  head.SetPathId(pathId);
 
   NS_LOG_INFO ("Send PATH_CHALLENGE packet with header " << head);
 
-  head.SetPathId(pathId);
   m_quicl4->SendPacket (this, p, head);
+}
+
+void
+QuicSocketBase::OnReceivedPathChallengeFrame (QuicSubheader &sub)
+{
+  NS_LOG_FUNCTION (this);
+  m_subflows[m_currentPathId]->m_peerAddr = m_currentFromAddress;
+  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
+  m_quicl4->ReDoUdpConnect(m_currentPathId, m_currentFromAddress);
+  SendPathResponse(m_currentPathId);
+}
+
+void
+QuicSocketBase::SendPathResponse (int16_t pathId)
+{
+  NS_LOG_FUNCTION (this);
+  QuicSubheader sub = QuicSubheader::CreatePathResponse (pathId);
+  Ptr<Packet> frame = Create<Packet> ();
+  frame->AddHeader (sub);
+  Ptr<Packet> p = Create<Packet> ();
+  p->AddAtEnd(frame);
+  SequenceNumber32 packetNumber = ++m_subflows[pathId]->m_nextPktNum;
+  QuicHeader head;
+  head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
+  head.SetPathId(pathId);
+
+  NS_LOG_INFO ("Send PATH_RESPONSE packet with header " << head);
+
+  m_quicl4->SendPacket (this, p, head);
+}
+
+void
+QuicSocketBase::OnReceivedPathResponseFrame (QuicSubheader &sub)
+{
+  NS_LOG_FUNCTION (this);
+  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
 }
 
 int

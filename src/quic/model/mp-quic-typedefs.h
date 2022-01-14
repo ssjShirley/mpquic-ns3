@@ -64,6 +64,8 @@ typedef enum {
   } FRtoStep_t;
 
 
+
+
 class MpRttHistory
 {
 public:
@@ -81,17 +83,23 @@ public:
 class MpQuicSubFlow : public Object
 {
 public:
+
+    typedef enum
+    {
+      PENDING,       //!< subflow is initialed, cannot send data yet
+      ACTIVE         //!< sublfow is fully active
+    } SubflowStates_t;
+    
     static TypeId GetTypeId (void);
 
     MpQuicSubFlow ();
     ~MpQuicSubFlow ();
 
     uint16_t m_flowId;
-    Ipv4Address m_localAddr;
-    uint16_t    m_localPort;
-    Ipv4Address m_peerAddr;
-    uint16_t    m_peerPort;
+    Address m_localAddr;
+    Address m_peerAddr;
 
+    TracedValue<SubflowStates_t> m_subflowState;  //!< State 
 
 
     void Add (SequenceNumber32 ack);
@@ -113,10 +121,10 @@ public:
 
     uint16_t    routeId;
     bool        connected;
-    Ipv4Address sAddr;
-    uint16_t    sPort;
-    Ipv4Address dAddr;
-    uint16_t    dPort;
+    // Ipv4Address sAddr;
+    // uint16_t    sPort;
+    // Ipv4Address dAddr;
+    // uint16_t    dPort;
 
     TracedValue<uint32_t> m_cWnd;
     

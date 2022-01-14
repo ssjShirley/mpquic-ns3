@@ -35,15 +35,20 @@ public:
   virtual ~MpQuicPathManager (void);
 
 
-  Ptr<MpQuicSubFlow> InitialSubflow0 (Ipv4Address pIpv4, uint16_t pPort, Ipv4Address lIpv4, uint16_t lPort);
-  Ptr<MpQuicSubFlow> AddSubflow(Address address, int16_t pathId);
+  Ptr<MpQuicSubFlow> InitialSubflow0 (Address localAddress, Address peerAddress);
+  Ptr<MpQuicSubFlow> AddSubflow(Address address, Address from, int16_t pathId);
   Ptr<MpQuicSubFlow> AddSubflowWithPeerAddress(Address localAddress, Address peerAddress, int16_t pathId);
-  uint8_t LookUpByAddr (Address &address);
+ 
+  // uint8_t LookUpByAddr (Address &address);
   void SetSocket(Ptr<QuicSocketBase> sock);
+  
+  
+  
 
 private:
   Ptr<QuicSocketBase> m_socket;
-  std::map <Ipv4Address, uint8_t> m_addrIdPair;
+  // std::map <Ipv4Address, uint8_t> m_addrIdPair;
+ 
  
 };
 
