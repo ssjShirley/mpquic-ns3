@@ -157,16 +157,13 @@ public:
    */
   //Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes);
 
-    /**
-     * ywj added
+  /**
    * \brief Get the next scheduled packet with a specified size
    *
    * \param numBytes number of bytes of the QuicSocketTxItem requested
-   * \param pathId the path on which the packet will be sent 
-   * \param Q the estimated data amount Q 
    * \return the item that contains the right packet
    */
-  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint32_t pathId, uint32_t Q);
+  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint16_t pathId);
 
   /**
    * Returns the total number of bytes in the application buffer

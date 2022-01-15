@@ -43,8 +43,7 @@ QuicHeader::QuicHeader ()
   m_connectionId (0),
   m_packetNumber (0),
   m_version (0),
-  m_pathId (0),
-  m_seq (0)
+  m_pathId (0)
 {
 }
 
@@ -207,7 +206,7 @@ QuicHeader::Serialize (Buffer::Iterator start) const
         }
     }
   i.WriteHtonU16 (m_pathId);
-  i.WriteHtonU32 (m_seq.GetValue ());
+  // i.WriteHtonU32 (m_seq.GetValue ());
 }
 
 uint32_t
@@ -264,7 +263,7 @@ QuicHeader::Deserialize (Buffer::Iterator start)
     }
 
   SetPathId(i.ReadNtohU16 ());
-  SetSeq(SequenceNumber32 (i.ReadNtohU32 ()));
+  // SetSeq(SequenceNumber32 (i.ReadNtohU32 ()));
 
   NS_LOG_INFO ("Deserialize::Serialized Size " << CalculateHeaderLength ());
 
@@ -299,7 +298,7 @@ QuicHeader::Print (std::ostream &os) const
       os << "PacketNumber " << m_packetNumber << "|\n|";
     }
   os << "PathID " << unsigned(m_pathId) << "|\n";
-  os << "Seq " << m_seq << "|\n";
+  // os << "Seq " << m_seq << "|\n";
 }
 
 
@@ -533,18 +532,18 @@ QuicHeader::SetPathId (uint16_t pathId)
   m_pathId = pathId;
 }
 
-SequenceNumber32
-QuicHeader::GetSeq () const
-{
-  return m_seq;
-}
+// SequenceNumber32
+// QuicHeader::GetSeq () const
+// {
+//   return m_seq;
+// }
 
-void
-QuicHeader::SetSeq (SequenceNumber32 packNum)
-{
-  NS_LOG_INFO (packNum);
-  m_seq = packNum;
-}
+// void
+// QuicHeader::SetSeq (SequenceNumber32 packNum)
+// {
+//   NS_LOG_INFO (packNum);
+//   m_seq = packNum;
+// }
 
 bool
 QuicHeader::IsInitial () const
@@ -594,7 +593,7 @@ operator== (const QuicHeader &lhs, const QuicHeader &rhs)
     && lhs.m_packetNumber == rhs.m_packetNumber
     && lhs.m_version == rhs.m_version
     && lhs.m_pathId == rhs.m_pathId
-    && lhs.m_seq == rhs.m_seq
+    // && lhs.m_seq == rhs.m_seq
     );
 }
 

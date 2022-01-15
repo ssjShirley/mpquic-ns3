@@ -169,7 +169,7 @@ public:
    * \param Q the estimated data amount Q 
    * \return the next packet to transmit
    */
-  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint32_t pathId, uint32_t Q);
+  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint16_t pathId);
 
 
   /**
@@ -185,10 +185,9 @@ public:
    *
    * \param numBytes number of bytes of the QuicSocketTxItem requested
    * \param pathId the path on which the packet will be sent 
-   * \param Q the estimated data amount Q 
    * \return the item that contains the right packet
    */
-  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint32_t pathId, uint32_t Q);
+  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint16_t pathId);
 
   /**
    * Process an acknowledgment, set the packets in the send buffer as acknowledged, mark
@@ -203,7 +202,7 @@ public:
    * \param gaps The gaps in the acknowledgment
    * \return a vector containing the newly acked packets for congestion control purposes
    */
-  std::vector<Ptr<QuicSocketTxItem> > OnAckUpdate (Ptr<TcpSocketState> tcb,
+  std::vector<Ptr<QuicSocketTxItem> > OnAckUpdate (Ptr<QuicSocketState> tcb,
                                                    const uint32_t largestAcknowledged,
                                                    const std::vector<uint32_t> &additionalAckBlocks,
                                                    const std::vector<uint32_t> &gaps,
@@ -291,7 +290,7 @@ public:
    * \param the sequence number of the packet
    * \return true if the packet is in the send buffer
    */
-  bool MarkAsLost (const SequenceNumber32 seq);
+  bool MarkAsLost (const SequenceNumber32 seq, uint16_t pathId);
 
   /**
    * Put the lost packets at the beginning of the application buffer to retransmit them
@@ -300,11 +299,11 @@ public:
    */
   uint32_t Retransmission (SequenceNumber32 packetNumber, uint8_t pathId);
 
-  /**
-   * Set the TcpSocketState (tcb)
-   * \param The TcpSocketState object
-   */
-  void SetQuicSocketState (Ptr<QuicSocketState> tcb);
+  // /**
+  //  * Set the TcpSocketState (tcb)
+  //  * \param The TcpSocketState object
+  //  */
+  // void SetQuicSocketState (Ptr<QuicSocketState> tcb);
 
   /**
    * Set the socket scheduler
@@ -317,14 +316,14 @@ public:
    * \param The sequence number of the sent packet
    * \param The size of the sent packet
    */
-  void UpdatePacketSent (SequenceNumber32 seq, uint32_t sz, uint8_t pathId);
+  void UpdatePacketSent (SequenceNumber32 seq, uint32_t sz, uint8_t pathId, Ptr<QuicSocketState> tcb);
 
   /**
    * Updates ACK related variables required by RateSample to discount the delivery rate.
    * \param The sequence number of the sent ACK packet
    * \param The size of the sent ACK packet
    */
-  void UpdateAckSent (SequenceNumber32 seq, uint32_t sz);
+  void UpdateAckSent (SequenceNumber32 seq, uint32_t sz, Ptr<QuicSocketState> tcb);
 
   /**
    * Get the current rate sample
@@ -336,13 +335,13 @@ public:
    * Updates rate samples rate on arrival of each acknowledgement.
    * \param The QuicSocketTxItem containing the acknowledgment
    */
-  void UpdateRateSample (Ptr<QuicSocketTxItem> pps);
+  void UpdateRateSample (Ptr<QuicSocketTxItem> pps, Ptr<QuicSocketState> tcb);
 
   /**
    * Calculates delivery rate on arrival of each acknowledgement.
    * \return True if the calculation is performed correctly
    */
-  bool GenerateRateSample ();
+  bool GenerateRateSample (Ptr<QuicSocketState> tcb);
 
   /**
    * Set the latency bound for a specified stream
@@ -375,9 +374,11 @@ public:
    */
   Time GetDefaultLatency ();
 
-  //ywj: new defined
-  void findSentList (uint8_t pathId);
 
+  //For multipath Implementation
+  
+  void AddSendList();
+  void FindSentList (uint16_t pathId);
 
   
 private:
@@ -388,19 +389,7 @@ private:
    */
   void CleanSentList (uint8_t pathId);
 
-    /**
-     * ywj: pass m_sentList 0 or m_sentList1 by reference to m_sentList
-   *
-   * \param sentList either m_sentList0 or m_sentList1
-   */
-  void refList (QuicTxPacketList & sentList);
-
-
   QuicTxPacketList m_sentList;        //!< List of sent packets with additional info
-
-  //ywj: manage sentList for sFlow0 and sFlow1 separately
-  QuicTxPacketList m_sentList0;        //!< List of sent packets for path 0
-  QuicTxPacketList m_sentList1;        //!< List of sent packets for path 1
 
   QuicTxPacketList m_streamZeroList;       //!< List of waiting stream 0 packets with additional info
   uint32_t m_maxBuffer;            //!< Max number of data bytes in buffer (SND.WND)
@@ -409,8 +398,22 @@ private:
   uint32_t m_numFrameStream0InBuffer;        //!< Number of Stream 0 frames buffered
 
   Ptr<QuicSocketTxScheduler> m_scheduler { nullptr };         //!< Scheduler
-  Ptr<QuicSocketState> m_tcb { nullptr };
+  // Ptr<QuicSocketState> m_tcb { nullptr };
   struct RateSample m_rs;
+
+
+  //For multipath Implementation
+
+  typedef std::vector<QuicTxPacketList> UniflowSentList;  
+  UniflowSentList m_uniflowSentList;
+  
+  /**
+   * pass m_sentList 0 or m_sentList1 by reference to m_sentList
+   *
+   * \param sentList either m_sentList0 or m_sentList1
+   */
+  void RefList (QuicTxPacketList & sentList);
+
 };
 
 } // namepsace ns3

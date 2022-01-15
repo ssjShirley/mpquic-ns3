@@ -789,9 +789,9 @@ QuicL4Protocol::SendPacket (Ptr<QuicSocketBase> socket, Ptr<Packet> pkt, const Q
 {
   NS_LOG_FUNCTION (this << socket);
   uint16_t pathId = outgoing.GetPathId (); 
-  NS_LOG_LOGIC (this
-                << " sending seq " << outgoing.GetPacketNumber ()
+  NS_LOG_LOGIC (this << "sendpacket with"
                 << " path Id: "<< pathId
+                << " sending pkt #" << outgoing.GetPacketNumber ()
                 << " data size " << pkt->GetSize ());
 
   

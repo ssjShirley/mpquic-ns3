@@ -57,6 +57,7 @@ namespace ns3 {
 class QuicL5Protocol;
 class QuicL4Protocol;
 class MpQuicPathManager;
+class MpQuicScheduler;
 
 /**
  * \brief Data structure that records the congestion state of a connection
@@ -572,8 +573,8 @@ public:
   uint32_t GetInitialPacketSize (void) const;
 
   //ywj: a flag to create new udpSocket
-  bool m_subSocket;                        //!< If true, this subsocket allowed to be created
-  bool m_sendAnnounce;
+  // bool m_subSocket;                        //!< If true, this subsocket allowed to be created
+  // bool m_sendAnnounce;
 
   // Implementation of ns3::Socket virtuals
 
@@ -665,6 +666,11 @@ public:
   void SubflowInsert(Ptr<MpQuicSubFlow> sflow);
   void AddPath(Address address, Address from, int16_t pathId);
 
+  //scheduler use
+  std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
+  int16_t GetSubflowsNum();
+  int16_t GetMinRTTSubflowId();
+
 
 
 
@@ -708,11 +714,8 @@ protected:
    * \param withAck forces an ACK to be sent
    * \returns the number of bytes sent
    */
-  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
-                           bool withAck);
-
-  uint32_t SendDataPacket (SequenceNumber32 packetNumber,
-                                uint32_t maxSize, bool withAck, int pathId);
+  // uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck);
+  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck, int16_t pathId);
 
   /**
    * \brief Send a Connection Close frame
@@ -931,14 +934,10 @@ protected:
   void OnReceivedPathChallengeFrame (QuicSubheader &sub);
   void OnReceivedPathResponseFrame (QuicSubheader &sub);
 
-  
-  //ywj: path scheduler
-  uint8_t m_lastUsedsFlowIdx = 0;
-
 
   int FindMinRttPath();
   double GetOliaApha(int pathId);
-  uint8_t getSubflowToUse ();
+  uint16_t getSubflowToUse ();
   uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
 };
 

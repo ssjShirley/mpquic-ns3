@@ -8,6 +8,7 @@
 #include <boost/random/discrete_distribution.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
+#include "quic-socket-base.h"
 
 namespace ns3 {
 
@@ -40,13 +41,26 @@ public:
   void SetWeightType();
   void SetMinPath(int p);
 
+  int16_t GetNextPathIdToUse();
+  void SetSocket(Ptr<QuicSocketBase> sock);
+  // void SetSubflowList(std::vector <Ptr<MpQuicSubFlow>> subflows);
+  
+  
+  
 private:
+  Ptr<QuicSocketBase> m_socket;
+  int16_t m_lastUsedPathId;
+  std::vector <Ptr<MpQuicSubFlow>> m_subflows;
+
+
+
+
   int WeightedRoundRobin();
   int RoundRobin();
   int RttBase();
   // int FindMinRttPath();
   
-
+  
   int m_sendIndex;
   std::string m_type;
   int m_pid;

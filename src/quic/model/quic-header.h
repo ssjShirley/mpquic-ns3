@@ -330,17 +330,17 @@ public:
    */
   void SetPathId (uint16_t pathId);  
 
-   /**
-   * \brief Get the packet number
-   * \return The packet number for this QuicHeader
-   */
-  SequenceNumber32 GetSeq () const;
+  //  /**
+  //  * \brief Get the packet number
+  //  * \return The packet number for this QuicHeader
+  //  */
+  // SequenceNumber32 GetSeq () const;
 
-  /**
-   * \brief Set the packet number
-   * \param packNumber the packet number for this QuicHeader
-   */
-  void SetSeq (SequenceNumber32 packNumber);    
+  // /**
+  //  * \brief Set the packet number
+  //  * \param packNumber the packet number for this QuicHeader
+  //  */
+  // void SetSeq (SequenceNumber32 packNumber);    
 
   /**
    * Comparison operator
@@ -369,7 +369,7 @@ private:
   SequenceNumber32 m_packetNumber;  //!< Packet number
   uint32_t m_version;               //!< Version
   uint16_t m_pathId;                 //!< Path Id for multipath
-  SequenceNumber32 m_seq;  //!< Packet number for mp
+  // SequenceNumber32 m_seq;  //!< Packet number for mp
 };
 
 } // namespace ns3

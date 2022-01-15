@@ -178,8 +178,8 @@ public:
     Time     largestRtt;
     std::vector<MpRttHistory> m_unackedPackets; 
 
-    TracedValue<SequenceNumber32> m_nextPktNum {1}; 
-    std::vector<SequenceNumber32> m_receivedSeqNumbers;
+    // TracedValue<SequenceNumber32> m_nextPktNum {1}; 
+    // std::vector<SequenceNumber32> m_receivedSeqNumbers;
     
 
     uint32_t m_lost1;

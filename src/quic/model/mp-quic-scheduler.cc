@@ -47,7 +47,9 @@ MpQuicScheduler::GetTypeId (void)
 }
 
 MpQuicScheduler::MpQuicScheduler ()
-  : Object ()
+  : Object (),
+  m_socket(0),
+  m_lastUsedPathId(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_sendIndex = 0;
@@ -82,6 +84,28 @@ MpQuicScheduler::~MpQuicScheduler ()
 //   // m_subflows = subflows;
 //   return;
 // }
+
+
+int16_t 
+MpQuicScheduler::GetNextPathIdToUse()
+{
+  m_subflows = m_socket->GetActiveSubflows();
+  if (m_subflows.empty())
+  {
+    m_lastUsedPathId = 0;
+    return 0;
+  }
+  m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+  return m_lastUsedPathId;
+}
+
+
+void
+MpQuicScheduler::SetSocket(Ptr<QuicSocketBase> sock)
+{
+  NS_LOG_FUNCTION (this);
+  m_socket = sock;
+}
 
 int
 MpQuicScheduler::GetSend()

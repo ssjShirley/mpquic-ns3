@@ -70,8 +70,8 @@ MpQuicSubFlow::MpQuicSubFlow()
     m_ssThresh    = 25000;              // initial value for a Quic connexion
     largestRtt = Seconds(0);
     m_rtt = new RttMeanDeviation ();
-    m_nextPktNum = SequenceNumber32(0);
-    m_receivedSeqNumbers = std::vector<SequenceNumber32> ();
+    // m_nextPktNum = SequenceNumber32(0);
+    // m_receivedSeqNumbers = std::vector<SequenceNumber32> ();
     m_unackedPackets = std::vector<MpRttHistory> ();
     m_lost1 = 0;
     m_lost2 = 0;
@@ -163,7 +163,6 @@ MpQuicSubFlow::InitialRateEvent () {
 void
 MpQuicSubFlow::Add (SequenceNumber32 ack) {
     m_unackedPackets.insert (m_unackedPackets.end(),MpRttHistory (ack, Simulator::Now ()));
-    // std::cout<<"\nsize "<<m_unackedPackets.size()<<"\n";
 }
 
 
