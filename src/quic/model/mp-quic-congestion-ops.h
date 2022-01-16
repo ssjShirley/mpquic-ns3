@@ -34,6 +34,7 @@
 #include "ns3/tcp-socket-base.h"
 #include "quic-socket-base.h"
 #include "quic-socket-tx-buffer.h"
+#include "quic-congestion-ops.h"
 
 namespace ns3 {
 
@@ -59,7 +60,7 @@ namespace ns3 {
  * QUIC-related capabilities.
  *
  */
-class MpQuicCongestionOps : public TcpNewReno
+class MpQuicCongestionOps : public QuicCongestionOps
 {
 public:
   /**
@@ -107,7 +108,7 @@ public:
    * \param rs the connection RateSample
    */
   virtual void OnAckReceived (Ptr<TcpSocketState> tcb, QuicSubheader &ack, std::vector<Ptr<QuicSocketTxItem> > newAcks,
-                              const struct RateSample *rs);
+                              const struct RateSample *rs, double alpha, double sum_rate);
 
   /**
    * \brief Method called when a packet is lost. It process the lost packets and updates
@@ -137,7 +138,7 @@ protected:
    * \param tcb a smart pointer to the SocketState (it accepts a QuicSocketState)
    * \param ackedPacked the acked packet
    */
-  virtual void OnPacketAcked (Ptr<TcpSocketState> tcb, Ptr<QuicSocketTxItem> ackedPacket);
+  virtual void OnPacketAcked (Ptr<TcpSocketState> tcb, Ptr<QuicSocketTxItem> ackedPacket, double alpha, double sum_rate);
 
   /**
    * \brief Check if in recovery period
@@ -154,7 +155,7 @@ protected:
    * \param tcb a smart pointer to the SocketState (it accepts a QuicSocketState)
    * \param ackedPacked the acked packet
    */
-  void OnPacketAckedCC (Ptr<TcpSocketState> tcb, Ptr<QuicSocketTxItem> ackedPacket);
+  void OnPacketAckedCC (Ptr<TcpSocketState> tcb, Ptr<QuicSocketTxItem> ackedPacket, double alpha, double sum_rate);
 
   /**
    * \brief Method called when retransmission timeout fires. It updates the quantities in the tcb.

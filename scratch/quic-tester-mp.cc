@@ -32,6 +32,7 @@
 #include "ns3/random-variable-stream.h"
 #include <iostream>
 #include "ns3/flow-monitor-module.h"
+#include "ns3/mp-quic-congestion-ops.h"
 
 using namespace ns3;
 
@@ -167,7 +168,7 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
   Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
   Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
-
+  Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
   // Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue(10485760));
   // Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue(10485760));

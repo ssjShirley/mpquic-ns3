@@ -46,7 +46,7 @@ TypeId
 MpQuicCongestionOps::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::MpQuicCongestionControl")
-    .SetParent<TcpNewReno> ()
+    .SetParent<QuicCongestionOps> ()
     .SetGroupName ("Internet")
     .AddConstructor<MpQuicCongestionOps> ()
   ;
@@ -54,14 +54,14 @@ MpQuicCongestionOps::GetTypeId (void)
 }
 
 MpQuicCongestionOps::MpQuicCongestionOps (void)
-  : TcpNewReno ()
+  : QuicCongestionOps ()
 {
   NS_LOG_FUNCTION (this);
 }
 
 MpQuicCongestionOps::MpQuicCongestionOps (
   const MpQuicCongestionOps& sock)
-  : TcpNewReno (sock)
+  : QuicCongestionOps (sock)
 {
   NS_LOG_FUNCTION (this);
 }
@@ -100,7 +100,7 @@ void
 MpQuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
                                   QuicSubheader &ack,
                                   std::vector<Ptr<QuicSocketTxItem> > newAcks,
-                                  const struct RateSample *rs)
+                                  const struct RateSample *rs, double alpha, double sum_rate)
 {
   NS_LOG_FUNCTION (this);
   NS_UNUSED (rs);
@@ -108,9 +108,8 @@ MpQuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
   Ptr<QuicSocketState> tcbd = dynamic_cast<QuicSocketState*> (&(*tcb));
   NS_ASSERT_MSG (tcbd != 0, "tcb is not a QuicSocketState");
 
-  tcbd->m_largestAckedPacket = SequenceNumber32 (
-    ack.GetLargestAcknowledged ());
-
+  tcbd->m_largestAckedPacket = SequenceNumber32 (ack.GetLargestAcknowledged ());
+  
   // newAcks are ordered from the highest packet number to the smalles
   Ptr<QuicSocketTxItem> lastAcked = newAcks.at (0);
 
@@ -128,7 +127,7 @@ MpQuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
     {
       if ((*it)->m_acked)
         {
-          OnPacketAcked (tcb, (*it));
+          OnPacketAcked (tcb, (*it), alpha, sum_rate);
         }
     }
 }
@@ -176,13 +175,13 @@ MpQuicCongestionOps::UpdateRtt (Ptr<TcpSocketState> tcb, Time latestRtt,
 
 void
 MpQuicCongestionOps::OnPacketAcked (Ptr<TcpSocketState> tcb,
-                                  Ptr<QuicSocketTxItem> ackedPacket)
+                                  Ptr<QuicSocketTxItem> ackedPacket, double alpha, double sum_rate)
 {
   NS_LOG_FUNCTION (this);
   Ptr<QuicSocketState> tcbd = dynamic_cast<QuicSocketState*> (&(*tcb));
   NS_ASSERT_MSG (tcbd != 0, "tcb is not a QuicSocketState");
-
-  OnPacketAckedCC (tcbd, ackedPacket);
+  
+  OnPacketAckedCC (tcbd, ackedPacket, alpha, sum_rate);
 
   NS_LOG_LOGIC ("Handle possible RTO");
   // If a packet sent prior to RTO was acked, then the RTO  was spurious. Otherwise, inform congestion control.
@@ -209,7 +208,7 @@ MpQuicCongestionOps::InRecovery (Ptr<TcpSocketState> tcb,
 
 void
 MpQuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
-                                    Ptr<QuicSocketTxItem> ackedPacket)
+                                    Ptr<QuicSocketTxItem> ackedPacket, double alpha, double sum_rate)
 {
   NS_LOG_FUNCTION (this);
   Ptr<QuicSocketState> tcbd = dynamic_cast<QuicSocketState*> (&(*tcb));
@@ -233,8 +232,10 @@ MpQuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
       NS_LOG_LOGIC ("In congestion avoidance");
       // Congestion Avoidance.
       if (tcbd->m_cWnd > (uint32_t) 0) {
-          tcbd->m_cWnd += tcbd->m_segmentSize * ackedPacket->m_packet->GetSize ()
-              / tcbd->m_cWnd;
+        double increase = (tcbd->m_cWnd/tcbd->m_segmentSize/pow(tcbd->m_lastRtt.Get().GetSeconds(),2))/pow(sum_rate,2)
+                        + alpha/(tcbd->m_cWnd/tcbd->m_segmentSize);
+        tcbd->m_cWnd += fabs(increase)*tcbd->m_segmentSize;
+          // tcbd->m_cWnd += tcbd->m_segmentSize * ackedPacket->m_packet->GetSize () / tcbd->m_cWnd;
       } else {
           tcbd->m_cWnd = tcbd->m_kMinimumWindow;
       }
@@ -250,6 +251,9 @@ MpQuicCongestionOps::OnPacketsLost (
   NS_ASSERT_MSG (tcbd != 0, "tcb is not a QuicSocketState");
 
   auto largestLostPacket = *(lostPackets.end () - 1);
+  //for OLIA
+  tcbd->m_bytesBeforeLost1 = tcbd->m_bytesBeforeLost2;
+  tcbd->m_bytesBeforeLost2 = 0;
 
   NS_LOG_INFO ("Go in recovery mode");
   // Start a new recovery epoch if the lost packet is larger than the end of the previous recovery epoch.

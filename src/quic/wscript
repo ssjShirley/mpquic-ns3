@@ -31,6 +31,7 @@ def build(bld):
         'model/mp-quic-typedefs.cc',
         'model/mp-quic-scheduler.cc',
         'model/mp-quic-path-manager.cc',
+        'model/mp-quic-congestion-ops.cc',
         'helper/quic-helper.cc'
         ]
 
@@ -67,6 +68,7 @@ def build(bld):
         'model/mp-quic-typedefs.h',
         'model/mp-quic-scheduler.h',
         'model/mp-quic-path-manager.h',
+        'model/mp-quic-congestion-ops.h',
         'model/windowed-filter.h'
         ]
 

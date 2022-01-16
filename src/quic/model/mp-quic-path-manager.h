@@ -41,12 +41,18 @@ public:
  
   // uint8_t LookUpByAddr (Address &address);
   void SetSocket(Ptr<QuicSocketBase> sock);
-  
+  void SetSegSize(uint32_t size);
+  uint32_t GetSegSize() const;
+  void SetInitialSSThresh (uint32_t threshold);
+  uint32_t GetInitialSSThresh (void) const;
   
   
 
 private:
   Ptr<QuicSocketBase> m_socket;
+  uint32_t m_segSize;
+  uint32_t m_initialSsThresh;
+
   // std::map <Ipv4Address, uint8_t> m_addrIdPair;
  
  

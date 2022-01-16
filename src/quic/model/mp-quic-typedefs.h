@@ -101,21 +101,24 @@ public:
 
     TracedValue<SubflowStates_t> m_subflowState;  //!< State 
 
+    void SetSegSize (uint32_t size);
+    uint32_t GetSegSize (void) const;
 
-    void Add (SequenceNumber32 ack);
-    void UpdateRtt (SequenceNumber32 ack, Time ackDelay);
 
-    void CwndOnAckReceived(double alpha, double sum_rate, double max_rate, std::vector<Ptr<QuicSocketTxItem> > newAcks, uint32_t ackedBytes);
-    void UpdateCwndOlia(double sum_rate, double alpha, std::vector<Ptr<QuicSocketTxItem> > newAcks);
-    void UpdateCwndMmQuic(double sum_rate, double max_rate, std::vector<Ptr<QuicSocketTxItem> > newAcks);
+    // void Add (SequenceNumber32 ack);
+    // void UpdateRtt (SequenceNumber32 ack, Time ackDelay);
 
-    void UpdateSsThresh(double snr,uint32_t ssh);
-    static void UpdateSsh(uint32_t ssh, int id);
-    void UpdateCwndOnPacketLost();
-    void SetInitialCwnd(uint32_t cwnd);
-    uint32_t GetMinPrevLossCwnd();
+    // void CwndOnAckReceived(double alpha, double sum_rate, double max_rate, std::vector<Ptr<QuicSocketTxItem> > newAcks, uint32_t ackedBytes);
+    // void UpdateCwndOlia(double sum_rate, double alpha, std::vector<Ptr<QuicSocketTxItem> > newAcks);
+    // void UpdateCwndMmQuic(double sum_rate, double max_rate, std::vector<Ptr<QuicSocketTxItem> > newAcks);
+
+    // void UpdateSsThresh(double snr,uint32_t ssh);
+    // static void UpdateSsh(uint32_t ssh, int id);
+    // void UpdateCwndOnPacketLost();
+    // void SetInitialCwnd(uint32_t cwnd);
+    // uint32_t GetMinPrevLossCwnd();
     double GetRate();
-    void InitialRateEvent ();
+    // void InitialRateEvent ();
     std::string m_ccType;
     std::string m_cwndState;
 
@@ -182,8 +185,8 @@ public:
     // std::vector<SequenceNumber32> m_receivedSeqNumbers;
     
 
-    uint32_t m_lost1;
-    uint32_t m_lost2;
+    // uint32_t m_lost1;
+    // uint32_t m_lost2;
     // TypeId m_schedulingTypeId;                      //!< The socket type of the packet scheduler
     // Time m_defaultLatency;                          //!< The default latency bound (only used by the EDF scheduler)
 

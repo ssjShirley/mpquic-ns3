@@ -40,7 +40,9 @@ MpQuicPathManager::GetTypeId (void)
 }
 
 MpQuicPathManager::MpQuicPathManager ()
-  : m_socket(0)
+  : m_socket(0),
+  m_segSize(0),
+  m_initialSsThresh(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
  
@@ -62,6 +64,7 @@ MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
   sFlow->m_peerAddr  = peerAddress;
   sFlow->m_localAddr = localAddress;
   sFlow->m_subflowState = MpQuicSubFlow::ACTIVE;
+  sFlow->SetSegSize(m_segSize);
   m_socket->SubflowInsert(sFlow);
   // m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (pIpv4, 0));
   return sFlow;
@@ -79,6 +82,7 @@ MpQuicPathManager::AddSubflow(Address localAddress, Address peerAddress, int16_t
   sFlow->m_peerAddr = peerAddress;
 
   sFlow->m_subflowState = MpQuicSubFlow::PENDING;
+  sFlow->SetSegSize(m_segSize);
 
   m_socket->SubflowInsert(sFlow);
   m_socket->AddPath(localAddress, peerAddress, pathId);
@@ -99,6 +103,7 @@ MpQuicPathManager::AddSubflowWithPeerAddress(Address localAddress, Address peerA
   sFlow->m_localAddr  = localAddress;
   sFlow->m_peerAddr   = peerAddress;
   sFlow->m_subflowState = MpQuicSubFlow::PENDING;
+  sFlow->SetSegSize(m_segSize);
   m_socket->SubflowInsert(sFlow);
   m_socket->SendPathChallenge(pathId);
   return sFlow;
@@ -112,6 +117,31 @@ MpQuicPathManager::SetSocket(Ptr<QuicSocketBase> sock)
   m_socket = sock;
 }
 
+void 
+MpQuicPathManager::SetSegSize(uint32_t size)
+{
+  NS_LOG_FUNCTION(this);
+  m_segSize = size;
+}
+
+uint32_t 
+MpQuicPathManager::GetSegSize() const
+{
+  NS_LOG_FUNCTION(this);
+  return m_segSize;
+}
+
+void
+MpQuicPathManager::SetInitialSSThresh (uint32_t threshold)
+{
+  m_initialSsThresh = threshold;
+}
+
+uint32_t
+MpQuicPathManager::GetInitialSSThresh (void) const
+{
+  return m_initialSsThresh;
+}
 
 // //ywj
 // uint8_t

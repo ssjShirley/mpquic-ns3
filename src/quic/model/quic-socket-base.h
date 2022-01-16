@@ -134,6 +134,10 @@ public:
                                                                 marked asdelivered was first sent */
   uint32_t              m_lastAckedSackedBytes {0};         //!< Size of data sacked in the last ack
   uint32_t              m_ackBytesSent    {0};              //!< amount of ACK-only bytes sent
+
+  //For OLIA use
+  uint32_t m_bytesBeforeLost1;
+  uint32_t m_bytesBeforeLost2;
 };
 
 /**
@@ -282,7 +286,7 @@ public:
    *
    * \return the generated ACK frame
    */
-  Ptr<Packet> OnSendingAckFrame (int pathId);
+  Ptr<Packet> OnSendingAckFrame (uint16_t pathId);
 
   /**
    * \brief Return an object with the transport parameters of this socket
@@ -668,8 +672,8 @@ public:
 
   //scheduler use
   std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
-  int16_t GetSubflowsNum();
-  int16_t GetMinRTTSubflowId();
+  // int16_t GetSubflowsNum();
+  // int16_t GetMinRTTSubflowId();
 
 
 
@@ -861,7 +865,7 @@ protected:
   bool m_closeOnEmpty;                        //!< True if the socket will close after sending the buffered packets
 
   // Congestion Control
-  Ptr<QuicSocketState> m_tcb;                     //!< Congestion control informations
+  // Ptr<QuicSocketState> m_tcb;                     //!< Congestion control informations
   Ptr<TcpCongestionOps> m_congestionControl;      //!< Congestion control
   TracedValue<Time> m_lastRtt;                                 //!< Latest measured RTT
   bool m_quicCongestionControlLegacy;             //!< Quic Congestion control if true, TCP Congestion control if false
@@ -936,7 +940,7 @@ protected:
 
 
   int FindMinRttPath();
-  double GetOliaApha(int pathId);
+  double GetOliaAlpha(int pathId);
   uint16_t getSubflowToUse ();
   uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
 };

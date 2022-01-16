@@ -73,6 +73,7 @@
 #include <boost/assign/list_of.hpp>
 
 #include "mp-quic-scheduler.h"
+#include "mp-quic-congestion-ops.h"
 
 namespace ns3 {
 
@@ -224,11 +225,11 @@ QuicSocketBase::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&QuicSocketBase::m_quicCongestionControlLegacy),
                    MakeBooleanChecker ())
-    .AddAttribute ("TCB",
-                   "The connection's QuicSocketState",
-                   PointerValue (),
-                   MakePointerAccessor (&QuicSocketBase::m_tcb),
-                   MakePointerChecker<QuicSocketState> ())
+    // .AddAttribute ("TCB",
+    //                "The connection's QuicSocketState",
+    //                PointerValue (),
+    //                MakePointerAccessor (&QuicSocketBase::m_tcb),
+    //                MakePointerChecker<QuicSocketState> ())
     .AddAttribute ("EnableMultipath",
                    "When true, multipath is supported",
                    BooleanValue (false),
@@ -528,52 +529,52 @@ QuicSocketBase::QuicSocketBase (void)
   m_txBuffer = CreateObject<QuicSocketTxBuffer> ();
   m_receivedPacketNumbers = std::vector<SequenceNumber32> ();
 
-  m_tcb = CreateObject<QuicSocketState> ();
-  m_tcb->m_cWnd = m_tcb->m_initialCWnd;
-  m_tcb->m_ssThresh = m_tcb->m_initialSsThresh;
+  // m_tcb = CreateObject<QuicSocketState> ();
+  // m_tcb->m_cWnd = m_tcb->m_initialCWnd;
+  // m_tcb->m_ssThresh = m_tcb->m_initialSsThresh;
   m_quicCongestionControlLegacy = false;
   // m_txBuffer->SetQuicSocketState (m_tcb);
 
-  m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
+  // m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
   m_pacingTimer.SetFunction (&QuicSocketBase::NotifyPacingPerformed, this);
 
-  /**
-   * [IETF DRAFT 10 - Quic Transport: sec 5.7.1]
-   *
-   * The initial number for a packet number MUST be selected randomly from a range between
-   * 0 and 2^32 -1025 (inclusive).
-   * However, in this implementation, we set the sequence number to 0
-   *
-   */
-  if (!m_quicCongestionControlLegacy)
-    {
-      Ptr<UniformRandomVariable> rand =
-        CreateObject<UniformRandomVariable> ();
-      m_tcb->m_nextTxSequence = SequenceNumber32 (0);
-      // (uint32_t) rand->GetValue (0, pow (2, 32) - 1025));
-    }
+  // /**
+  //  * [IETF DRAFT 10 - Quic Transport: sec 5.7.1]
+  //  *
+  //  * The initial number for a packet number MUST be selected randomly from a range between
+  //  * 0 and 2^32 -1025 (inclusive).
+  //  * However, in this implementation, we set the sequence number to 0
+  //  *
+  //  */
+  // if (!m_quicCongestionControlLegacy)
+  //   {
+  //     Ptr<UniformRandomVariable> rand =
+  //       CreateObject<UniformRandomVariable> ();
+  //     m_tcb->m_nextTxSequence = SequenceNumber32 (0);
+  //     // (uint32_t) rand->GetValue (0, pow (2, 32) - 1025));
+  //   }
 
   // connect callbacks
-  bool ok;
-  ok = m_tcb->TraceConnectWithoutContext ("CongestionWindow",
-                                          MakeCallback (&QuicSocketBase::UpdateCwnd, this));
-  NS_ASSERT_MSG (ok == true, "Failed connection to CWND trace");
+  // bool ok;
+  // ok = m_tcb->TraceConnectWithoutContext ("CongestionWindow",
+  //                                         MakeCallback (&QuicSocketBase::UpdateCwnd, this));
+  // NS_ASSERT_MSG (ok == true, "Failed connection to CWND trace");
 
-  ok = m_tcb->TraceConnectWithoutContext ("SlowStartThreshold",
-                                          MakeCallback (&QuicSocketBase::UpdateSsThresh, this));
-  NS_ASSERT_MSG (ok == true, "Failed connection to SSTHR trace");
+  // ok = m_tcb->TraceConnectWithoutContext ("SlowStartThreshold",
+  //                                         MakeCallback (&QuicSocketBase::UpdateSsThresh, this));
+  // NS_ASSERT_MSG (ok == true, "Failed connection to SSTHR trace");
 
-  ok = m_tcb->TraceConnectWithoutContext ("CongState",
-                                          MakeCallback (&QuicSocketBase::UpdateCongState, this));
-  NS_ASSERT_MSG (ok == true, "Failed connection to CongState trace");
+  // ok = m_tcb->TraceConnectWithoutContext ("CongState",
+  //                                         MakeCallback (&QuicSocketBase::UpdateCongState, this));
+  // NS_ASSERT_MSG (ok == true, "Failed connection to CongState trace");
 
-  ok = m_tcb->TraceConnectWithoutContext ("NextTxSequence",
-                                          MakeCallback (&QuicSocketBase::UpdateNextTxSequence, this));
-  NS_ASSERT_MSG (ok == true, "Failed connection to TxSequence trace");
+  // ok = m_tcb->TraceConnectWithoutContext ("NextTxSequence",
+  //                                         MakeCallback (&QuicSocketBase::UpdateNextTxSequence, this));
+  // NS_ASSERT_MSG (ok == true, "Failed connection to TxSequence trace");
 
-  ok = m_tcb->TraceConnectWithoutContext ("HighestSequence",
-                                          MakeCallback (&QuicSocketBase::UpdateHighTxMark, this));
-  NS_ASSERT_MSG (ok == true, "Failed connection to highest sequence trace");
+  // ok = m_tcb->TraceConnectWithoutContext ("HighestSequence",
+  //                                         MakeCallback (&QuicSocketBase::UpdateHighTxMark, this));
+  // NS_ASSERT_MSG (ok == true, "Failed connection to highest sequence trace");
 
   CreatePathManager();
   CreateScheduler();
@@ -631,7 +632,7 @@ QuicSocketBase::QuicSocketBase (const QuicSocketBase& sock)   // Copy constructo
   m_receivedPacketNumbers = std::vector<SequenceNumber32> ();
 
 
-  m_tcb = CopyObject (sock.m_tcb);
+  // m_tcb = CopyObject (sock.m_tcb);
   if (sock.m_congestionControl)
     {
       m_congestionControl = sock.m_congestionControl->Fork ();
@@ -639,24 +640,9 @@ QuicSocketBase::QuicSocketBase (const QuicSocketBase& sock)   // Copy constructo
   m_quicCongestionControlLegacy = sock.m_quicCongestionControlLegacy;
   // m_txBuffer->SetQuicSocketState (m_tcb);
 
-  m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
+  // m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
   m_pacingTimer.SetFunction (&QuicSocketBase::NotifyPacingPerformed, this);
 
-  /**
-   * [IETF DRAFT 10 - Quic Transport: sec 5.7.1]
-   *
-   * The initial value for a packet number MUST be selected randomly from a range between
-   * 0 and 2^32 -1025 (inclusive).
-   *
-   */
-  if (!m_quicCongestionControlLegacy)
-    {
-      Ptr<UniformRandomVariable> rand =
-        CreateObject<UniformRandomVariable> ();
-      m_tcb->m_nextTxSequence = SequenceNumber32 (0);
-      // (uint32_t) rand->GetValue (0, pow (2, 32) - 1025));
-    }
-  
   m_pathManager->SetSocket(this);
 }
 
@@ -1201,19 +1187,13 @@ void
 QuicSocketBase::SetSegSize (uint32_t size)
 {
   NS_LOG_FUNCTION (this << size);
-  NS_ABORT_MSG_UNLESS (m_socketState == IDLE || m_tcb->m_segmentSize == size,
-                       "Cannot change segment size dynamically.");
-
-  m_tcb->m_segmentSize = size;
-  // Update minimum congestion window
-  m_tcb->m_initialCWnd = 625 * size;
-  m_tcb->m_kMinimumWindow = 2 * size;
+  m_pathManager->SetSegSize(size);
 }
 
 uint32_t
 QuicSocketBase::GetSegSize (void) const
 {
-  return m_tcb->m_segmentSize;
+  return m_pathManager->GetSegSize();
 }
 
 void
@@ -1316,7 +1296,7 @@ QuicSocketBase::SendAck (uint8_t pathId)
     NS_LOG_INFO ("Send ACK packet with header " << head);
 
     head.SetPathId(pathId);
-    m_subflows[pathId]->Add(packetNumber);
+    // m_subflows[pathId]->Add(packetNumber);
     m_quicl4->SendPacket (this, p, head);
     m_txTrace (p, head, this);
     m_subflows[pathId]->m_receivedPacketNumbers.clear();
@@ -1438,18 +1418,19 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
   
 
   head.SetPathId(pathId);
-  m_subflows[pathId]->Add(packetNumber);
+  // m_subflows[pathId]->Add(packetNumber);
   m_quicl4->SendPacket (this, p, head);
   m_txTrace (p, head, this);
   NotifyDataSent (sz);
 
   m_txBuffer->UpdatePacketSent (packetNumber, sz, pathId, m_subflows[pathId]->m_tcb);
+  // DynamicCast<MpQuicCongestionOps> (m_congestionControl)->OnPacketSent (m_subflows[pathId]->m_tcb, packetNumber, isAckOnly);
 
-  // if (!m_quicCongestionControlLegacy)
-  //   {
-  //     DynamicCast<QuicCongestionOps> (m_congestionControl)->OnPacketSent (
-  //       m_tcb, packetNumber, isAckOnly);
-  //   }
+  if (!m_quicCongestionControlLegacy)
+    {
+      DynamicCast<QuicCongestionOps> (m_congestionControl)->OnPacketSent (
+        m_subflows[pathId]->m_tcb, packetNumber, isAckOnly);
+    }
   if (!isAckOnly)
     {
       SetReTxTimeout (pathId);
@@ -1573,27 +1554,27 @@ QuicSocketBase::ReTxTimeout (uint8_t pathId)
       std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets (pathId);
       NS_LOG_INFO ("RTO triggered: early retransmit");
       // Early retransmit or Time Loss Detection.
-      // if (m_quicCongestionControlLegacy)
-      //   {
-      //     // TCP early retransmit logic [RFC 5827]: enter recovery (RFC 6675, Sec. 5)
-      //     if (m_tcb->m_congState != TcpSocketState::CA_RECOVERY)
-      //       {
-      //         m_tcb->m_congState = TcpSocketState::CA_RECOVERY;
-      //         m_tcb->m_cWnd = m_tcb->m_ssThresh;
-      //         m_tcb->m_endOfRecovery = m_tcb->m_highTxMark;
-      //         m_congestionControl->CongestionStateSet (
-      //           m_tcb, TcpSocketState::CA_RECOVERY);
-      //         m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
-      //           m_tcb, BytesInFlight ());
-      //       }
-      //   }
-      // else
-      //   {
-      //     Ptr<QuicCongestionOps> cc = dynamic_cast<QuicCongestionOps*> (&(*m_congestionControl));
-      //     cc->OnPacketsLost (m_tcb, lostPackets);
-      //   }
+      if (m_quicCongestionControlLegacy)
+        {
+          // TCP early retransmit logic [RFC 5827]: enter recovery (RFC 6675, Sec. 5)
+          if (m_subflows[pathId]->m_tcb->m_congState != TcpSocketState::CA_RECOVERY)
+            {
+              m_subflows[pathId]->m_tcb->m_congState = TcpSocketState::CA_RECOVERY;
+              m_subflows[pathId]->m_tcb->m_cWnd = m_subflows[pathId]->m_tcb->m_ssThresh;
+              m_subflows[pathId]->m_tcb->m_endOfRecovery = m_subflows[pathId]->m_tcb->m_highTxMark;
+              m_congestionControl->CongestionStateSet (
+                m_subflows[pathId]->m_tcb, TcpSocketState::CA_RECOVERY);
+              m_subflows[pathId]->m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
+                m_subflows[pathId]->m_tcb, BytesInFlight (pathId));
+            }
+        }
+      else
+        {
+          Ptr<QuicCongestionOps> cc = dynamic_cast<QuicCongestionOps*> (&(*m_congestionControl));
+          cc->OnPacketsLost (m_subflows[pathId]->m_tcb, lostPackets);
+        }
       // Retransmit all lost packets immediately
-      // m_subflows[sub.GetPathId()]->UpdateCwndOnPacketLost();
+      // m_subflows[pathId]->UpdateCwndOnPacketLost();
       DoRetransmit (lostPackets, pathId);
     }
   else if (m_subflows[pathId]->m_tcb->m_alarmType == 2 && m_subflows[pathId]->m_tcb->m_tlpCount < m_subflows[pathId]->m_tcb->m_kMaxTLPs)
@@ -1815,7 +1796,7 @@ QuicSocketBase::SendConnectionClosePacket (uint16_t errorCode, std::string phras
   NS_LOG_DEBUG ("Send Connection Close packet with header " << head);
   
   head.SetPathId(0);
-  m_subflows[0]->Add(packetNumber);
+  // m_subflows[0]->Add(packetNumber);
   m_quicl4->SendPacket (this, p, head);
   m_txTrace (p, head, this);
 
@@ -2068,7 +2049,7 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
 
       //server (receiver)
       head.SetPathId(0);
-      m_subflows[0]->Add(m_subflows[0]->m_tcb->m_nextTxSequence);
+      // m_subflows[0]->Add(m_subflows[0]->m_tcb->m_nextTxSequence);
       // Set initial congestion window and Ssthresh for sub flow
       // m_subflows[0]->InitialRateEvent();
       // m_subflows[0]->SetInitialCwnd(5840);
@@ -2086,8 +2067,8 @@ QuicSocketBase::SendInitialHandshake (uint8_t type,
       m_subflows[0]->m_tcb->m_cWnd = m_subflows[0]->m_tcb->m_initialCWnd;
       m_subflows[0]->m_tcb->m_ssThresh = m_subflows[0]->m_tcb->m_initialSsThresh;
       // Set initial congestion window and Ssthresh for sub flow
-      m_subflows[0]->SetInitialCwnd(5840);
-      m_subflows[0]->InitialRateEvent();
+      // m_subflows[0]->SetInitialCwnd(5840);
+      // m_subflows[0]->InitialRateEvent();
       // m_subflows[0]->m_ssThresh = m_tcb->m_initialSsThresh;
       bool x = m_subflows[0]->TraceConnectWithoutContext ("SubflowCwnd", MakeCallback (&QuicSocketBase::TraceCwnd0,this));
       m_subflows[0]->TraceConnectWithoutContext ("Throughput", MakeCallback (&QuicSocketBase::TraceThroughput0,this));
@@ -2258,7 +2239,7 @@ QuicSocketBase::OnReceivedFrame (QuicSubheader &sub)
 }
 
 Ptr<Packet>
-QuicSocketBase::OnSendingAckFrame (int pathId)
+QuicSocketBase::OnSendingAckFrame (uint16_t pathId)
 {
   NS_LOG_FUNCTION (this);
 
@@ -2316,7 +2297,7 @@ QuicSocketBase::OnSendingAckFrame (int pathId)
   uint64_t ack_delay = delay.GetMicroSeconds ();
   QuicSubheader sub = QuicSubheader::CreateMpAck (
     largestAcknowledged.GetValue (), ack_delay, largestAcknowledged.GetValue (),
-    gaps, additionalAckBlocks, pathId,0);// m_subflows[pathId]->m_receivedSeqNumbers.back().GetValue());
+    gaps, additionalAckBlocks, pathId, 0);// m_subflows[pathId]->m_receivedSeqNumbers.back().GetValue());
 
   Ptr<Packet> ackFrame = Create<Packet> ();
   
@@ -2343,7 +2324,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   NS_LOG_INFO ("Process ACK");
 
   Time ackDelay = MicroSeconds (sub.GetAckDelay ());
-  uint8_t pathId = sub.GetPathId();
+  uint16_t pathId = sub.GetPathId();
 
    // Generate RateSample
   struct RateSample * rs = m_txBuffer->GetRateSample ();
@@ -2369,17 +2350,23 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   std::vector<Ptr<QuicSocketTxItem> > ackedPackets = m_txBuffer->OnAckUpdate (
     m_subflows[pathId]->m_tcb, largestAcknowledged, additionalAckBlocks, gaps, pathId);
   
-  double alpha = GetOliaApha(pathId);
-  double r0 = m_subflows[0]->GetRate();
-  double r1 = 0;
-  double maxRtt1 = 0;
-  if (m_subflows.size() > 1){
-    r1 = m_subflows[1]->GetRate();
-    maxRtt1 = m_subflows[1]->largestRtt.GetSeconds();
+  double alpha = GetOliaAlpha(pathId);
+  // double r0 = m_subflows[0]->GetRate();
+  // double r1 = 0;
+  // // double maxRtt1 = 0;
+  // if (m_subflows.size() > 1){
+  //   r1 = m_subflows[1]->GetRate();
+  //   // maxRtt1 = m_subflows[1]->largestRtt.GetSeconds();
+  // }
+  // double sum_rate = r0+r1;
+
+  double sum_rate = 0;
+  for (uint16_t pid = 0; pid < m_subflows.size(); pid++)
+  {
+    sum_rate += m_subflows[pid]->GetRate();
   }
-  double sum_rate = r0+r1;
-  double maxRtt0 = m_subflows[0]->largestRtt.GetSeconds();
-  double max_rate = std::max(pow(r0,2)*sqrt(maxRtt0),pow(r1,2)*sqrt(maxRtt1));
+  // double maxRtt0 = m_subflows[0]->largestRtt.GetSeconds();
+  // double max_rate = std::max(pow(r0,2)*sqrt(maxRtt0),pow(r1,2)*sqrt(maxRtt1));
   // std::cout<<"rtt0: "<<m_subflows[0]->lastMeasuredRtt<<
   //            "rtt1: "<<m_subflows[1]->lastMeasuredRtt<<"\n";
   // std::cout<<"main cwnd = "<<m_tcb->m_cWnd<<" cwnd "<<sub.GetPathId()<<
@@ -2390,14 +2377,14 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   // Count newly acked bytes
   uint32_t ackedBytes = previousWindow - m_txBuffer->BytesInFlight (pathId);
 
-  if (ackedBytes > 0)
-  {
-    m_subflows[pathId]->UpdateRtt(SequenceNumber32(sub.GetLargestSeq()),ackDelay);
-  }
+  // if (ackedBytes > 0)
+  // {
+  //   m_subflows[pathId]->UpdateRtt(SequenceNumber32(sub.GetLargestSeq()),ackDelay);
+  // }
     
   
   // m_subflows[sub.GetPathId()]->UpdateSsThresh(ue_sinr[sub.GetPathId()],ue_Bmin[sub.GetPathId()]);
-  m_subflows[pathId]->CwndOnAckReceived(alpha, sum_rate, max_rate, ackedPackets,ackedBytes);
+  // m_subflows[pathId]->CwndOnAckReceived(alpha, sum_rate, max_rate, ackedPackets,ackedBytes);
 
   m_txBuffer->GenerateRateSample (m_subflows[pathId]->m_tcb);
   rs->m_packetLoss = std::abs ((int) lostOut - (int) m_txBuffer->GetLost (pathId));
@@ -2411,21 +2398,21 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
 
           uint32_t newPackets = (largestAcknowledged
                                  - m_subflows[pathId]->m_tcb->m_largestSentBeforeRto.GetValue ()) / GetSegSize ();
-          // uint32_t inFlightBeforeRto = m_txBuffer->BytesInFlight ();
+          uint32_t inFlightBeforeRto = m_txBuffer->BytesInFlight (pathId);
           m_txBuffer->ResetSentList (pathId, newPackets);
           std::vector<Ptr<QuicSocketTxItem> > lostPackets =
             m_txBuffer->DetectLostPackets (pathId);
-          // if (m_quicCongestionControlLegacy && !lostPackets.empty ())
-          //   {
-          //     // Reset congestion window and go into loss mode
-          //     m_tcb->m_cWnd = m_tcb->m_kMinimumWindow;
-          //     m_tcb->m_endOfRecovery = m_tcb->m_highTxMark;
-          //     m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
-          //       m_tcb, inFlightBeforeRto);
-          //     m_tcb->m_congState = TcpSocketState::CA_LOSS;
-          //     m_congestionControl->CongestionStateSet (
-          //       m_tcb, TcpSocketState::CA_LOSS);
-          //   }
+          if (m_quicCongestionControlLegacy && !lostPackets.empty ())
+            {
+              // Reset congestion window and go into loss mode
+              m_subflows[pathId]->m_tcb->m_cWnd = m_subflows[pathId]->m_tcb->m_kMinimumWindow;
+              m_subflows[pathId]->m_tcb->m_endOfRecovery = m_subflows[pathId]->m_tcb->m_highTxMark;
+              m_subflows[pathId]->m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
+                m_subflows[pathId]->m_tcb, inFlightBeforeRto);
+              m_subflows[pathId]->m_tcb->m_congState = TcpSocketState::CA_LOSS;
+              m_congestionControl->CongestionStateSet (
+                m_subflows[pathId]->m_tcb, TcpSocketState::CA_LOSS);
+            }
         }
       else
         {
@@ -2445,82 +2432,92 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   // Recover from losses
   if (!lostPackets.empty ())
     {
-      // if (m_quicCongestionControlLegacy)
-      //   {
-      //     //Enter recovery (RFC 6675, Sec. 5)
-      //     if (m_tcb->m_congState != TcpSocketState::CA_RECOVERY)
-      //       {
-      //         m_tcb->m_congState = TcpSocketState::CA_RECOVERY;
-      //         m_tcb->m_endOfRecovery = m_tcb->m_highTxMark;
-      //         m_congestionControl->CongestionStateSet (
-      //           m_tcb, TcpSocketState::CA_RECOVERY);
-      //         m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
-      //           m_tcb, BytesInFlight ());
-      //         m_tcb->m_cWnd = m_tcb->m_ssThresh;
-      //       }
-      //     NS_ASSERT (m_tcb->m_congState == TcpSocketState::CA_RECOVERY);
-      //   }
-      // else
-      //   {
-      //     DynamicCast<QuicCongestionOps> (m_congestionControl)->OnPacketsLost (
-      //       m_tcb, lostPackets);
-      //   }
-      m_subflows[pathId]->UpdateCwndOnPacketLost();
+      if (m_quicCongestionControlLegacy)
+        {
+          //Enter recovery (RFC 6675, Sec. 5)
+          if (m_subflows[pathId]->m_tcb->m_congState != TcpSocketState::CA_RECOVERY)
+            {
+              m_subflows[pathId]->m_tcb->m_congState = TcpSocketState::CA_RECOVERY;
+              m_subflows[pathId]->m_tcb->m_endOfRecovery = m_subflows[pathId]->m_tcb->m_highTxMark;
+              m_congestionControl->CongestionStateSet (
+                m_subflows[pathId]->m_tcb, TcpSocketState::CA_RECOVERY);
+              m_subflows[pathId]->m_tcb->m_ssThresh = m_congestionControl->GetSsThresh (
+                m_subflows[pathId]->m_tcb, BytesInFlight (pathId));
+              m_subflows[pathId]->m_tcb->m_cWnd = m_subflows[pathId]->m_tcb->m_ssThresh;
+            }
+          NS_ASSERT (m_subflows[pathId]->m_tcb->m_congState == TcpSocketState::CA_RECOVERY);
+        }
+      else
+        {
+          DynamicCast<QuicCongestionOps> (m_congestionControl)->OnPacketsLost (
+            m_subflows[pathId]->m_tcb, lostPackets);
+        }
+      // m_subflows[pathId]->UpdateCwndOnPacketLost();
       DoRetransmit (lostPackets,pathId);
     }
   /* else */ 
   if (ackedBytes > 0)
     {
       
-      // if (!m_quicCongestionControlLegacy)
-      //   {
-      //     NS_LOG_INFO ("Update the variables in the congestion control (QUIC)");
-      //     // Process the ACK
-      //     DynamicCast<QuicCongestionOps> (m_congestionControl)->OnAckReceived (
-      //       m_tcb, sub, ackedPackets, rs);
-      //     m_lastRtt = m_tcb->m_lastRtt;
-      //   }
-      // else
-      //   {
-      //     uint32_t ackedSegments = ackedBytes / GetSegSize ();
+      if (!m_quicCongestionControlLegacy)
+        {
+          NS_LOG_INFO ("Update the variables in the congestion control (QUIC)");
+          // Process the ACK
+          if(m_enableMultipath)
+          {
+            m_subflows[pathId]->m_tcb->m_bytesBeforeLost2 += ackedBytes;
+            DynamicCast<MpQuicCongestionOps> (m_congestionControl)->OnAckReceived (m_subflows[pathId]->m_tcb, sub, ackedPackets, rs, alpha, sum_rate);
+          }
+          else
+          {
+            DynamicCast<QuicCongestionOps> (m_congestionControl)->OnAckReceived (m_subflows[pathId]->m_tcb, sub, ackedPackets, rs);
+          
+          }
+          std::cout<<Simulator::Now ().GetSeconds ()<<"flowid "<<pathId<<" measure: "<<m_subflows[pathId]->m_tcb->m_lastRtt <<" cwnd "<<m_subflows[pathId]->m_tcb->m_cWnd <<"\n";
 
-      //     NS_LOG_INFO ("Update the variables in the congestion control (legacy), ackedBytes "
-      //                  << ackedBytes << " ackedSegments " << ackedSegments);
-      //     // new acks are ordered from the highest packet number to the smalles
-      //     Ptr<QuicSocketTxItem> lastAcked = ackedPackets.at (0);
+          m_lastRtt = m_subflows[pathId]->m_tcb->m_lastRtt;
+        }
+      else
+        {
+          uint32_t ackedSegments = ackedBytes / GetSegSize ();
 
-      //     NS_LOG_LOGIC ("Updating RTT estimate");
-      //     // If the largest acked is newly acked, update the RTT.
-      //     if (lastAcked->m_packetNumber >= m_tcb->m_largestAckedPacket)
-      //       {
-      //         Time ackDelay = MicroSeconds (sub.GetAckDelay ());
-      //         m_tcb->m_lastRtt = Now () - lastAcked->m_lastSent - ackDelay;
-      //         m_lastRtt = m_tcb->m_lastRtt;
-      //       }
-      //     if (m_tcb->m_congState != TcpSocketState::CA_RECOVERY
-      //         && m_tcb->m_congState != TcpSocketState::CA_LOSS)
-      //       {
-      //         // Increase the congestion window
-      //         m_congestionControl->PktsAcked (m_tcb, ackedSegments,
-      //                                         m_tcb->m_lastRtt);
-      //         m_congestionControl->IncreaseWindow (m_tcb, ackedSegments);
-      //       }
-      //     else
-      //       {
-      //         if (m_tcb->m_endOfRecovery.GetValue () > largestAcknowledged)
-      //           {
-      //             m_congestionControl->PktsAcked (m_tcb, ackedSegments,
-      //                                             m_tcb->m_lastRtt);
-      //             m_congestionControl->IncreaseWindow (m_tcb, ackedSegments);
-      //           }
-      //         else
-      //           {
-      //             m_tcb->m_congState = TcpSocketState::CA_OPEN;
-      //             m_congestionControl->PktsAcked (m_tcb, ackedSegments, m_tcb->m_lastRtt);
-      //             m_congestionControl->CongestionStateSet (m_tcb, TcpSocketState::CA_OPEN);
-      //           }
-      //       }
-      //   }
+          NS_LOG_INFO ("Update the variables in the congestion control (legacy), ackedBytes "
+                       << ackedBytes << " ackedSegments " << ackedSegments);
+          // new acks are ordered from the highest packet number to the smalles
+          Ptr<QuicSocketTxItem> lastAcked = ackedPackets.at (0);
+
+          NS_LOG_LOGIC ("Updating RTT estimate");
+          // If the largest acked is newly acked, update the RTT.
+          if (lastAcked->m_packetNumber >= m_subflows[pathId]->m_tcb->m_largestAckedPacket)
+            {
+              Time ackDelay = MicroSeconds (sub.GetAckDelay ());
+              m_subflows[pathId]->m_tcb->m_lastRtt = Now () - lastAcked->m_lastSent - ackDelay;
+              m_lastRtt = m_subflows[pathId]->m_tcb->m_lastRtt;
+            }
+          if (m_subflows[pathId]->m_tcb->m_congState != TcpSocketState::CA_RECOVERY
+              && m_subflows[pathId]->m_tcb->m_congState != TcpSocketState::CA_LOSS)
+            {
+              // Increase the congestion window
+              m_congestionControl->PktsAcked (m_subflows[pathId]->m_tcb, ackedSegments,
+                                              m_subflows[pathId]->m_tcb->m_lastRtt);
+              m_congestionControl->IncreaseWindow (m_subflows[pathId]->m_tcb, ackedSegments);
+            }
+          else
+            {
+              if (m_subflows[pathId]->m_tcb->m_endOfRecovery.GetValue () > largestAcknowledged)
+                {
+                  m_congestionControl->PktsAcked (m_subflows[pathId]->m_tcb, ackedSegments,
+                                                  m_subflows[pathId]->m_tcb->m_lastRtt);
+                  m_congestionControl->IncreaseWindow (m_subflows[pathId]->m_tcb, ackedSegments);
+                }
+              else
+                {
+                  m_subflows[pathId]->m_tcb->m_congState = TcpSocketState::CA_OPEN;
+                  m_congestionControl->PktsAcked (m_subflows[pathId]->m_tcb, ackedSegments, m_subflows[pathId]->m_tcb->m_lastRtt);
+                  m_congestionControl->CongestionStateSet (m_subflows[pathId]->m_tcb, TcpSocketState::CA_OPEN);
+                }
+            }
+        }
     }
   else
     {
@@ -2850,7 +2847,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
     {
       NS_LOG_INFO ("Client receives HANDSHAKE");
 
-      m_subflows[0]->UpdateRtt(SequenceNumber32(2),MicroSeconds(0));
+      // m_subflows[0]->UpdateRtt(SequenceNumber32(2),MicroSeconds(0));
 
       onlyAckFrames = m_quicl5->DispatchRecv (p, address);
       m_subflows[pathId]->m_receivedPacketNumbers.push_back (quicHeader.GetPacketNumber ());
@@ -2885,7 +2882,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
     {
       NS_LOG_INFO ("Client receives VERSION_NEGOTIATION");
 
-      m_subflows[0]->UpdateRtt(SequenceNumber32(1), MicroSeconds(0));
+      // m_subflows[0]->UpdateRtt(SequenceNumber32(1), MicroSeconds(0));
 
       uint8_t *buffer = new uint8_t[p->GetSize ()];
       p->CopyData (buffer, p->GetSize ());
@@ -3083,7 +3080,7 @@ QuicSocketBase::AbortConnection (uint16_t transportErrorCode,
   uint32_t sz = packet->GetSize ();
 
   quicHeader.SetPathId(0);
-  m_subflows[0]->Add(m_subflows[0]->m_tcb->m_nextTxSequence);
+  // m_subflows[0]->Add(m_subflows[0]->m_tcb->m_nextTxSequence);
 
   m_quicl4->SendPacket (this, packet, quicHeader);
   m_txTrace (packet, quicHeader, this);
@@ -3272,16 +3269,13 @@ QuicSocketBase::UpdateHighTxMark (SequenceNumber32 oldValue, SequenceNumber32 ne
 void
 QuicSocketBase::SetInitialSSThresh (uint32_t threshold)
 {
-  NS_ABORT_MSG_UNLESS ( (m_socketState == IDLE) || threshold == m_tcb->m_initialSsThresh,
-                        "QuicSocketBase::SetSSThresh() cannot change initial ssThresh after connection started.");
-
-  m_tcb->m_initialSsThresh = threshold;
+  m_pathManager->SetInitialSSThresh(threshold);
 }
 
 uint32_t
 QuicSocketBase::GetInitialSSThresh (void) const
 {
-  return m_tcb->m_initialSsThresh;
+  return m_pathManager->GetInitialSSThresh();
 }
 
 void
@@ -3354,10 +3348,7 @@ QuicSocketBase::CreateNewSubflows ()
     for(int16_t num = 2; num < addrNum; num++)
     {
       Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal()), m_currentFromAddress, num-1);
-    
-      // SendAddAddress();
     }
-    
   }
 }
 
@@ -3390,7 +3381,7 @@ QuicSocketBase::SendAddAddress(Address address, int16_t pathId)
   head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
   head.SetPathId(0);
   NS_LOG_INFO ("Send ADD_ADDRESS packet with header " << head);
-  m_subflows[0]->Add(packetNumber);
+  // m_subflows[0]->Add(packetNumber);
   m_quicl4->SendPacket (this, p, head);
 
 }
@@ -3423,7 +3414,7 @@ QuicSocketBase::SendPathChallenge(int16_t pathId)
   head.SetPathId(pathId);
 
   NS_LOG_INFO ("Send PATH_CHALLENGE packet with header " << head);
-  m_subflows[pathId]->Add(packetNumber);
+  // m_subflows[pathId]->Add(packetNumber);
   m_quicl4->SendPacket (this, p, head);
 }
 
@@ -3451,7 +3442,7 @@ QuicSocketBase::SendPathResponse (int16_t pathId)
   QuicHeader head;
   head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
   head.SetPathId(pathId);
-  m_subflows[pathId]->Add(packetNumber);
+  // m_subflows[pathId]->Add(packetNumber);
   NS_LOG_INFO ("Send PATH_RESPONSE packet with header " << head);
 
   m_quicl4->SendPacket (this, p, head);
@@ -3480,27 +3471,27 @@ QuicSocketBase::GetActiveSubflows()
   return sflows;
 }
 
-int16_t
-QuicSocketBase::GetMinRTTSubflowId()
-{
-  NS_LOG_FUNCTION (this);
-  int min = 0;
-  Time mrtt=m_subflows[0]->lastMeasuredRtt;
-  // std::cout<<" rtt1: "<<mrtt<<"\n";
-  for (uint i = 1; i < m_subflows.size(); i++)
-  {
-    // std::cout<<" rtt2: "<<m_subflows[i]->lastMeasuredRtt<<"\n";
-    if (m_subflows[i]->lastMeasuredRtt< mrtt){
-      mrtt = m_subflows[i]->lastMeasuredRtt;
-      min = i;
-    }
-  }
-  // std::cout<<"min rtt: "<<mrtt<<"\n";
-  return min;
-}
+// int16_t
+// QuicSocketBase::GetMinRTTSubflowId()
+// {
+//   NS_LOG_FUNCTION (this);
+//   int min = 0;
+//   Time mrtt=m_subflows[0]->lastMeasuredRtt;
+//   // std::cout<<" rtt1: "<<mrtt<<"\n";
+//   for (uint i = 1; i < m_subflows.size(); i++)
+//   {
+//     // std::cout<<" rtt2: "<<m_subflows[i]->lastMeasuredRtt<<"\n";
+//     if (m_subflows[i]->lastMeasuredRtt< mrtt){
+//       mrtt = m_subflows[i]->lastMeasuredRtt;
+//       min = i;
+//     }
+//   }
+//   // std::cout<<"min rtt: "<<mrtt<<"\n";
+//   return min;
+// }
 
 double
-QuicSocketBase::GetOliaApha(int pathId)
+QuicSocketBase::GetOliaAlpha(int pathId)
 {
   std::vector<int> B;
   std::vector<int> M;
@@ -3513,7 +3504,7 @@ QuicSocketBase::GetOliaApha(int pathId)
         maxCwnd = m_subflows[i]->m_cWnd;
         M.push_back(i);
       }
-      double rate = std::max(m_subflows[i]->m_lost1,m_subflows[i]->m_lost2)/pow(m_subflows[i]->lastMeasuredRtt.Get().GetSeconds(),2);
+      double rate = std::max(m_subflows[i]->m_tcb->m_bytesBeforeLost1,m_subflows[i]->m_tcb->m_bytesBeforeLost2)/pow(m_subflows[i]->lastMeasuredRtt.Get().GetSeconds(),2);
       if (rate > maxr)
       {
         maxr = rate;
@@ -3543,113 +3534,5 @@ QuicSocketBase::GetOliaApha(int pathId)
 
 }
 
-// uint32_t
-// QuicSocketBase::TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData)
-// {
-
-//   //printk("T= %ld\n",T);
-//   //u32 increment=0;
-//   if (T < RTT/2) return 0;
-//   if (RTT/2 <= T < 3*RTT/2) return cwnd*1460;
-//   else if (3*RTT/2 <= T < RTO){
-//     if(flag == 1){
-//       p0 = 1;
-//       totalData = cwnd*1460;
-//     }
-    
-//     flag++; 
-//     uint32_t cwnd1;
-//     uint32_t cwnd2;
-//     uint32_t cwnd3;
-//     int sst1,sst2,sst3;
-//     double T1,T2,T3;
-//     uint32_t p1,p2,p3;         //传输w个包丢失r个的概率
-//     if(cwnd<4){                //如果cwnd<4，发生了丢包将一定进入超时重传
-//       if(cwnd*1460<sst)
-//         cwnd1 = (cwnd)*2;         //慢启动情况
-//       else {
-//         cwnd1 = cwnd+1;
-//       }
-//       sst1 = sst;    
-//       p1 = p0*pow((1-p),cwnd);
-//       T1 = T - RTT;
-//       totalData = totalData+(p1*cwnd1)*1460;
-//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  //递归
-//     }else{          
-//       if(cwnd*1400<sst)
-//         cwnd1 = (cwnd)*2;         //慢启动情况
-//       else {
-//             cwnd1 = cwnd+1;
-//       }
-//       cwnd3 = cwnd/2;        //快速重传情况      
-//       sst1 = sst;
-//       T1 = T - RTT;
-//       sst3 = cwnd*1460/2;  
-//       T3 = T - 2*RTT;   
-//       int cwnd0 = (int)cwnd ;      //取小于等于cwnd的整数
-//       p1 = p0*pow((1-p),cwnd0);///(fac(cwnd0-3) * fac(3))
-//       p2 = p0*((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3);             
-//       p3 = p0*(1-pow(1-p,cwnd0)-((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3));
-//       totalData = totalData+(p1*cwnd1+p3*cwnd3)*1460;
-//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
-//       TotalData(T3,sFlowIdx,cwnd3,sst3,p,p3,flag,RTT,RTO,totalData);  
-//     }
-//     return totalData;
-//   }else{
-//     if(flag==1){
-//       p0=1;
-//       totalData=cwnd*1460;
-//     }
-    
-//     flag++; 
-//     uint32_t cwnd1;
-//     uint32_t cwnd2;
-//     uint32_t cwnd3;
-//     int sst1,sst2,sst3;
-//     double T1,T2,T3;
-//     uint32_t p1,p2,p3;         //传输w个包丢失r个的概率
-//     if(cwnd<4){                //如果cwnd<4，发生了丢包将一定进入超时重传
-//       if(cwnd*1460<sst)
-//         cwnd1 = (cwnd)*2;         //慢启动情况
-//       else {
-//             cwnd1 = cwnd+1;
-//       }
-        
-//       cwnd2 = 1;              //超时重传情
-//       sst1 = sst;          
-//       sst2 = cwnd*1460/2;
-//       T1 = T - RTT;
-//       T2 = T - RTT/2-RTO;
-//       p1 = p0*pow((1-p),cwnd);
-//       p2 = p0*(1-pow((1-p),cwnd));
-//       totalData = totalData+(p1*cwnd1+p2*cwnd2)*1460;
-//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
-//       TotalData(T2,sFlowIdx,cwnd2,sst2,p,p2,flag,RTT,RTO,totalData);  
-//     }else{          
-//       if(cwnd*1400<sst)
-//         cwnd1 = (cwnd)*2;         //慢启动情况
-//       else {
-//             cwnd1 = cwnd+1;
-//       }
-//       cwnd2 = 1;             //超时重传情况
-//       cwnd3 = cwnd/2;        //快速重传情况      
-//       sst1 = sst;
-//       sst2 = cwnd*1460/2;
-//       sst3 = cwnd*1460/2;     
-//       T1 = T - RTT;
-//       T2 = T - RTT/2-RTO;
-//       T3 = T - 2*RTT;
-//       int cwnd0 = (int)cwnd ;      //取小于等于cwnd的整数
-//       p1 = p0*pow((1-p),cwnd0);///(fac(cwnd0-3) * fac(3))
-//       p2 = p0*((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3);             
-//       p3 = p0*(1-pow(1-p,cwnd0)-((cwnd0/6)*((cwnd0-1)/6)*((cwnd0-2)/6))*pow(p,cwnd0-3)*pow(1-p,3));
-//       totalData = totalData+(p1*cwnd1+p2*cwnd2+p3*cwnd3)*1460;
-//       TotalData(T1,sFlowIdx,cwnd1,sst1,p,p1,flag,RTT,RTO,totalData);  
-//       TotalData(T2,sFlowIdx,cwnd2,sst2,p,p2,flag,RTT,RTO,totalData); 
-//       TotalData(T3,sFlowIdx,cwnd3,sst3,p,p3,flag,RTT,RTO,totalData);  
-//     }
-//     return totalData;
-//   }
-// }
 
 } // namespace ns3

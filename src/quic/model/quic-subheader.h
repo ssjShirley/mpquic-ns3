@@ -786,7 +786,7 @@ public:
    * 
    * \return the generated QuicSubheader
    */
-  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint32_t pathId, uint32_t largestSeq);
+  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint16_t pathId, uint32_t largestSeq);
 
   /**
    * @brief Get the Path Id object
@@ -800,7 +800,7 @@ public:
    * 
    * @param pathId 
    */
-  void SetPathId(uint32_t pathId);
+  void SetPathId(uint16_t pathId);
 
   /**
    * @brief Get the Largest Seq object
