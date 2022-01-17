@@ -32,57 +32,41 @@ MpQuicSubFlow::GetTypeId (void)
 {
     static TypeId tid = TypeId ("ns3::MpQuicSubFlow")
         .SetParent (Object::GetTypeId ())
-        .AddAttribute ("CCType",
-                   "congestion control type",
-                   StringValue ("new"),
-                   MakeStringAccessor (&MpQuicSubFlow::m_ccType),
-                   MakeStringChecker ())
-        .AddAttribute ("delay",
-                   "congestion control type",
-                   DoubleValue (0.04),
-                   MakeDoubleAccessor (&MpQuicSubFlow::m_delay),
-                   MakeDoubleChecker<double> (0))
-        .AddTraceSource ("SubflowCwnd",
-                       "An integer value to trace.",
-                       MakeTraceSourceAccessor (&MpQuicSubFlow::m_cWnd),
-                       "ns3::TracedValueCallback::Int32")
-        .AddTraceSource ("Throughput",
-                       "An integer to trace.",
-                       MakeTraceSourceAccessor (&MpQuicSubFlow::m_throughputBps),
-                       "ns3::TracedValueCallback::double")
-        .AddTraceSource ("RTT",
-                       "An integer to trace.",
-                       MakeTraceSourceAccessor (&MpQuicSubFlow::lastMeasuredRtt),
-                       "ns3::Time::TracedValueCallback")
+        // .AddAttribute ("CCType",
+        //            "congestion control type",
+        //            StringValue ("new"),
+        //            MakeStringAccessor (&MpQuicSubFlow::m_ccType),
+        //            MakeStringChecker ())
+        // .AddAttribute ("delay",
+        //            "congestion control type",
+        //            DoubleValue (0.04),
+        //            MakeDoubleAccessor (&MpQuicSubFlow::m_delay),
+        //            MakeDoubleChecker<double> (0))
+        // .AddTraceSource ("SubflowCwnd",
+        //                "An integer value to trace.",
+        //                MakeTraceSourceAccessor (&MpQuicSubFlow::m_cWnd),
+        //                "ns3::TracedValueCallback::Int32")
+        // .AddTraceSource ("Throughput",
+        //                "An integer to trace.",
+        //                MakeTraceSourceAccessor (&MpQuicSubFlow::m_throughputBps),
+        //                "ns3::TracedValueCallback::double")
+        // .AddTraceSource ("RTT",
+        //                "An integer to trace.",
+        //                MakeTraceSourceAccessor (&MpQuicSubFlow::lastMeasuredRtt),
+        //                "ns3::Time::TracedValueCallback")
         ;
       return tid;
 }
 
 MpQuicSubFlow::MpQuicSubFlow()
-    : routeId (0),
+    : m_flowId (0),
       m_lastMaxData(0),
       m_maxDataInterval(10)
 {
-    m_bandwidth   = 12500*0.5;
-    m_cWnd        = 5840;                  // congestion window is initialized to one segment
-    // m_Bmin = 0;
-    m_segmentSize = 1460;
-    m_ssThresh    = 25000;              // initial value for a Quic connexion
-    largestRtt = Seconds(0);
-    m_rtt = new RttMeanDeviation ();
-    // m_nextPktNum = SequenceNumber32(0);
-    // m_receivedSeqNumbers = std::vector<SequenceNumber32> ();
-    m_unackedPackets = std::vector<MpRttHistory> ();
-    // m_lost1 = 0;
-    // m_lost2 = 0;
-    m_cwndState = "Slow_Start";
-    m_lossCwnd = 12500*0.5;
-    m_bwEst = 0;
-    ackSize = 0;
+
     m_numPacketsReceivedSinceLastAckSent = 0;
     m_queue_ack = false;
     m_receivedPacketNumbers = std::vector<SequenceNumber32> ();
-
 
     //For congestion control
     m_tcb = CreateObject<QuicSocketState> ();
@@ -116,14 +100,11 @@ MpQuicSubFlow::MpQuicSubFlow()
     // NS_ASSERT_MSG (ok == true, "Failed connection to highest sequence trace");
 }
 
-std::vector<uint32_t> MpQuicSubFlow::m_sst = boost::assign::list_of(50000)(50000);
+// std::vector<uint32_t> MpQuicSubFlow::m_sst = boost::assign::list_of(50000)(50000);
 
 MpQuicSubFlow::~MpQuicSubFlow()
 {
-    routeId     = 0;
-    m_bandwidth   = 12500*0.5;
-    m_cWnd        = 1460;
-    // m_Bmin = 0;
+    m_flowId     = 0;
 }
 
 
@@ -132,7 +113,6 @@ void
 MpQuicSubFlow::SetSegSize (uint32_t size)
 {
   NS_LOG_FUNCTION (this << size);
-//   NS_ABORT_MSG_UNLESS (m_tcb->m_segmentSize == size, "Cannot change segment size dynamically.");
 
   m_tcb->m_segmentSize = size;
   // Update minimum congestion window
@@ -145,6 +125,16 @@ MpQuicSubFlow::GetSegSize (void) const
 {
   return m_tcb->m_segmentSize;
 }
+
+double
+MpQuicSubFlow::GetRate()
+{
+    if (m_tcb->m_lastRtt.Get().GetSeconds() == 0){
+        return 0;
+    }
+    return m_tcb->m_cWnd/m_tcb->m_segmentSize/m_tcb->m_lastRtt.Get().GetSeconds();
+} 
+
 
 // void
 // MpQuicSubFlow::InitialRateEvent () {
@@ -346,14 +336,6 @@ MpQuicSubFlow::GetSegSize (void) const
 // }
 
 
-double
-MpQuicSubFlow::GetRate()
-{
-    if (m_tcb->m_lastRtt.Get().GetSeconds() == 0){
-        return 0;
-    }
-    return m_tcb->m_cWnd/m_tcb->m_segmentSize/m_tcb->m_lastRtt.Get().GetSeconds();
-} 
 
 
 // uint32_t
@@ -373,27 +355,6 @@ MpQuicSubFlow::GetRate()
 //         m_cWnd = 4*m_segmentSize;//cwnd
 //     }
 // } 
-
-
-
-// MpQuicAddressInfo::MpQuicAddressInfo()
-//     : addrID (0), ipv4Addr (Ipv4Address::GetZero ()), mask (Ipv4Mask::GetZero())
-// {
-// }
-
-// MpQuicAddressInfo::~MpQuicAddressInfo()
-// {
-//     addrID = 0;
-//     ipv4Addr = Ipv4Address::GetZero ();
-// }
-
-// //RttHistory methods
-// MpRttHistory::MpRttHistory (SequenceNumber32 s, Time t)
-//   : seq (s),
-//     time (t),
-//     retx (false)
-// {
-// }
 
 
 } // namespace ns3

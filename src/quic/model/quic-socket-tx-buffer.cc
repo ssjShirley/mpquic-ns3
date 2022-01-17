@@ -210,7 +210,7 @@ QuicSocketTxBuffer::QuicSocketTxBuffer () :
 {
   m_streamZeroList = QuicTxPacketList ();
   m_sentList = QuicTxPacketList ();
-  m_uniflowSentList.insert(m_uniflowSentList.end(), m_sentList);
+  m_subflowSentList.insert(m_subflowSentList.end(), m_sentList);
 }
 
 QuicSocketTxBuffer::~QuicSocketTxBuffer (void)
@@ -319,7 +319,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextStream0Sequence (
       outItem->m_isStream0 = (*it)->m_isStream0;
       m_streamZeroList.erase (it);
       m_streamZeroSize -= currentPacket->GetSize ();
-      m_uniflowSentList[0].insert (m_uniflowSentList[0].end (), outItem);  //only use path 0 to deal with stream 0
+      m_subflowSentList[0].insert (m_subflowSentList[0].end (), outItem);  //only use path 0 to deal with stream 0
       m_sentSize += outItem->m_packet->GetSize ();
       --m_numFrameStream0InBuffer;
       Ptr<Packet> toRet = outItem->m_packet;
@@ -363,7 +363,7 @@ Ptr<QuicSocketTxItem> QuicSocketTxBuffer::GetNewSegment (uint32_t numBytes, uint
   if (outItem->m_packet->GetSize () > 0)
     {
       NS_LOG_LOGIC ("Adding packet to sent buffer");
-      m_uniflowSentList[pathId].insert (m_uniflowSentList[pathId].end (), outItem);
+      m_subflowSentList[pathId].insert (m_subflowSentList[pathId].end (), outItem);
 
       m_sentSize += outItem->m_packet->GetSize ();
     }
@@ -904,17 +904,17 @@ Time QuicSocketTxBuffer::GetDefaultLatency ()
 
 //For multipath implementation
 
-void QuicSocketTxBuffer::AddSendList()
+void QuicSocketTxBuffer::AddSentList()
 {
     QuicTxPacketList sentList = QuicTxPacketList();
-    m_uniflowSentList.insert(m_uniflowSentList.end(), sentList);
+    m_subflowSentList.insert(m_subflowSentList.end(), sentList);
 }
 
 
 void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
 {
   NS_LOG_FUNCTION (this);
-  RefList(m_uniflowSentList[pathId]);
+  RefList(m_subflowSentList[pathId]);
 }
 
 void QuicSocketTxBuffer::RefList (QuicTxPacketList & sentList){

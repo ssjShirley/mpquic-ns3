@@ -165,8 +165,8 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
 
-  Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
-  Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
+  // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
+  // Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
   Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
   Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
   // Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue(10485760));

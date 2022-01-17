@@ -15,9 +15,7 @@
 #include <iomanip>
 #include <iterator>
 #include <vector>
-#include <boost/random.hpp>
-#include <boost/random/discrete_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
+
 
 #include "mp-quic-path-manager.h"
 #include "mp-quic-typedefs.h"
@@ -66,7 +64,6 @@ MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
   sFlow->m_subflowState = MpQuicSubFlow::ACTIVE;
   sFlow->SetSegSize(m_segSize);
   m_socket->SubflowInsert(sFlow);
-  // m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (pIpv4, 0));
   return sFlow;
 
 }
@@ -91,7 +88,6 @@ MpQuicPathManager::AddSubflow(Address localAddress, Address peerAddress, int16_t
   return sFlow;
 
 }
-
 
 
 Ptr<MpQuicSubFlow>
@@ -142,49 +138,6 @@ MpQuicPathManager::GetInitialSSThresh (void) const
 {
   return m_initialSsThresh;
 }
-
-// //ywj
-// uint8_t
-// MpQuicPathManager::LookUpByAddr (Address &address)
-// {
-//    uint8_t sFlowIdx;
-//    InetSocketAddress transport = InetSocketAddress::ConvertFrom (address);
-//    Ipv4Address ipv4 = transport.GetIpv4 ();
-//    uint16_t port = transport.GetPort ();
-   
-
-//    auto result = m_addrIdPair.find(ipv4);
-//    if (result == m_addrIdPair.end())   //no found src in the existing addr_id map
-//      {
-//         m_subSocket = true;
-//         //server create subflow when receive announce
-//         m_subSocket = false;
-//         m_quicl4->UdpConnect (transport, this);
-        
-//         sFlowIdx = m_subflows.size();
-//         Ptr<MpQuicSubFlow> sFlow = CreateObject<MpQuicSubFlow> ();
-//         sFlow->routeId   = m_subflows[m_subflows.size() - 1]->routeId + 1;
-//         sFlow->dAddr    =  m_endPoint->GetLocalAddress ();
-//         sFlow->dPort    = m_endPoint->GetLocalPort ();
-//         sFlow->sAddr = ipv4;
-//         sFlow->sPort = port;
-//         m_subflows.insert(m_subflows.end(), sFlow);
-//         m_addrIdPair.insert(std::pair<Ipv4Address, uint8_t> (ipv4, sFlowIdx));
-
-//         // Set initial congestion window and Ssthresh for sub flow
-//         // m_subflows[1]->m_cWnd = m_tcb->m_initialCWnd;
-//         // m_subflows[1]->m_ssThresh = m_tcb->m_initialSsThresh;
-//      }
-//    else
-//      {
-//         sFlowIdx = m_addrIdPair[ipv4];
-
-//      }
-// // std::cout<<"quicsocketbase.cc map has value:"<<(int)sFlowIdx<<std::endl;
-//     return sFlowIdx;
-        
-// }
-
 
 
 }

@@ -377,7 +377,7 @@ public:
 
   //For multipath Implementation
   
-  void AddSendList();
+  void AddSentList ();
   void FindSentList (uint16_t pathId);
 
   
@@ -404,8 +404,7 @@ private:
 
   //For multipath Implementation
 
-  typedef std::vector<QuicTxPacketList> UniflowSentList;  
-  UniflowSentList m_uniflowSentList;
+  std::vector<QuicTxPacketList> m_subflowSentList;
   
   /**
    * pass m_sentList 0 or m_sentList1 by reference to m_sentList

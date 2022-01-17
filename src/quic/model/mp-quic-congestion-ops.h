@@ -20,7 +20,6 @@
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
  *          Umberto Paro <umberto.paro@me.com>
- *          Wenjun Yang <wenjunyang@uvic.ca>
  *          Shengjie Shu <shengjies@uvic.ca>
  */
 

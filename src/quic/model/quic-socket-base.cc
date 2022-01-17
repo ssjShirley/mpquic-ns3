@@ -1312,7 +1312,7 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
 {
   NS_LOG_FUNCTION (this << packetNumber << maxSize << withAck);
 
-  maxSize = std::min (m_subflows[pathId]->m_cWnd.Get(), maxSize);
+  maxSize = std::min (m_subflows[pathId]->m_tcb->m_cWnd.Get(), maxSize);
 
   if (!m_drainingPeriodEvent.IsRunning ())
     {
@@ -1626,7 +1626,7 @@ QuicSocketBase::AvailableWindow (uint8_t pathId)
 
   NS_LOG_DEBUG ("m_max_data " << m_max_data << " m_tcb->m_cWnd.Get () " << m_subflows[pathId]->m_tcb->m_cWnd.Get ());
   
-  uint32_t win = std::min (m_max_data, m_subflows[pathId]->m_cWnd.Get()); // Number of bytes allowed to be outstanding
+  uint32_t win = std::min (m_max_data, m_subflows[pathId]->m_tcb->m_cWnd.Get()); // Number of bytes allowed to be outstanding
   uint32_t inflight = BytesInFlight (pathId);   // Number of outstanding bytes
 
   if (inflight > win)
@@ -2351,40 +2351,14 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
     m_subflows[pathId]->m_tcb, largestAcknowledged, additionalAckBlocks, gaps, pathId);
   
   double alpha = GetOliaAlpha(pathId);
-  // double r0 = m_subflows[0]->GetRate();
-  // double r1 = 0;
-  // // double maxRtt1 = 0;
-  // if (m_subflows.size() > 1){
-  //   r1 = m_subflows[1]->GetRate();
-  //   // maxRtt1 = m_subflows[1]->largestRtt.GetSeconds();
-  // }
-  // double sum_rate = r0+r1;
-
   double sum_rate = 0;
   for (uint16_t pid = 0; pid < m_subflows.size(); pid++)
   {
     sum_rate += m_subflows[pid]->GetRate();
   }
-  // double maxRtt0 = m_subflows[0]->largestRtt.GetSeconds();
-  // double max_rate = std::max(pow(r0,2)*sqrt(maxRtt0),pow(r1,2)*sqrt(maxRtt1));
-  // std::cout<<"rtt0: "<<m_subflows[0]->lastMeasuredRtt<<
-  //            "rtt1: "<<m_subflows[1]->lastMeasuredRtt<<"\n";
-  // std::cout<<"main cwnd = "<<m_tcb->m_cWnd<<" cwnd "<<sub.GetPathId()<<
-  //       " = "<<m_subflows[sub.GetPathId()]->m_cWnd<<"\n";
-   
-
 
   // Count newly acked bytes
   uint32_t ackedBytes = previousWindow - m_txBuffer->BytesInFlight (pathId);
-
-  // if (ackedBytes > 0)
-  // {
-  //   m_subflows[pathId]->UpdateRtt(SequenceNumber32(sub.GetLargestSeq()),ackDelay);
-  // }
-    
-  
-  // m_subflows[sub.GetPathId()]->UpdateSsThresh(ue_sinr[sub.GetPathId()],ue_Bmin[sub.GetPathId()]);
-  // m_subflows[pathId]->CwndOnAckReceived(alpha, sum_rate, max_rate, ackedPackets,ackedBytes);
 
   m_txBuffer->GenerateRateSample (m_subflows[pathId]->m_tcb);
   rs->m_packetLoss = std::abs ((int) lostOut - (int) m_txBuffer->GetLost (pathId));
@@ -3425,7 +3399,7 @@ QuicSocketBase::OnReceivedPathChallengeFrame (QuicSubheader &sub)
   m_subflows[m_currentPathId]->m_peerAddr = m_currentFromAddress;
   m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
   m_quicl4->ReDoUdpConnect(m_currentPathId, m_currentFromAddress);
-  m_txBuffer->AddSendList();
+  m_txBuffer->AddSentList();
   SendPathResponse(m_currentPathId);
 }
 
@@ -3453,7 +3427,7 @@ QuicSocketBase::OnReceivedPathResponseFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
-  m_txBuffer->AddSendList();
+  m_txBuffer->AddSentList();
 }
 
 
@@ -3471,25 +3445,6 @@ QuicSocketBase::GetActiveSubflows()
   return sflows;
 }
 
-// int16_t
-// QuicSocketBase::GetMinRTTSubflowId()
-// {
-//   NS_LOG_FUNCTION (this);
-//   int min = 0;
-//   Time mrtt=m_subflows[0]->lastMeasuredRtt;
-//   // std::cout<<" rtt1: "<<mrtt<<"\n";
-//   for (uint i = 1; i < m_subflows.size(); i++)
-//   {
-//     // std::cout<<" rtt2: "<<m_subflows[i]->lastMeasuredRtt<<"\n";
-//     if (m_subflows[i]->lastMeasuredRtt< mrtt){
-//       mrtt = m_subflows[i]->lastMeasuredRtt;
-//       min = i;
-//     }
-//   }
-//   // std::cout<<"min rtt: "<<mrtt<<"\n";
-//   return min;
-// }
-
 double
 QuicSocketBase::GetOliaAlpha(int pathId)
 {
@@ -3499,12 +3454,12 @@ QuicSocketBase::GetOliaAlpha(int pathId)
   double maxr = 0;
   for (uint i = 0; i < m_subflows.size(); i++)
   {
-      if (m_subflows[i]->m_cWnd > maxCwnd)
+      if (m_subflows[i]->m_tcb->m_cWnd > maxCwnd)
       {
-        maxCwnd = m_subflows[i]->m_cWnd;
+        maxCwnd = m_subflows[i]->m_tcb->m_cWnd;
         M.push_back(i);
       }
-      double rate = std::max(m_subflows[i]->m_tcb->m_bytesBeforeLost1,m_subflows[i]->m_tcb->m_bytesBeforeLost2)/pow(m_subflows[i]->lastMeasuredRtt.Get().GetSeconds(),2);
+      double rate = std::max(m_subflows[i]->m_tcb->m_bytesBeforeLost1,m_subflows[i]->m_tcb->m_bytesBeforeLost2)/pow(m_subflows[i]->m_tcb->m_lastRtt.Get().GetSeconds(),2);
       if (rate > maxr)
       {
         maxr = rate;

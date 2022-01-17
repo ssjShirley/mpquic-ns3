@@ -670,10 +670,8 @@ public:
   void SubflowInsert(Ptr<MpQuicSubFlow> sflow);
   void AddPath(Address address, Address from, int16_t pathId);
 
-  //scheduler use
+  // For scheduler use
   std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
-  // int16_t GetSubflowsNum();
-  // int16_t GetMinRTTSubflowId();
 
 
 
@@ -937,12 +935,12 @@ protected:
   void OnReceivedAddAddressFrame (QuicSubheader &sub);
   void OnReceivedPathChallengeFrame (QuicSubheader &sub);
   void OnReceivedPathResponseFrame (QuicSubheader &sub);
-
-
-  int FindMinRttPath();
+  
   double GetOliaAlpha(int pathId);
-  uint16_t getSubflowToUse ();
-  uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
+
+  // int FindMinRttPath();
+  // uint16_t getSubflowToUse ();
+  // uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
 };
 
 

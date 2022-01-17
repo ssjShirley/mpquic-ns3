@@ -1,11 +1,7 @@
 #ifndef MpQUICPATHMANAGER_H
 #define MpQUICPATHMANAGER_H
 
-// #include "ns3/stream.h"
 #include "ns3/node.h"
-#include <boost/random.hpp>
-#include <boost/random/discrete_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
 
 #include "quic-socket-base.h"
 #include "mp-quic-typedefs.h"
@@ -52,8 +48,6 @@ private:
   Ptr<QuicSocketBase> m_socket;
   uint32_t m_segSize;
   uint32_t m_initialSsThresh;
-
-  // std::map <Ipv4Address, uint8_t> m_addrIdPair;
  
  
 };
