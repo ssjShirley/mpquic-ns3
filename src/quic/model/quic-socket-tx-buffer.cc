@@ -98,7 +98,7 @@ void QuicSocketTxItem::Print (std::ostream &os) const
   if (m_retrans)
     {
       os << "|retr|";
-      std::cout<<"|retr|"<<std::endl;
+      // std::cout<<"|retr|"<<std::endl;
     }
   if (m_sacked)
     {
@@ -205,22 +205,21 @@ TypeId QuicSocketTxBuffer::GetTypeId (void)
 }
 
 QuicSocketTxBuffer::QuicSocketTxBuffer () :
-  m_maxBuffer (32768), m_streamZeroSize (0), m_sentSize (0), m_numFrameStream0InBuffer (
+  m_maxBuffer (32768), m_streamZeroSize (0), m_numFrameStream0InBuffer (
     0)
 {
   m_streamZeroList = QuicTxPacketList ();
-  m_sentList = QuicTxPacketList ();
-  m_subflowSentList.insert(m_subflowSentList.end(), m_sentList);
+  m_subflowSentList.insert(m_subflowSentList.end(), QuicTxPacketList ());
+  m_sentSizeList.insert(m_sentSizeList.end(), 0);
 }
 
 QuicSocketTxBuffer::~QuicSocketTxBuffer (void)
 {
   QuicTxPacketList::iterator it;
-
-  m_sentList = QuicTxPacketList ();
   m_streamZeroList = QuicTxPacketList ();
-  m_sentSize = 0;
   m_streamZeroSize = 0;
+  m_subflowSentList.clear();
+  m_sentSizeList.clear();
 }
 
 void QuicSocketTxBuffer::Print (std::ostream &os) const
@@ -230,7 +229,7 @@ void QuicSocketTxBuffer::Print (std::ostream &os) const
   std::stringstream ss;
   std::stringstream as;
   
-  for (it = m_sentList.begin (); it != m_sentList.end (); ++it)
+  for (it = m_subflowSentList[0].begin (); it != m_subflowSentList[0].end (); ++it)
     {
       (*it)->Print (ss);
     }
@@ -242,8 +241,8 @@ void QuicSocketTxBuffer::Print (std::ostream &os) const
 
   os << Simulator::Now ().GetSeconds () << "\nStream 0 list: \n" << as.str ()
      << "\n\nSent list: \n" << ss.str () << "\n\nCurrent Status: "
-     << "\nNumber of transmissions = " << m_sentList.size ()
-     << "\nSent Size = " << m_sentSize
+     << "\nNumber of transmissions = " << m_subflowSentList[0].size ()
+     << "\nSent Size = " << m_sentSizeList[0]
      << "\nNumber of stream 0 packets waiting = "
      << m_streamZeroList.size () << "\nStream 0 waiting packet size = "
      << m_streamZeroSize;
@@ -320,7 +319,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextStream0Sequence (
       m_streamZeroList.erase (it);
       m_streamZeroSize -= currentPacket->GetSize ();
       m_subflowSentList[0].insert (m_subflowSentList[0].end (), outItem);  //only use path 0 to deal with stream 0
-      m_sentSize += outItem->m_packet->GetSize ();
+      m_sentSizeList[0] += outItem->m_packet->GetSize ();
       --m_numFrameStream0InBuffer;
       Ptr<Packet> toRet = outItem->m_packet;
       return toRet;
@@ -330,7 +329,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextStream0Sequence (
 
 Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
                                               const SequenceNumber32 seq,
-                                              uint16_t pathId)
+                                              uint8_t pathId)
 {
   NS_LOG_FUNCTION (this << numBytes << seq);
 
@@ -354,7 +353,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
 }
 
 
-Ptr<QuicSocketTxItem> QuicSocketTxBuffer::GetNewSegment (uint32_t numBytes, uint16_t pathId)
+Ptr<QuicSocketTxItem> QuicSocketTxBuffer::GetNewSegment (uint32_t numBytes, uint8_t pathId)
 {
   NS_LOG_FUNCTION (this << numBytes);
 
@@ -365,11 +364,11 @@ Ptr<QuicSocketTxItem> QuicSocketTxBuffer::GetNewSegment (uint32_t numBytes, uint
       NS_LOG_LOGIC ("Adding packet to sent buffer");
       m_subflowSentList[pathId].insert (m_subflowSentList[pathId].end (), outItem);
 
-      m_sentSize += outItem->m_packet->GetSize ();
+      m_sentSizeList[pathId] += outItem->m_packet->GetSize ();
     }
 
   NS_LOG_INFO (
-    "Update: Sent Size = " << m_sentSize << " remaining App Size " << m_scheduler->AppSize () << " object size " << outItem->m_packet->GetSize ());
+    "Update: Sent Size = " << m_sentSizeList[pathId] << " remaining App Size " << m_scheduler->AppSize () << " object size " << outItem->m_packet->GetSize ());
 
   //Print(std::cout);
 
@@ -384,13 +383,13 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
 {
   NS_LOG_FUNCTION (this);
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
 
-  for (auto sent_it = m_sentList.begin (); sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)                    // Visit sentList in reverse Order for optimization
-    {
-        std::cout<<"/////QuicSocketTxBuffer::OnAckUpdate pathid: "<<(int)pathId<<" pktNUm: "<<(*sent_it)->m_packetNumber<<std::endl;
-    }
+  // for (auto sent_it = m_sentList.begin (); sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)                    // Visit sentList in reverse Order for optimization
+  //   {
+  //       std::cout<<"/////QuicSocketTxBuffer::OnAckUpdate pathid: "<<(int)pathId<<" pktNUm: "<<(*sent_it)->m_packetNumber<<std::endl;
+  //   }
 
   std::vector<uint32_t> compAckBlocks = additionalAckBlocks;
   std::vector<uint32_t> compGaps = gaps;
@@ -423,8 +422,8 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
   for (uint32_t numAckBlockAnalyzed = 0; numAckBlockAnalyzed < ackBlockCount;
        ++numAckBlockAnalyzed, ++ack_it, ++gap_it)
     {
-      for (auto sent_it = m_sentList.rbegin ();
-           sent_it != m_sentList.rend () and !m_sentList.empty (); ++sent_it)                    // Visit sentList in reverse Order for optimization
+      for (auto sent_it = m_subflowSentList[pathId].rbegin ();
+           sent_it != m_subflowSentList[pathId].rend () and !m_subflowSentList[pathId].empty (); ++sent_it)                    // Visit sentList in reverse Order for optimization
         {
           NS_LOG_LOGIC (
             "Consider packet " << (*sent_it)->m_packetNumber << " (ACK block " << SequenceNumber32 ((*ack_it)) << ")");
@@ -434,6 +433,7 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
                 <= SequenceNumber32 ((*gap_it)));
           if (inGap)               // Just for optimization we suppose All is perfectly ordered
             {
+              // (*sent_it)->m_lost = true;
               NS_LOG_LOGIC (
                 "Packet " << (*sent_it)->m_packetNumber << " missing");
               break;
@@ -458,13 +458,13 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
     }
   NS_LOG_LOGIC ("Mark lost packets");
   // Mark packets as lost as in RFC (Sec. 4.2.1 of draft-ietf-quic-recovery-15)
-  uint32_t index = m_sentList.size ();
+  uint32_t index = m_subflowSentList[pathId].size ();
   bool lost = false;
   bool outstanding = false;
-  auto acked_it = m_sentList.rend ();
+  auto acked_it = m_subflowSentList[pathId].rend ();
   // Iterate over the sent packet list in reverse
-  for (auto sent_it = m_sentList.rbegin ();
-       sent_it != m_sentList.rend () and !m_sentList.empty ();
+  for (auto sent_it = m_subflowSentList[pathId].rbegin ();
+       sent_it != m_subflowSentList[pathId].rend () and !m_subflowSentList[pathId].empty ();
        ++sent_it, --index)
     {
       // All previous packets are lost
@@ -527,10 +527,10 @@ void QuicSocketTxBuffer::ResetSentList (uint8_t pathId, uint32_t keepItems)
   NS_LOG_FUNCTION (this << keepItems);
   uint32_t kept = 0;
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
-  for (auto sent_it = m_sentList.rbegin ();
-       sent_it != m_sentList.rend () and !m_sentList.empty ();
+  for (auto sent_it = m_subflowSentList[pathId].rbegin ();
+       sent_it != m_subflowSentList[pathId].rend () and !m_subflowSentList[pathId].empty ();
        ++sent_it, kept++)
     {
       if (kept >= keepItems && !(*sent_it)->m_sacked)
@@ -541,13 +541,13 @@ void QuicSocketTxBuffer::ResetSentList (uint8_t pathId, uint32_t keepItems)
 }
 
 // just comment out the following lines of code, as nowhere use it other than quic/test/quic-tx-buffer-test.cc
-bool QuicSocketTxBuffer::MarkAsLost (const SequenceNumber32 seq, uint16_t pathId)
+bool QuicSocketTxBuffer::MarkAsLost (const SequenceNumber32 seq, uint8_t pathId)
 {
   NS_LOG_FUNCTION (this << seq);
   bool found = false;
-  FindSentList (pathId);
-  for (auto sent_it = m_sentList.begin ();
-       sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)
+  // FindSentList (pathId);
+  for (auto sent_it = m_subflowSentList[pathId].begin ();
+       sent_it != m_subflowSentList[pathId].end () and !m_subflowSentList[pathId].empty (); ++sent_it)
     {
       if ((*sent_it)->m_packetNumber == seq)
         {
@@ -563,9 +563,9 @@ uint32_t QuicSocketTxBuffer::Retransmission (SequenceNumber32 packetNumber, uint
   NS_LOG_FUNCTION (this);
   uint32_t toRetx = 0;
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
   // First pass: add lost packets to the application buffer
-  for (auto sent_it = m_sentList.rbegin (); sent_it != m_sentList.rend ();
+  for (auto sent_it = m_subflowSentList[pathId].rbegin (); sent_it != m_subflowSentList[pathId].rend ();
        ++sent_it)
     {
       Ptr<QuicSocketTxItem> item = *sent_it;
@@ -583,7 +583,7 @@ uint32_t QuicSocketTxBuffer::Retransmission (SequenceNumber32 packetNumber, uint
           retx->m_lost = false;
           retx->m_retrans = true;
           toRetx += retx->m_packet->GetSize ();
-          m_sentSize -= retx->m_packet->GetSize ();
+          m_sentSizeList[pathId] -= retx->m_packet->GetSize ();
           if (retx->m_isStream0)
             {
               NS_LOG_INFO ("Lost stream 0 packet, re-inserting in list");
@@ -599,15 +599,15 @@ uint32_t QuicSocketTxBuffer::Retransmission (SequenceNumber32 packetNumber, uint
     }
 
   NS_LOG_LOGIC ("Remove retransmitted packets from sent list");
-  auto sent_it = m_sentList.begin ();
+  auto sent_it = m_subflowSentList[pathId].begin ();
   // Remove lost packets from the sent list
-  while (!m_sentList.empty () && sent_it != m_sentList.end ())
+  while (!m_subflowSentList[pathId].empty () && sent_it != m_subflowSentList[pathId].end ())
     {
       Ptr<QuicSocketTxItem> item = *sent_it;
       if (item->m_lost)
         {
           // Remove lost packet from sent vector
-          sent_it = m_sentList.erase (sent_it);
+          sent_it = m_subflowSentList[pathId].erase (sent_it);
         }
       else
         {
@@ -622,10 +622,10 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::DetectLostPackets (uint8
   NS_LOG_FUNCTION (this);
   std::vector<Ptr<QuicSocketTxItem> > lost;
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
-  for (auto sent_it = m_sentList.begin ();
-       sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)
+  for (auto sent_it = m_subflowSentList[pathId].begin ();
+       sent_it != m_subflowSentList[pathId].end () and !m_subflowSentList[pathId].empty (); ++sent_it)
     {
       if ((*sent_it)->m_lost)
         {
@@ -641,10 +641,10 @@ uint32_t QuicSocketTxBuffer::GetLost (uint8_t pathId)
   NS_LOG_FUNCTION (this);
   uint32_t lostCount = 0;
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
-  for (auto sent_it = m_sentList.begin ();
-       sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)
+  for (auto sent_it = m_subflowSentList[pathId].begin ();
+       sent_it != m_subflowSentList[pathId].end () and !m_subflowSentList[pathId].empty (); ++sent_it)
     {
       if ((*sent_it)->m_lost)
         {
@@ -657,23 +657,23 @@ uint32_t QuicSocketTxBuffer::GetLost (uint8_t pathId)
 void QuicSocketTxBuffer::CleanSentList (uint8_t pathId)
 {
   NS_LOG_FUNCTION (this);
-  FindSentList (pathId);
-  auto sent_it = m_sentList.begin ();
+  // FindSentList (pathId);
+  auto sent_it = m_subflowSentList[pathId].begin ();
   // All packets up to here are ACKed (already sent to the receiver app)
-  while (!m_sentList.empty () && (*sent_it)->m_sacked && !(*sent_it)->m_lost)
+  while (!m_subflowSentList[pathId].empty () && (*sent_it)->m_sacked && !(*sent_it)->m_lost)
     {
       // Remove ACKed packet from sent vector
       Ptr<QuicSocketTxItem> item = *sent_it;
       item->m_acked = true;
-      m_sentSize -= item->m_packet->GetSize ();
-      m_sentList.erase (sent_it);
+      m_sentSizeList[pathId] -= item->m_packet->GetSize ();
+      m_subflowSentList[pathId].erase (sent_it);
       NS_LOG_LOGIC (
         "Packet " << (*sent_it)->m_packetNumber << " received and ACKed. Removing from sent buffer");
-      sent_it = m_sentList.begin ();
+      sent_it = m_subflowSentList[pathId].begin ();
     }
-  if (m_sentList.empty()){
-    std::cout<<"QuicSocketTxBuffer::CleanSentList m_sentList is empty"<<std::endl;
-  }
+  // if (m_sentList.empty()){
+  //   std::cout<<"QuicSocketTxBuffer::CleanSentList m_sentList is empty"<<std::endl;
+  // }
 }
 
 uint32_t QuicSocketTxBuffer::Available (void) const
@@ -708,10 +708,10 @@ uint32_t QuicSocketTxBuffer::BytesInFlight (uint8_t pathId)
 
   uint32_t inFlight = 0;
 
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
-  for (auto sent_it = m_sentList.begin ();
-       sent_it != m_sentList.end () and !m_sentList.empty (); ++sent_it)
+  for (auto sent_it = m_subflowSentList[pathId].begin ();
+       sent_it != m_subflowSentList[pathId].end () and !m_subflowSentList[pathId].empty (); ++sent_it)
     {
       if (!(*sent_it)->m_isStream0 && (*sent_it)->m_isStream
           && !(*sent_it)->m_sacked)
@@ -720,7 +720,7 @@ uint32_t QuicSocketTxBuffer::BytesInFlight (uint8_t pathId)
         }
     }
 
-  NS_LOG_INFO ("Compute bytes in flight " << inFlight << " m_sentSize " << m_sentSize << " m_appSize " << m_streamZeroSize + m_scheduler->AppSize ());
+  NS_LOG_INFO ("Compute bytes in flight " << inFlight << " m_sentSize " << m_sentSizeList[pathId] << " m_appSize " << m_streamZeroSize + m_scheduler->AppSize ());
   return inFlight;
 
 }
@@ -741,7 +741,7 @@ void QuicSocketTxBuffer::UpdatePacketSent (SequenceNumber32 seq, uint32_t sz, ui
 {
   NS_LOG_FUNCTION (this << seq << sz);
   Ptr<QuicSocketState> m_tcb = tcb;
-  FindSentList (pathId);
+  // FindSentList (pathId);
 
   if (m_tcb == nullptr or sz == 0)
     {
@@ -755,7 +755,7 @@ void QuicSocketTxBuffer::UpdatePacketSent (SequenceNumber32 seq, uint32_t sz, ui
     }
 
   Ptr<QuicSocketTxItem> item = nullptr;
-  for (auto it = m_sentList.rbegin (); it != m_sentList.rend (); ++it)
+  for (auto it = m_subflowSentList[pathId].rbegin (); it != m_subflowSentList[pathId].rend (); ++it)
     {
       if ((*it)->m_packetNumber == seq)
         {
@@ -908,20 +908,22 @@ void QuicSocketTxBuffer::AddSentList()
 {
     QuicTxPacketList sentList = QuicTxPacketList();
     m_subflowSentList.insert(m_subflowSentList.end(), sentList);
+    uint32_t sentSize = 0;
+    m_sentSizeList.insert(m_sentSizeList.end(), sentSize);
 }
 
 
-void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
-{
-  NS_LOG_FUNCTION (this);
-  RefList(m_subflowSentList[pathId]);
-}
+// void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
+// {
+//   NS_LOG_FUNCTION (this);
+//   RefList(m_subflowSentList[pathId]);
+// }
 
-void QuicSocketTxBuffer::RefList (QuicTxPacketList & sentList){
+// void QuicSocketTxBuffer::RefList (QuicTxPacketList & sentList){
 
-  NS_LOG_FUNCTION (this);
-  m_sentList = sentList;
-}
+//   NS_LOG_FUNCTION (this);
+//   m_sentList = sentList;
+// }
 
 
 }

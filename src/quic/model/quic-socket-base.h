@@ -48,7 +48,7 @@
 
 // ------- For multipath implementation -------
 #include "mp-quic-path-manager.h"
-#include "mp-quic-typedefs.h"
+#include "mp-quic-subflow.h"
 #include "mp-quic-scheduler.h"
 
 
@@ -286,7 +286,7 @@ public:
    *
    * \return the generated ACK frame
    */
-  Ptr<Packet> OnSendingAckFrame (uint16_t pathId);
+  Ptr<Packet> OnSendingAckFrame (uint8_t pathId);
 
   /**
    * \brief Return an object with the transport parameters of this socket
@@ -505,12 +505,13 @@ public:
    * \param newValue new cWnd value
    */
   void UpdateCwnd (uint32_t oldValue, uint32_t newValue);
+  void UpdateCwnd1 (uint32_t oldValue, uint32_t newValue);
 
-  void TraceCwnd0 (uint32_t oldValue, uint32_t newValue);
-  void TraceCwnd1 (uint32_t oldValue, uint32_t newValue);
+  // void TraceCwnd0 (uint32_t oldValue, uint32_t newValue);
+  // void TraceCwnd1 (uint32_t oldValue, uint32_t newValue);
 
-  void TraceThroughput0 (double oldValue, double newValue);
-  void TraceThroughput1 (double oldValue, double newValue);
+  // void TraceThroughput0 (double oldValue, double newValue);
+  // void TraceThroughput1 (double oldValue, double newValue);
 
   void TraceRTT0 (Time oldValue, Time newValue);
   void TraceRTT1 (Time oldValue, Time newValue);
@@ -521,6 +522,7 @@ public:
    * \param newValue new ssTh value
    */
   void UpdateSsThresh (uint32_t oldValue, uint32_t newValue);
+  void UpdateSsThresh1 (uint32_t oldValue, uint32_t newValue);
 
   /**
    * \brief Callback function to hook to QuicSocketState congestion state
@@ -663,12 +665,12 @@ public:
 
   // Public: ------------ For Multipath Implementation -------------
   
-  void SendAddAddress(Address address, int16_t pathId);
-  void SendPathChallenge(int16_t pathId);
-  void SendPathResponse (int16_t pathId);
+  void SendAddAddress(Address address, uint8_t pathId);
+  void SendPathChallenge(uint8_t pathId);
+  void SendPathResponse (uint8_t pathId);
 
   void SubflowInsert(Ptr<MpQuicSubFlow> sflow);
-  void AddPath(Address address, Address from, int16_t pathId);
+  void AddPath(Address address, Address from, uint8_t pathId);
 
   // For scheduler use
   std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
@@ -717,7 +719,7 @@ protected:
    * \returns the number of bytes sent
    */
   // uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck);
-  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck, int16_t pathId);
+  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck, uint8_t pathId);
 
   /**
    * \brief Send a Connection Close frame
@@ -881,11 +883,10 @@ protected:
   * \brief Callback pointer for cWnd trace chaining
   */
   TracedCallback<uint32_t, uint32_t> m_cWndTrace;
-  TracedCallback<uint32_t, uint32_t> m_cWndTrace0;
   TracedCallback<uint32_t, uint32_t> m_cWndTrace1;
 
-  TracedCallback<double, double> m_thputTrace0;
-  TracedCallback<double, double> m_thputTrace1;
+  // TracedCallback<double, double> m_thputTrace0;
+  // TracedCallback<double, double> m_thputTrace1;
 
   
   TracedCallback<Time, Time> m_rttTrace0;
@@ -895,6 +896,7 @@ protected:
   * \brief Callback pointer for ssTh trace chaining
   */
   TracedCallback<uint32_t, uint32_t> m_ssThTrace;
+   TracedCallback<uint32_t, uint32_t> m_ssThTrace1;
 
   /**
   * \brief Callback pointer for congestion state trace chaining
@@ -925,7 +927,7 @@ protected:
   Ptr<MpQuicPathManager> m_pathManager;
   Ptr<MpQuicScheduler> m_scheduler;
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
-  uint16_t m_currentPathId;
+  uint8_t m_currentPathId;
   Address m_currentFromAddress;
   
 
@@ -936,7 +938,7 @@ protected:
   void OnReceivedPathChallengeFrame (QuicSubheader &sub);
   void OnReceivedPathResponseFrame (QuicSubheader &sub);
   
-  double GetOliaAlpha(int pathId);
+  double GetOliaAlpha(uint8_t pathId);
 
   // int FindMinRttPath();
   // uint16_t getSubflowToUse ();

@@ -169,7 +169,7 @@ public:
    * \param Q the estimated data amount Q 
    * \return the next packet to transmit
    */
-  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint16_t pathId);
+  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint8_t pathId);
 
 
   /**
@@ -187,7 +187,7 @@ public:
    * \param pathId the path on which the packet will be sent 
    * \return the item that contains the right packet
    */
-  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint16_t pathId);
+  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint8_t pathId);
 
   /**
    * Process an acknowledgment, set the packets in the send buffer as acknowledged, mark
@@ -290,7 +290,7 @@ public:
    * \param the sequence number of the packet
    * \return true if the packet is in the send buffer
    */
-  bool MarkAsLost (const SequenceNumber32 seq, uint16_t pathId);
+  bool MarkAsLost (const SequenceNumber32 seq, uint8_t pathId);
 
   /**
    * Put the lost packets at the beginning of the application buffer to retransmit them
@@ -378,7 +378,7 @@ public:
   //For multipath Implementation
   
   void AddSentList ();
-  void FindSentList (uint16_t pathId);
+  // void FindSentList (uint8_t pathId);
 
   
 private:
@@ -389,12 +389,12 @@ private:
    */
   void CleanSentList (uint8_t pathId);
 
-  QuicTxPacketList m_sentList;        //!< List of sent packets with additional info
+  // QuicTxPacketList m_sentList;        //!< List of sent packets with additional info
 
   QuicTxPacketList m_streamZeroList;       //!< List of waiting stream 0 packets with additional info
   uint32_t m_maxBuffer;            //!< Max number of data bytes in buffer (SND.WND)
   uint32_t m_streamZeroSize;       //!< Size of all stream 0 data in the application list
-  uint32_t m_sentSize;                       //!< Size of all data in the sent list
+  // uint32_t m_sentSize;                       //!< Size of all data in the sent list
   uint32_t m_numFrameStream0InBuffer;        //!< Number of Stream 0 frames buffered
 
   Ptr<QuicSocketTxScheduler> m_scheduler { nullptr };         //!< Scheduler
@@ -405,13 +405,14 @@ private:
   //For multipath Implementation
 
   std::vector<QuicTxPacketList> m_subflowSentList;
+  std::vector<uint32_t> m_sentSizeList;                       //!< Size of all data in the sent list
   
   /**
    * pass m_sentList 0 or m_sentList1 by reference to m_sentList
    *
    * \param sentList either m_sentList0 or m_sentList1
    */
-  void RefList (QuicTxPacketList & sentList);
+  // void RefList (QuicTxPacketList & sentList);
 
 };
 

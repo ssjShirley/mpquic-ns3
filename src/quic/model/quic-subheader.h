@@ -761,7 +761,7 @@ public:
    * \param addr 
    * \return QuicSubheader 
    */
-  static QuicSubheader CreateAddAddress(Address addr, int16_t pathId);
+  static QuicSubheader CreateAddAddress(Address addr, uint8_t pathId);
 
 
   /**
@@ -770,7 +770,7 @@ public:
    * \param addr 
    * \return QuicSubheader 
    */
-  static QuicSubheader CreateRemoveAddress(Address addr, int16_t pathId);
+  static QuicSubheader CreateRemoveAddress(Address addr, uint8_t pathId);
 
 
   /**
@@ -782,39 +782,39 @@ public:
    * \param gaps the vector where each field contains the number of contiguous unacknowledged packets preceding the packet number one lower than the smallest in the preceding ack block
    * \param additionalAckBlocks the vector where each field contains the number of contiguous acknowledged packets preceding the largest packet number
    * \param pathId subflow identification
-   * \param largestSeq
+   *
    * 
    * \return the generated QuicSubheader
    */
-  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint16_t pathId, uint32_t largestSeq);
+  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint8_t pathId);
 
   /**
    * @brief Get the Path Id object
    * 
    * @return uint32_t 
    */
-  uint32_t GetPathId() const;
+  uint8_t GetPathId() const;
 
   /**
    * @brief Set the Path Id object
    * 
    * @param pathId 
    */
-  void SetPathId(uint16_t pathId);
+  void SetPathId(uint8_t pathId);
 
   /**
    * @brief Get the Largest Seq object
    * 
    * @return uint32_t 
    */
-  uint32_t GetLargestSeq() const;
+  // uint32_t GetLargestSeq() const;
 
-  /**
-   * @brief Set the Largest Seq object
-   * 
-   * @param largestSeq 
-   */
-  void SetLargestSeq(uint32_t largestSeq);
+  // /**
+  //  * @brief Set the Largest Seq object
+  //  * 
+  //  * @param largestSeq 
+  //  */
+  // void SetLargestSeq(uint32_t largestSeq);
 
   /**
    * @brief Get the Address object
@@ -852,8 +852,8 @@ private:
   std::vector<uint32_t> m_gaps;                 //!< Gaps vector
   uint8_t m_data;                               //!< Data word
   uint64_t m_length;                            //!< Length
-  uint16_t m_pathId;                            //!< Multipath Implementation: Path Id
-  uint32_t m_largestSeq;                        //!< Multipath Implementation: largest seq
+  uint8_t m_pathId;                            //!< Multipath Implementation: Path Id
+  // uint32_t m_largestSeq;                        //!< Multipath Implementation: largest seq
   Address m_address;                            //!< Multipath Implementation: Address
 };
 

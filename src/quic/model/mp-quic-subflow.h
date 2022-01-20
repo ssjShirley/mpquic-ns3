@@ -17,8 +17,8 @@
 #include "quic-socket-tx-buffer.h"
 #include "quic-socket-base.h"
 
-#ifndef MP_QUIC_TYPEDEFS_H
-#define MP_QUIC_TYPEDEFS_H
+#ifndef MP_QUIC_SUBFLOW_H
+#define MP_QUIC_SUBFLOW_H
 
 using namespace std;
 
@@ -44,11 +44,14 @@ public:
     Address m_peerAddr;
 
     TracedValue<SubflowStates_t> m_subflowState;     //!< State 
-    TracedValue<uint32_t>  m_bytesInFlight {0};      //!< Bytes in flight
+    // TracedValue<uint32_t>  m_bytesInFlight {0};      //!< Bytes in flight
 
     void SetSegSize (uint32_t size);
     uint32_t GetSegSize (void) const;
     double GetRate();
+
+
+    void UpdateCwnd (uint32_t oldValue, uint32_t newValue);
 
     // The following member parameters are moved from 'quic-socket-base.h'
     // Timers and Events
@@ -78,7 +81,7 @@ public:
     Timer m_pacingTimer       {Timer::REMOVE_ON_DESTROY}; //!< Pacing Event
     std::vector<SequenceNumber32> m_receivedPacketNumbers;  //!< Received packet number vector
 
-
+    
 
       // void Add (SequenceNumber32 ack);
     // void UpdateRtt (SequenceNumber32 ack, Time ackDelay);
@@ -135,10 +138,11 @@ public:
     // TypeId m_schedulingTypeId;                      //!< The socket type of the packet scheduler
     // Time m_defaultLatency;                          //!< The default latency bound (only used by the EDF scheduler)
 
-// private:
+private:
+  TracedCallback<uint32_t, uint32_t> m_cWndTrace;
 //   double m_delay;
 };
 
 
 }//namespace ns3
-#endif //MP_QUIC_TYPEDEFS_H
+#endif //MP_QUIC_SUBFLOW_H

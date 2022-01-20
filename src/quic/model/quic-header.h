@@ -322,13 +322,13 @@ public:
    * @brief Get the Path Id object
    * @return uint8_t 
    */
-  uint16_t GetPathId () const;
+  uint8_t GetPathId () const;
 
   /**
    * @brief Set the Path Id object
    * @param pathId 
    */
-  void SetPathId (uint16_t pathId);  
+  void SetPathId (uint8_t pathId);  
 
   //  /**
   //  * \brief Get the packet number
@@ -368,7 +368,7 @@ private:
   uint64_t m_connectionId;          //!< Connection Id
   SequenceNumber32 m_packetNumber;  //!< Packet number
   uint32_t m_version;               //!< Version
-  uint16_t m_pathId;                 //!< Path Id for multipath
+  uint8_t m_pathId;                 //!< Path Id for multipath
   // SequenceNumber32 m_seq;  //!< Packet number for mp
 };
 

@@ -205,7 +205,7 @@ QuicHeader::Serialize (Buffer::Iterator start) const
           break;
         }
     }
-  i.WriteHtonU16 (m_pathId);
+  i.WriteU8 (m_pathId);
   // i.WriteHtonU32 (m_seq.GetValue ());
 }
 
@@ -262,7 +262,7 @@ QuicHeader::Deserialize (Buffer::Iterator start)
         }
     }
 
-  SetPathId(i.ReadNtohU16 ());
+  SetPathId(i.ReadU8 ());
   // SetSeq(SequenceNumber32 (i.ReadNtohU32 ()));
 
   NS_LOG_INFO ("Deserialize::Serialized Size " << CalculateHeaderLength ());
@@ -520,14 +520,14 @@ QuicHeader::IsVersionNegotiation () const
   return m_type == VERSION_NEGOTIATION;
 }
 
-uint16_t
+uint8_t
 QuicHeader::GetPathId () const
 {
   return m_pathId;
 }
 
 void
-QuicHeader::SetPathId (uint16_t pathId)
+QuicHeader::SetPathId (uint8_t pathId)
 {
   m_pathId = pathId;
 }

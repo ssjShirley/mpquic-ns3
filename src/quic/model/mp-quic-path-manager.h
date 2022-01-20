@@ -4,7 +4,7 @@
 #include "ns3/node.h"
 
 #include "quic-socket-base.h"
-#include "mp-quic-typedefs.h"
+#include "mp-quic-subflow.h"
 
 namespace ns3 {
 
@@ -32,8 +32,8 @@ public:
 
 
   Ptr<MpQuicSubFlow> InitialSubflow0 (Address localAddress, Address peerAddress);
-  Ptr<MpQuicSubFlow> AddSubflow(Address address, Address from, int16_t pathId);
-  Ptr<MpQuicSubFlow> AddSubflowWithPeerAddress(Address localAddress, Address peerAddress, int16_t pathId);
+  Ptr<MpQuicSubFlow> AddSubflow(Address address, Address from, uint8_t pathId);
+  Ptr<MpQuicSubFlow> AddSubflowWithPeerAddress(Address localAddress, Address peerAddress, uint8_t pathId);
  
   // uint8_t LookUpByAddr (Address &address);
   void SetSocket(Ptr<QuicSocketBase> sock);

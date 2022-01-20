@@ -193,7 +193,7 @@ QuicSocketTxScheduler::AddScheduleItem (Ptr<QuicSocketTxScheduleItem> item, bool
 }
 
 Ptr<QuicSocketTxItem>
-QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes, uint16_t pathId)
+QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes, uint8_t pathId)
 {
   NS_LOG_FUNCTION (this << numBytes);
   // std::cout<<"I got pathId: "<<pathId<<" and Q: "<<Q<<std::endl;
@@ -225,7 +225,7 @@ QuicSocketTxScheduler::GetNewSegment (uint32_t numBytes, uint16_t pathId)
           currentPacket->PeekHeader (qsb);
           NS_LOG_INFO ("Packet: stream " << qsb.GetStreamId () << ", offset " << qsb.GetOffset ());
 
-          std::cout<<"Packet: stream " << qsb.GetStreamId () << ", offset " << qsb.GetOffset ()<<std::endl;
+          // std::cout<<"Packet: stream " << qsb.GetStreamId () << ", offset " << qsb.GetOffset ()<<std::endl;
 
           QuicSocketTxItem::MergeItems (*outItem, *currentItem);
           outItemSize += currentItem->m_packet->GetSize ();

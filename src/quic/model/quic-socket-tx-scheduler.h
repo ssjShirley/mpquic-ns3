@@ -163,7 +163,7 @@ public:
    * \param numBytes number of bytes of the QuicSocketTxItem requested
    * \return the item that contains the right packet
    */
-  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint16_t pathId);
+  Ptr<QuicSocketTxItem> GetNewSegment (uint32_t numBytes, uint8_t pathId);
 
   /**
    * Returns the total number of bytes in the application buffer

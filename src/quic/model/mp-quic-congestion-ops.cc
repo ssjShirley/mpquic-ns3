@@ -126,7 +126,12 @@ MpQuicCongestionOps::OnAckReceived (Ptr<TcpSocketState> tcb,
     {
       if ((*it)->m_acked)
         {
+          m_inCCAvoid = false;
           OnPacketAcked (tcb, (*it), alpha, sum_rate);
+          if (m_inCCAvoid)
+          {
+            return;
+          }
         }
     }
 }
@@ -184,8 +189,7 @@ MpQuicCongestionOps::OnPacketAcked (Ptr<TcpSocketState> tcb,
 
   NS_LOG_LOGIC ("Handle possible RTO");
   // If a packet sent prior to RTO was acked, then the RTO  was spurious. Otherwise, inform congestion control.
-  if (tcbd->m_rtoCount > 0
-      and ackedPacket->m_packetNumber > tcbd->m_largestSentBeforeRto)
+  if (tcbd->m_rtoCount > 0 and ackedPacket->m_packetNumber > tcbd->m_largestSentBeforeRto)
     {
       OnRetransmissionTimeoutVerified (tcb);
     }
@@ -225,17 +229,20 @@ MpQuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
       NS_LOG_LOGIC ("In slow start");
       // Slow start.
       tcbd->m_cWnd += ackedPacket->m_packet->GetSize ();
+      // tcbd->m_cWnd += tcbd->m_segmentSize;
     }
   else
     {
       NS_LOG_LOGIC ("In congestion avoidance");
       // Congestion Avoidance.
-      if (tcbd->m_cWnd > (uint32_t) 0) {
+      m_inCCAvoid = true;
+      if (tcbd->m_cWnd > (uint32_t) 0 /*&& tcbd->m_cWnd < tcbd->m_segmentSize*5*/) {
         double increase = (tcbd->m_cWnd/tcbd->m_segmentSize/pow(tcbd->m_lastRtt.Get().GetSeconds(),2))/pow(sum_rate,2)
                         + alpha/(tcbd->m_cWnd/tcbd->m_segmentSize);
         tcbd->m_cWnd += fabs(increase)*tcbd->m_segmentSize;
           // tcbd->m_cWnd += tcbd->m_segmentSize * ackedPacket->m_packet->GetSize () / tcbd->m_cWnd;
       } else {
+          // tcbd->m_cWnd = tcbd->m_segmentSize;
           tcbd->m_cWnd = tcbd->m_kMinimumWindow;
       }
     }
@@ -276,6 +283,18 @@ MpQuicCongestionOps::OnRetransmissionTimeoutVerified (
   Ptr<QuicSocketState> tcbd = dynamic_cast<QuicSocketState*> (&(*tcb));
   NS_ASSERT_MSG (tcbd != 0, "tcb is not a QuicSocketState");
   NS_LOG_INFO ("Loss state");
+  tcbd->m_cWnd = tcbd->m_kMinimumWindow;
+  tcbd->m_congState = TcpSocketState::CA_LOSS;
+}
+
+
+void
+MpQuicCongestionOps::OnRetransmissionTimeout (Ptr<TcpSocketState> tcb)
+{
+  NS_LOG_FUNCTION (this);
+  Ptr<QuicSocketState> tcbd = dynamic_cast<QuicSocketState*> (&(*tcb));
+  NS_ASSERT_MSG (tcbd != 0, "tcb is not a QuicSocketState");
+  NS_LOG_INFO ("Time Out");
   tcbd->m_cWnd = tcbd->m_kMinimumWindow;
   tcbd->m_congState = TcpSocketState::CA_LOSS;
 }

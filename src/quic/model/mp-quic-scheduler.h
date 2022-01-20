@@ -28,13 +28,13 @@ public:
   MpQuicScheduler (void);
   virtual ~MpQuicScheduler (void);
 
-  uint16_t GetNextPathIdToUse();
+  uint8_t GetNextPathIdToUse();
   void SetSocket(Ptr<QuicSocketBase> sock);
     
   
 private:
   Ptr<QuicSocketBase> m_socket;
-  uint16_t m_lastUsedPathId;
+  uint8_t m_lastUsedPathId;
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
   SchedulerType_t m_schedulerType;
 

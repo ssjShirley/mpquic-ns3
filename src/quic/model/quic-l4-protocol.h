@@ -62,7 +62,7 @@ public:
   Ptr<Socket> m_budpSocket6;         //!< The IPv6 UDP this binding is associated with
   Ptr<QuicSocketBase> m_quicSocket;  //!< The quic socket associated with this binding
   bool m_listenerBinding;            //!< A flag that indicates if in this binding resides the listening socket
-  int16_t m_pathId;                  //!< Multipath Implementation: path id
+  uint8_t m_pathId;                  //!< Multipath Implementation: path id
 };
 
 /**
@@ -412,8 +412,8 @@ public:
 
   //For Multipath Implementation
   void Allow0RTTHandshake (bool allow0RTT);
-  int AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress);
-  int ReDoUdpConnect(uint16_t pathId, Address peerAddress);
+  int AddPath(uint8_t pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress);
+  int ReDoUdpConnect(uint8_t pathId, Address peerAddress);
 
 protected:
   virtual void DoDispose (void);

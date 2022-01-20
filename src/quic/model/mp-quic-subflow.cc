@@ -3,7 +3,7 @@
 #include "ns3/buffer.h"
 #include "ns3/address-utils.h"
 #include "ns3/log.h"
-#include "mp-quic-typedefs.h"
+#include "mp-quic-subflow.h"
 #include <stdlib.h>
 #include <queue>
 #include "ns3/traced-value.h"
@@ -21,7 +21,7 @@
 #include <cmath>
 #include <boost/assign/list_of.hpp>
 
-NS_LOG_COMPONENT_DEFINE ("MpQuicTypeDefs");
+NS_LOG_COMPONENT_DEFINE ("MpQuicSubFlow");
 namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (MpQuicSubFlow);
@@ -32,6 +32,11 @@ MpQuicSubFlow::GetTypeId (void)
 {
     static TypeId tid = TypeId ("ns3::MpQuicSubFlow")
         .SetParent (Object::GetTypeId ())
+
+        .AddTraceSource ("CWindow",
+                     "The QUIC connection's congestion window",
+                     MakeTraceSourceAccessor (&MpQuicSubFlow::m_cWndTrace),
+                     "ns3::TracedValueCallback::Uint32")
         // .AddAttribute ("CCType",
         //            "congestion control type",
         //            StringValue ("new"),
@@ -74,14 +79,11 @@ MpQuicSubFlow::MpQuicSubFlow()
     m_tcb->m_ssThresh = m_tcb->m_initialSsThresh;
     m_tcb->m_pacingRate = m_tcb->m_maxPacingRate;
 
-    
-
-
-    // // connect callbacks
-    // bool ok;
-    // ok = m_tcb->TraceConnectWithoutContext ("CongestionWindow",
-    //                                         MakeCallback (&QuicSocketBase::UpdateCwnd, this));
-    // NS_ASSERT_MSG (ok == true, "Failed connection to CWND trace");
+    // connect callbacks
+    bool ok;
+    ok = m_tcb->TraceConnectWithoutContext ("CongestionWindow",
+                                            MakeCallback (&MpQuicSubFlow::UpdateCwnd, this));
+    NS_ASSERT_MSG (ok == true, "Failed connection to CWND trace");
 
     // ok = m_tcb->TraceConnectWithoutContext ("SlowStartThreshold",
     //                                         MakeCallback (&QuicSocketBase::UpdateSsThresh, this));
@@ -116,8 +118,9 @@ MpQuicSubFlow::SetSegSize (uint32_t size)
 
   m_tcb->m_segmentSize = size;
   // Update minimum congestion window
-  m_tcb->m_initialCWnd = 625 * size;
+  m_tcb->m_initialCWnd = 2 * size;
   m_tcb->m_kMinimumWindow = 2 * size;
+  // m_tcb->m_initialSsThresh = 4 * size;
 }
 
 uint32_t
@@ -134,6 +137,12 @@ MpQuicSubFlow::GetRate()
     }
     return m_tcb->m_cWnd/m_tcb->m_segmentSize/m_tcb->m_lastRtt.Get().GetSeconds();
 } 
+
+void
+MpQuicSubFlow::UpdateCwnd (uint32_t oldValue, uint32_t newValue)
+{
+  m_cWndTrace (oldValue, newValue);
+}
 
 
 // void

@@ -60,7 +60,7 @@ MpQuicScheduler::~MpQuicScheduler ()
 
 
 
-uint16_t 
+uint8_t 
 MpQuicScheduler::GetNextPathIdToUse()
 {
   m_subflows = m_socket->GetActiveSubflows();

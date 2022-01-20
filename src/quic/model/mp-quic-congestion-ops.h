@@ -118,6 +118,9 @@ public:
    */
   virtual void OnPacketsLost (Ptr<TcpSocketState> tcb, std::vector<Ptr<QuicSocketTxItem> > lostPackets);
 
+  void OnRetransmissionTimeout (Ptr<TcpSocketState> tcb);
+
+
 protected:
   // MpQuicCongestionControl Draft10
 
@@ -162,6 +165,8 @@ protected:
    * \param tcb a smart pointer to the SocketState (it accepts a QuicSocketState)
    */
   virtual void OnRetransmissionTimeoutVerified (Ptr<TcpSocketState> tcb);
+
+  bool m_inCCAvoid;
 
 };
 

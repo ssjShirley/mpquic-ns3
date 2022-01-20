@@ -54,8 +54,7 @@ QuicSubheader::QuicSubheader ()
     m_firstAckBlock (0),
     m_data (0),
     m_length (0),
-    m_pathId (0),
-    m_largestSeq (0)
+    m_pathId (0)
 {
   m_reasonPhrase = std::vector<uint8_t> ();
   m_additionalAckBlocks = std::vector<uint32_t> ();
@@ -327,7 +326,7 @@ QuicSubheader::CalculateSubHeaderLength () const
       case MP_ACK:
 
         len += GetVarInt64Size (m_pathId);
-        len += GetVarInt64Size (m_largestSeq);
+        // len += GetVarInt64Size (m_largestSeq);
         len += GetVarInt64Size (m_largestAcknowledged);
         len += GetVarInt64Size (m_ackDelay);
         len += GetVarInt64Size (m_ackBlockCount);
@@ -531,7 +530,7 @@ QuicSubheader::Serialize (Buffer::Iterator start) const
       case MP_ACK:
 
         WriteVarInt64 (i, m_pathId);
-        WriteVarInt64 (i, m_largestSeq);
+        // WriteVarInt64 (i, m_largestSeq);
         WriteVarInt64 (i, m_largestAcknowledged);
         WriteVarInt64 (i, m_ackDelay);
         WriteVarInt64 (i, m_ackBlockCount);
@@ -729,7 +728,7 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
       case MP_ACK:
 
         m_pathId = ReadVarInt64(i);
-        m_largestSeq = ReadVarInt64 (i);
+        // m_largestSeq = ReadVarInt64 (i);
         m_largestAcknowledged = ReadVarInt64 (i);
         m_ackDelay = ReadVarInt64 (i);
         m_ackBlockCount = ReadVarInt64 (i);
@@ -927,7 +926,7 @@ QuicSubheader::Print (std::ostream &os) const
       case MP_ACK:
 
         os << "|Path Id" << m_pathId << "|\n";
-        os << "|Largest Seq " << m_largestSeq << "|\n";
+        // os << "|Largest Seq " << m_largestSeq << "|\n";
         os << "|Largest Acknowledged " << m_largestAcknowledged << "|\n";
         os << "|Ack Delay " << m_ackDelay << "|\n";
         os << "|Ack Block Count " << m_ackBlockCount << "|\n";
@@ -1659,7 +1658,7 @@ QuicSubheader::IsRemoveAddress () const
 }
 
 QuicSubheader
-QuicSubheader::CreateAddAddress(Address addr, int16_t pathId)
+QuicSubheader::CreateAddAddress(Address addr, uint8_t pathId)
 {
   NS_LOG_INFO ("Create Add Address Header");
   
@@ -1671,7 +1670,7 @@ QuicSubheader::CreateAddAddress(Address addr, int16_t pathId)
 }
 
 QuicSubheader
-QuicSubheader::CreateRemoveAddress(Address addr, int16_t pathId)
+QuicSubheader::CreateRemoveAddress(Address addr, uint8_t pathId)
 {
   NS_LOG_INFO ("Create Remove Address Header");
   
@@ -1684,7 +1683,7 @@ QuicSubheader::CreateRemoveAddress(Address addr, int16_t pathId)
 
 
 QuicSubheader
-QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks, uint16_t pathId, uint32_t largestSeq)
+QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks, uint8_t pathId)
 {
   NS_LOG_INFO ("Created Ack Header");
 
@@ -1697,7 +1696,7 @@ QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uin
   sub.SetGaps (gaps);
   sub.SetAdditionalAckBlocks (additionalAckBlocks);
   sub.SetPathId(pathId);
-  sub.SetLargestSeq(largestSeq);
+  // sub.SetLargestSeq(largestSeq);
   return sub;
 }
 
@@ -1712,21 +1711,21 @@ void QuicSubheader::SetAddress (Address address)
   m_address = address;
 }
 
-uint32_t QuicSubheader::GetPathId() const {
+uint8_t QuicSubheader::GetPathId() const {
 	return m_pathId;
 }
 
-void QuicSubheader::SetPathId(uint16_t pathId) {
+void QuicSubheader::SetPathId(uint8_t pathId) {
 	m_pathId = pathId;
 }
 
-uint32_t QuicSubheader::GetLargestSeq() const {
-	return m_largestSeq;
-}
+// uint32_t QuicSubheader::GetLargestSeq() const {
+// 	return m_largestSeq;
+// }
 
-void QuicSubheader::SetLargestSeq(uint32_t largestSeq) {
-	m_largestSeq = largestSeq;
-}
+// void QuicSubheader::SetLargestSeq(uint32_t largestSeq) {
+// 	m_largestSeq = largestSeq;
+// }
 
 } // namespace ns3
 

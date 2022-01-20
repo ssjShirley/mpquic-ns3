@@ -788,7 +788,7 @@ void
 QuicL4Protocol::SendPacket (Ptr<QuicSocketBase> socket, Ptr<Packet> pkt, const QuicHeader &outgoing) const
 {
   NS_LOG_FUNCTION (this << socket);
-  uint16_t pathId = outgoing.GetPathId (); 
+  uint8_t pathId = outgoing.GetPathId (); 
   NS_LOG_LOGIC (this << "sendpacket with"
                 << " path Id: "<< pathId
                 << " sending pkt #" << outgoing.GetPacketNumber ()
@@ -985,7 +985,7 @@ QuicL4Protocol::Is0RTTHandshakeAllowed () const
 //For multipath implementation
 
 int
-QuicL4Protocol::AddPath(int pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress)
+QuicL4Protocol::AddPath(uint8_t pathId, Ptr<QuicSocketBase> socket, Address localAddress, Address peerAddress)
 {
   NS_LOG_FUNCTION (this);
   int res = -1;
@@ -1027,7 +1027,7 @@ QuicL4Protocol::Allow0RTTHandshake (bool allow0RTT)
 }
 
 int
-QuicL4Protocol::ReDoUdpConnect(uint16_t pathId, Address peerAddress)
+QuicL4Protocol::ReDoUdpConnect(uint8_t pathId, Address peerAddress)
 {
   QuicUdpBindingList::iterator it;
   Ptr<QuicSocketBase> socket;

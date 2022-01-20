@@ -498,7 +498,7 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
               NS_LOG_LOGIC ("Received window set to offset " << sub.GetMaxStreamData ());
             }
           NS_LOG_INFO ("Buffering unordered received frame - offset " << m_recvSize << ", frame offset " << sub.GetOffset ());
-          std::cout<<"quic-stream-base.cc  Buffering unordered received frame of size " << sub.GetLength () <<" m_recvSize: "<<m_recvSize<< ", frame offset " << sub.GetOffset ()<<std::endl;
+          // std::cout<<"quic-stream-base.cc  Buffering unordered received frame of size " << sub.GetLength () <<" m_recvSize: "<<m_recvSize<< ", frame offset " << sub.GetOffset ()<<std::endl;
           if (!m_rxBuffer->Add (frame, sub) && frame->GetSize () > 0)
             {
               // Insert failed: No or duplicate data, or RX buffer full
