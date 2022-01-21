@@ -99,8 +99,8 @@ MpQuicScheduler::MinRtt()
 {
     NS_LOG_FUNCTION (this);
   uint16_t minPid = 0;
-  Time minRtt = Time(0);
-  for (uint16_t pid = 0; pid < m_subflows.size(); pid++)
+  Time minRtt = m_subflows[0]->m_tcb->m_lastRtt;
+  for (uint16_t pid = 1; pid < m_subflows.size(); pid++)
   {
     if (m_subflows[pid]->m_tcb->m_lastRtt < minRtt){
       minRtt = m_subflows[pid]->m_tcb->m_lastRtt;
