@@ -67,7 +67,7 @@ Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
   NS_LOG_INFO("Matches cw " << Config::LookupMatches(pathCW.str().c_str()).GetN());
 
   std::ostringstream path0CW;
-  path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/*/QuicSocketBase/SubflowWindow0";
+  path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/*/QuicSocketBase/SubflowList/*/MpQuicSubflow/CongestionWindow";
   NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
 
   std::ostringstream path1CW;
@@ -131,9 +131,9 @@ main (int argc, char *argv[])
   std::cout
       << "\n\n#################### SIMULATION SET-UP ####################\n\n\n";
   
-   Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
-      "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
-      "ErrorRate", DoubleValue (0.0001));
+  //  Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
+  //     "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
+  //     "ErrorRate", DoubleValue (0.0001));
 
   LogLevel log_precision = LOG_LEVEL_LOGIC;
   Time::SetResolution (Time::NS);
@@ -165,14 +165,10 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
 
-  // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", StringValue ("rtt"));  
-  // Config::SetDefault ("ns3::MpQuicSubFlow::CCType", StringValue ("OLIA"));
   Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
   Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
-  // Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue(10485760));
-  // Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue(10485760));
-  // Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue(10485760));
-  // Config::SetDefault ("ns3::QuicSocketBase::SocketRcvBufSize",UintegerValue(10485760));
+  Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ROUND_ROBIN));   
+
 
   NodeContainer nodes;
   nodes.Create (2);
@@ -188,9 +184,9 @@ main (int argc, char *argv[])
   std::vector<std::string> rate(2);
   std::vector<std::string> delay(2);
 
-  rate[0]="1Mbps";
+  rate[0]="10Mbps";
   delay[0]="10ms";
-  rate[1]="100Mbps";
+  rate[1]="10Mbps";
   delay[1]="10ms";
 
   std::vector<Ipv4InterfaceContainer> ipv4Ints;
@@ -235,9 +231,9 @@ main (int argc, char *argv[])
 
   ApplicationContainer clientApps = echoClient.Install (nodes.Get (0));
 
-  echoClient.SetFill (clientApps.Get (0),100, 50000);
+  echoClient.SetFill (clientApps.Get (0),100, 10000);
   clientApps.Start (Seconds (1));
-  clientApps.Stop (Seconds (10.0));
+  clientApps.Stop (Seconds (20.0));
 
   Simulator::Schedule (Seconds (1.0000001), &Traces, n2->GetId(),
         "./server", ".txt");
