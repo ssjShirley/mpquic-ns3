@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
 #ifndef QUICHEADER_H
@@ -317,8 +317,17 @@ public:
    */
   bool HasVersion () const;
 
-
   /**
+   * Comparison operator
+   * \param lhs left operand
+   * \param rhs right operand
+   * \return true if the operands are equal
+   */
+  friend bool operator== (const QuicHeader &lhs, const QuicHeader &rhs);
+
+  // for multipath implementation
+
+    /**
    * @brief Get the Path Id object
    * @return uint8_t 
    */
@@ -330,25 +339,6 @@ public:
    */
   void SetPathId (uint8_t pathId);  
 
-  //  /**
-  //  * \brief Get the packet number
-  //  * \return The packet number for this QuicHeader
-  //  */
-  // SequenceNumber32 GetSeq () const;
-
-  // /**
-  //  * \brief Set the packet number
-  //  * \param packNumber the packet number for this QuicHeader
-  //  */
-  // void SetSeq (SequenceNumber32 packNumber);    
-
-  /**
-   * Comparison operator
-   * \param lhs left operand
-   * \param rhs right operand
-   * \return true if the operands are equal
-   */
-  friend bool operator== (const QuicHeader &lhs, const QuicHeader &rhs);
 
 private:
   /**
@@ -369,7 +359,6 @@ private:
   SequenceNumber32 m_packetNumber;  //!< Packet number
   uint32_t m_version;               //!< Version
   uint8_t m_pathId;                 //!< Path Id for multipath
-  // SequenceNumber32 m_seq;  //!< Packet number for mp
 };
 
 } // namespace ns3

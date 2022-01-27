@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *
+ *          Shengjie Shu <shengjies@uvic.ca>
  */
 
 #ifndef QUICSUBHEADER_H
@@ -802,19 +802,6 @@ public:
    */
   void SetPathId(uint8_t pathId);
 
-  /**
-   * @brief Get the Largest Seq object
-   * 
-   * @return uint32_t 
-   */
-  // uint32_t GetLargestSeq() const;
-
-  // /**
-  //  * @brief Set the Largest Seq object
-  //  * 
-  //  * @param largestSeq 
-  //  */
-  // void SetLargestSeq(uint32_t largestSeq);
 
   /**
    * @brief Get the Address object
@@ -853,7 +840,6 @@ private:
   uint8_t m_data;                               //!< Data word
   uint64_t m_length;                            //!< Length
   uint8_t m_pathId;                            //!< Multipath Implementation: Path Id
-  // uint32_t m_largestSeq;                        //!< Multipath Implementation: largest seq
   Address m_address;                            //!< Multipath Implementation: Address
 };
 

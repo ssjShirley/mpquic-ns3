@@ -19,8 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Wenjun Yang <wenjunyang@uvic.ca>
- *          Shengjie Shu <shengjies@uvic.ca>
+ *          
  */
 
 #include <stdint.h>
