@@ -3,5 +3,4 @@
 !.gitignore
 !subdir/
 !scratch-simulator.cc
-!quic-tester-mp.cc
-!mpquic-sat-lte5.cc
+!mpquic-wns3.cc

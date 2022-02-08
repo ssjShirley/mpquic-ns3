@@ -3418,6 +3418,7 @@ QuicSocketBase::OnReceivedAddAddressFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   uint8_t pathId = sub.GetPathId();
+  sub.GetAddress();
   Address peerAddr = InetSocketAddress("10.1.2.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
   Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId+1,0).GetLocal());
   m_quicl4->AddPath(pathId, this, localAddr, peerAddr);
@@ -3450,7 +3451,7 @@ QuicSocketBase::OnReceivedPathChallengeFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   m_subflows[m_currentPathId]->m_peerAddr = m_currentFromAddress;
-  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
+  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::Active;
   m_quicl4->ReDoUdpConnect(m_currentPathId, m_currentFromAddress);
   m_txBuffer->AddSentList();
   SendPathResponse(m_currentPathId);
@@ -3479,7 +3480,7 @@ void
 QuicSocketBase::OnReceivedPathResponseFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
-  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::ACTIVE;
+  m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::Active;
   m_txBuffer->AddSentList();
 }
 
@@ -3491,7 +3492,7 @@ QuicSocketBase::GetActiveSubflows()
   std::vector<Ptr<MpQuicSubFlow>> sflows;
   for (uint16_t i = 0; i < m_subflows.size(); i++)
   {
-    if (m_subflows[i]->m_subflowState == MpQuicSubFlow::ACTIVE){
+    if (m_subflows[i]->m_subflowState == MpQuicSubFlow::Active){
       sflows.insert(sflows.end(), m_subflows[i]);
     }
   }

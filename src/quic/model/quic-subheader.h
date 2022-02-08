@@ -133,7 +133,8 @@ public:
     STREAM111 = 0x17,          //!< Stream (offset=1, length=1, fin=1)
     ADD_ADDRESS = 0x18,        //!< Multipath Implementation: Add address
     REMOVE_ADDRESS = 0x19,     //!< Multipath Implementation: Remove address
-    MP_ACK = 0x1A              //!< Multipath Implementation: Mp Ack
+    MP_ACK = 0x1A,             //!< Multipath Implementation: Mp Ack
+    PATH_ABANDON = 0X1B        //!< Multipath Implementation: Path Abandon
 
   } TypeFrame_t;
 
@@ -787,6 +788,9 @@ public:
    * \return the generated QuicSubheader
    */
   static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint8_t pathId);
+
+  static QuicSubheader CreatePathAbandon (uint8_t pathId, uint16_t m_errorCode);
+
 
   /**
    * @brief Get the Path Id object

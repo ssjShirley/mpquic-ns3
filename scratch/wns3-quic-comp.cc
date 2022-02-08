@@ -433,7 +433,7 @@ main (int argc, char *argv[])
 //   // Close the plot file.
 //   plotFile.close ();
 
-  flowmon.SerializeToXmlFile("flow", false, false);
+  flowmon.SerializeToXmlFile("flow.xml", false, false);
 
   monitor->CheckForLostPackets ();
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());

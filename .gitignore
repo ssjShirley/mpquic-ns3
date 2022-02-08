@@ -40,3 +40,4 @@ build/
 version.cache
 .DS_Store
 *.txt
+*.xml
