@@ -234,6 +234,11 @@ QuicSocketBase::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&QuicSocketBase::m_enableMultipath),
                    MakeBooleanChecker ())
+    .AddAttribute ("CcType",
+                   "define the type of the scheduler",
+                   IntegerValue (QuicNewReno),
+                   MakeIntegerAccessor (&QuicSocketBase::m_ccType),
+                   MakeIntegerChecker<int16_t> ())
     .AddAttribute ("SubflowList", "The list of QUIC subflows associated to this socket.",
                    ObjectVectorValue (),
                    MakeObjectVectorAccessor (&QuicSocketBase::m_subflows),
@@ -2473,7 +2478,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
         {
           NS_LOG_INFO ("Update the variables in the congestion control (QUIC)");
           // Process the ACK
-          if(m_enableMultipath)
+          if(m_enableMultipath && m_ccType == OLIA)
           {
             m_subflows[pathId]->m_tcb->m_bytesBeforeLost2 += ackedBytes;
             double alpha = GetOliaAlpha(pathId);
@@ -2482,6 +2487,8 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
             {
               sum_rate += m_subflows[pid]->GetRate();
             }
+            // DynamicCast<QuicCongestionOps> (m_congestionControl)->OnAckReceived (m_subflows[pathId]->m_tcb, sub, ackedPackets, rs);
+
             DynamicCast<MpQuicCongestionOps> (m_congestionControl)->OnAckReceived (m_subflows[pathId]->m_tcb, sub, ackedPackets, rs, alpha, sum_rate);
           }
           else
@@ -3374,7 +3381,7 @@ QuicSocketBase::CreateNewSubflows ()
     m_quicl4->Allow0RTTHandshake(true);
     for(int16_t num = 2; num < addrNum; num++)
     {
-      Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal()), m_currentFromAddress, num-1);
+      Ptr<MpQuicSubFlow> subflow = m_pathManager->AddSubflow(InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(num,0).GetLocal(), m_endPoint->GetLocalPort()+num-1), m_currentFromAddress, num-1);
     }
   }
 }
@@ -3418,8 +3425,14 @@ QuicSocketBase::OnReceivedAddAddressFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   uint8_t pathId = sub.GetPathId();
-  Address peerAddr = InetSocketAddress("10.1.2.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
-  Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId+1,0).GetLocal());
+  // Address peerAddr = InetSocketAddress("10.1.7.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
+  // Address peerAddr = InetSocketAddress("10.1.2.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
+
+  InetSocketAddress transport = InetSocketAddress::ConvertFrom (sub.GetAddress());
+  Ipv4Address ipv4 = transport.GetIpv4 ();
+  uint16_t port = transport.GetPort ();
+  Address peerAddr = InetSocketAddress(ipv4, port);
+  Address localAddr = InetSocketAddress(m_node->GetObject<Ipv4>()->GetAddress(pathId+1,0).GetLocal(), port);
   m_quicl4->AddPath(pathId, this, localAddr, peerAddr);
   m_quicl4->Allow0RTTHandshake(true);
   m_pathManager->AddSubflowWithPeerAddress(localAddr, peerAddr, pathId);
