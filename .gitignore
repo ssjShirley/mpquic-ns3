@@ -41,3 +41,6 @@ version.cache
 .DS_Store
 *.txt
 *.xml
+*.png
+*.eps
+*.out
