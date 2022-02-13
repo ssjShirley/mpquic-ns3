@@ -66,7 +66,6 @@ Ptr<Socket>
 QuicSocketFactory::CreateSocket (void)
 {
   NS_LOG_INFO ("QuicSocketFactory -- creating socket");
-  std::cout << "-----------------QuicSocketFactory::CreateSocket()" << std::endl;
   return m_quicl4->CreateSocket ();
 }
 

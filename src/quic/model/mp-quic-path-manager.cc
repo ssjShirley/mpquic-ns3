@@ -81,7 +81,7 @@ MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
   sFlow->m_flowId    = 0; 
   sFlow->m_peerAddr  = peerAddress;
   sFlow->m_localAddr = localAddress;
-  sFlow->m_subflowState = MpQuicSubFlow::ACTIVE;
+  sFlow->m_subflowState = MpQuicSubFlow::Validating;
   sFlow->SetSegSize(m_segSize);
   sFlow->m_tcb->m_initialSsThresh = m_initialSsThresh;
   // sFlow->m_tcb->m_cWnd = sFlow->m_tcb->m_initialCWnd;
@@ -108,7 +108,7 @@ MpQuicPathManager::AddSubflow(Address localAddress, Address peerAddress, uint8_t
   sFlow->m_localAddr = localAddress;
   sFlow->m_peerAddr = peerAddress;
 
-  sFlow->m_subflowState = MpQuicSubFlow::PENDING;
+  sFlow->m_subflowState = MpQuicSubFlow::Validating;
   sFlow->SetSegSize(m_segSize);
   sFlow->m_tcb->m_initialSsThresh = m_initialSsThresh;
   sFlow->m_tcb->m_cWnd = sFlow->m_tcb->m_initialCWnd;
@@ -130,7 +130,7 @@ MpQuicPathManager::AddSubflowWithPeerAddress(Address localAddress, Address peerA
   sFlow->m_flowId     = pathId; 
   sFlow->m_localAddr  = localAddress;
   sFlow->m_peerAddr   = peerAddress;
-  sFlow->m_subflowState = MpQuicSubFlow::PENDING;
+  sFlow->m_subflowState = MpQuicSubFlow::Validating;
   sFlow->SetSegSize(m_segSize);
   sFlow->m_tcb->m_initialSsThresh = m_initialSsThresh;
   sFlow->m_tcb->m_cWnd = sFlow->m_tcb->m_initialCWnd;

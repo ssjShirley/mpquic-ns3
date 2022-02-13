@@ -83,7 +83,7 @@ QuicSubheader::GetInstanceTypeId (void) const
 std::string
 QuicSubheader::FrameTypeToString () const
 {
-  static const char* frameTypeNames[27] = {
+  static const char* frameTypeNames[28] = {
     "PADDING",
     "RST_STREAM",
     "CONNECTION_CLOSE",
@@ -110,7 +110,8 @@ QuicSubheader::FrameTypeToString () const
     "STREAM111",
     "ADD_ADDRESS",
     "REMOVE_ADDRESS",
-    "MP_ACK"
+    "MP_ACK",
+    "PATH_ABANDON"
   };
   std::string typeDescription = "";
 
@@ -157,7 +158,7 @@ uint32_t
 QuicSubheader::CalculateSubHeaderLength () const
 {
   NS_LOG_FUNCTION (this);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= PATH_ABANDON);
   uint32_t len = 8;
 
   switch (m_frameType)
@@ -336,8 +337,12 @@ QuicSubheader::CalculateSubHeaderLength () const
             len += GetVarInt64Size (m_additionalAckBlocks[j]);
           }
         break;
-      
 
+      case PATH_ABANDON:
+        len += GetVarInt64Size (m_pathId);
+        len += GetVarInt64Size (m_errorCode);   
+
+        break; 
 
     }
 
@@ -353,7 +358,7 @@ void
 QuicSubheader::Serialize (Buffer::Iterator start) const
 {
   NS_LOG_FUNCTION (this << (uint64_t)m_frameType);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= PATH_ABANDON);
 
   Buffer::Iterator i = start;
   i.WriteU8 ((uint8_t)m_frameType);
@@ -529,7 +534,6 @@ QuicSubheader::Serialize (Buffer::Iterator start) const
       case MP_ACK:
 
         WriteVarInt64 (i, m_pathId);
-        // WriteVarInt64 (i, m_largestSeq);
         WriteVarInt64 (i, m_largestAcknowledged);
         WriteVarInt64 (i, m_ackDelay);
         WriteVarInt64 (i, m_ackBlockCount);
@@ -541,6 +545,9 @@ QuicSubheader::Serialize (Buffer::Iterator start) const
           }
         break;
       
+      case PATH_ABANDON:
+        WriteVarInt64 (i, m_pathId);
+        WriteVarInt64 (i, m_errorCode);
 
     }
 }
@@ -553,7 +560,7 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
 
   NS_LOG_FUNCTION (this << (uint64_t)m_frameType);
 
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= PATH_ABANDON);
 
   switch (m_frameType)
     {
@@ -727,7 +734,6 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
       case MP_ACK:
 
         m_pathId = ReadVarInt64(i);
-        // m_largestSeq = ReadVarInt64 (i);
         m_largestAcknowledged = ReadVarInt64 (i);
         m_ackDelay = ReadVarInt64 (i);
         m_ackBlockCount = ReadVarInt64 (i);
@@ -738,7 +744,10 @@ QuicSubheader::Deserialize (Buffer::Iterator start)
             m_additionalAckBlocks.push_back (ReadVarInt64 (i));
           }
         break;
-
+      
+      case PATH_ABANDON:
+        m_pathId = ReadVarInt64(i);
+        m_errorCode = ReadVarInt64(i);
     }
 
   NS_LOG_INFO ("Deserialized a subheader of size " << GetSerializedSize ());
@@ -749,7 +758,7 @@ void
 QuicSubheader::Print (std::ostream &os) const
 {
    NS_LOG_FUNCTION (this << (uint64_t) m_frameType);
-  NS_ASSERT (m_frameType >= PADDING and m_frameType <= MP_ACK);
+  NS_ASSERT (m_frameType >= PADDING and m_frameType <= PATH_ABANDON);
 
   os << "|" << FrameTypeToString () << "|\n";
   switch (m_frameType)
@@ -925,7 +934,6 @@ QuicSubheader::Print (std::ostream &os) const
       case MP_ACK:
 
         os << "|Path Id" << m_pathId << "|\n";
-        // os << "|Largest Seq " << m_largestSeq << "|\n";
         os << "|Largest Acknowledged " << m_largestAcknowledged << "|\n";
         os << "|Ack Delay " << m_ackDelay << "|\n";
         os << "|Ack Block Count " << m_ackBlockCount << "|\n";
@@ -936,6 +944,11 @@ QuicSubheader::Print (std::ostream &os) const
             os << "|Additional Ack Block " << m_additionalAckBlocks[j] << "|\n";
           }
         break;
+
+      case PATH_ABANDON:
+        os << "|Path Id" << m_pathId << "|\n";
+       break;
+
     }
 }
 
@@ -1695,7 +1708,19 @@ QuicSubheader::CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uin
   sub.SetGaps (gaps);
   sub.SetAdditionalAckBlocks (additionalAckBlocks);
   sub.SetPathId(pathId);
-  // sub.SetLargestSeq(largestSeq);
+  return sub;
+}
+
+QuicSubheader 
+QuicSubheader::CreatePathAbandon (uint8_t pathId, uint16_t errorCode)
+{
+   NS_LOG_INFO ("Created Path Abandon");
+
+  QuicSubheader sub;
+  sub.SetFrameType (PATH_ABANDON);
+  sub.SetPathId(pathId);
+  sub.SetErrorCode(errorCode);
+
   return sub;
 }
 

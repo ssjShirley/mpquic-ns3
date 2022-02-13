@@ -1,94 +1,198 @@
 
-The Network Simulator for multipath QUIC
+A Multipath Extension to the QUIC Module in ns-3
 ================================
 
-## Code Structure:
 
-New File Created:
+## MPQUIC code base
+This repository contains in the `src/quic` for a multipath extension to the QUIC protocol for ns-3.
 
-1. mp-quic-typedefs
-2. quic-scheduler
+<!-- The implementation is described in [this paper](https://arxiv.org/abs/1902.06121). -->
 
+<!-- Please use the issue tracker for bugs/questions. -->
 
-Quic File Modified:
+QUIC implementation for ns-3
+================================
 
-1. quic-socket-base
-2. quic-l4-protocol
-3. quic-header
-4. quic-subheader
+## QUIC code base
+This repository contains in the code for a native IETF QUIC implementation in ns-3.
 
-## New File Created
+The implementation is described in [this paper](https://arxiv.org/abs/1902.06121).
 
-1. mp-quic-typedefs
+Please use this [issue tracker](https://github.com/signetlabdei/quic-ns-3/issues) for bugs/questions.
 
-2. quic-scheduler
+## Install
 
+### Prerequisites ###
 
-## Quic File Modified
+To run simulations using this module, you will need to install ns-3, clone
+this repository inside the `src` directory and patch the `wscript` file of the internet module. 
+Required dependencies include git and a build environment.
 
-1. quic-socket-base
+#### Installing dependencies ####
 
-new valuables:  
+Please refer to [the ns-3 wiki](https://www.nsnam.org/wiki/Installation) for instructions on how to set up your system to install ns-3.
 
-    //for multipath  
-    std::map <Ipv4Address, uint8_t> m_addrIdPair;  
-    std::vector <Ptr<MpQuicSubFlow>> m_subflows;  
+#### Downloading #####
 
-    //for scheduler
-    Ptr<QuicScheduler> m_scheduler;
+First, clone the main ns-3 repository:
 
-new methods:
+```bash
+git clone https://gitlab.com/nsnam/ns-3-dev ns-3-dev
+cd ns-3-dev/src
+```
 
-    //for multipath
-    uint8_t LookUpByAddr (Address &address);
-    
-    //for scheduler
-    void CreateScheduler ();
+Then, clone the quic module:
+```bash
+git clone https://github.com/signetlabdei/quic quic
+```
 
-modified methods:
+Finally, edit the `wscript` file of the internet module and add
+```python
+        'model/ipv4-end-point.h',
+        'model/ipv4-end-point-demux.h',
+        'model/ipv6-end-point.h',
+        'model/ipv6-end-point-demux.h',
+```
+to the `headers.source` list
 
-    //connection initial
-    QuicSocketBase::Connect (const Address & address)
-        initial m_subflows[0]
-    QuicSocketBase::SendInitialHandshake (uint8_t type, const QuicHeader &quicHeader, Ptr<Packet> packet)
+### Compilation ###
 
-    // send packet
-    QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck)
-        send data packet with pathId
-    QuicSocketBase::SendConnectionClosePacket (uint16_t errorCode, std::string phrase)
-    QuicSocketBase::AbortConnection (uint16_t transportErrorCode, const char* reasonPhrase,bool applicationClose)
+Configure and build ns-3 from the `ns-3-dev` folder:
 
-    // send ack, recv ack
-    QuicSocketBase::SendAck ()
-        send ack with pathId
-    QuicSocketBase::OnSendingAckFrame (int pathId)
-    QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
+```bash
+./waf configure --enable-tests --enable-examples
+./waf build
+```
 
-    //recv data 
-    QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader, Address &address)
-
-
-
-2. quic-header 
-
-    add announce type for subflow creation
-    add path Id
-
-3. quic-subheader
-
-    add path Id for ack frame 
-
-4. quic-l4-protocol
-
-modified method:
-
-    //add subflow in send&recv process
-    QuicL4Protocol::ForwardUp (Ptr<Socket> sock)
-    QuicL4Protocol::SendPacket (Ptr<QuicSocketBase> socket, Ptr<Packet> pkt, const QuicHeader &outgoing) const
+If you are not interested in using the Python bindings, use
+```bash
+./waf configure --enable-tests --enable-examples --disable-python
+./waf build
+```
 
 
+The Network Simulator, Version 3
+================================
 
+## Table of Contents:
 
+1) [An overview](#an-open-source-project)
+2) [Building ns-3](#building-ns-3)
+3) [Running ns-3](#running-ns3)
+4) [Getting access to the ns-3 documentation](#getting-access-to-the-ns-3-documentation)
+5) [Working with the development version of ns-3](#working-with-the-development-version-of-ns-3)
 
+Note:  Much more substantial information about ns-3 can be found at
+http://www.nsnam.org
 
+## An Open Source project
 
+ns-3 is a free open source project aiming to build a discrete-event
+network simulator targeted for simulation research and education.   
+This is a collaborative project; we hope that
+the missing pieces of the models we have not yet implemented
+will be contributed by the community in an open collaboration
+process.
+
+The process of contributing to the ns-3 project varies with
+the people involved, the amount of time they can invest
+and the type of model they want to work on, but the current
+process that the project tries to follow is described here:
+http://www.nsnam.org/developers/contributing-code/
+
+This README excerpts some details from a more extensive
+tutorial that is maintained at:
+http://www.nsnam.org/documentation/latest/
+
+## Building ns-3
+
+The code for the framework and the default models provided
+by ns-3 is built as a set of libraries. User simulations
+are expected to be written as simple programs that make
+use of these ns-3 libraries.
+
+To build the set of default libraries and the example
+programs included in this package, you need to use the
+tool 'waf'. Detailed information on how to use waf is
+included in the file doc/build.txt
+
+However, the real quick and dirty way to get started is to
+type the command
+```shell
+./waf configure --enable-examples
+```
+
+followed by
+
+```shell
+./waf
+```
+
+in the directory which contains this README file. The files
+built will be copied in the build/ directory.
+
+The current codebase is expected to build and run on the
+set of platforms listed in the [release notes](RELEASE_NOTES)
+file.
+
+Other platforms may or may not work: we welcome patches to
+improve the portability of the code to these other platforms.
+
+## Running ns-3
+
+On recent Linux systems, once you have built ns-3 (with examples
+enabled), it should be easy to run the sample programs with the
+following command, such as:
+
+```shell
+./waf --run simple-global-routing
+```
+
+That program should generate a `simple-global-routing.tr` text
+trace file and a set of `simple-global-routing-xx-xx.pcap` binary
+pcap trace files, which can be read by `tcpdump -tt -r filename.pcap`
+The program source can be found in the examples/routing directory.
+
+## Getting access to the ns-3 documentation
+
+Once you have verified that your build of ns-3 works by running
+the simple-point-to-point example as outlined in 3) above, it is
+quite likely that you will want to get started on reading
+some ns-3 documentation.
+
+All of that documentation should always be available from
+the ns-3 website: http:://www.nsnam.org/documentation/.
+
+This documentation includes:
+
+  - a tutorial
+
+  - a reference manual
+
+  - models in the ns-3 model library
+
+  - a wiki for user-contributed tips: http://www.nsnam.org/wiki/
+
+  - API documentation generated using doxygen: this is
+    a reference manual, most likely not very well suited
+    as introductory text:
+    http://www.nsnam.org/doxygen/index.html
+
+## Working with the development version of ns-3
+
+If you want to download and use the development version of ns-3, you
+need to use the tool `git`. A quick and dirty cheat sheet is included
+in the manual, but reading through the git
+tutorials found in the Internet is usually a good idea if you are not
+familiar with it.
+
+If you have successfully installed git, you can get
+a copy of the development version with the following command:
+```shell
+git clone https://gitlab.com/nsnam/ns-3-dev.git
+```
+
+However, we recommend to follow the Gitlab guidelines for starters,
+that includes creating a Gitlab account, forking the ns-3-dev project
+under the new account's name, and then cloning the forked repository.
+You can find more information in the manual [link].
