@@ -54,7 +54,7 @@ MpQuicScheduler::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("Internet")
     .AddAttribute ("SchedulerType",
-                   "Minimum time in the future an RTO alarm may be set for",
+                   "define the type of the scheduler",
                    IntegerValue (MIN_RTT),
                    MakeIntegerAccessor (&MpQuicScheduler::m_schedulerType),
                    MakeIntegerChecker<int16_t> ())

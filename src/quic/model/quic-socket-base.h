@@ -664,6 +664,13 @@ public:
 
 
   // Public: ------------ For Multipath Implementation -------------
+
+
+  typedef enum
+  {
+    QuicNewReno,       
+    OLIA            
+  } CcType_t;
   
   void SendAddAddress(Address address, uint8_t pathId);
   void SendPathChallenge(uint8_t pathId);
@@ -922,8 +929,9 @@ protected:
 
 
   // Protected: ------------ For Multipath Implementation -------------
- 
+  
   bool m_enableMultipath;
+  CcType_t m_ccType;
   Ptr<MpQuicPathManager> m_pathManager;
   Ptr<MpQuicScheduler> m_scheduler;
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
@@ -940,6 +948,7 @@ protected:
   
   double GetOliaAlpha(uint8_t pathId);
 
+  
   // int FindMinRttPath();
   // uint16_t getSubflowToUse ();
   // uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
