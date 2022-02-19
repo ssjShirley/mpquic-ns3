@@ -81,7 +81,7 @@ MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
   sFlow->m_flowId    = 0; 
   sFlow->m_peerAddr  = peerAddress;
   sFlow->m_localAddr = localAddress;
-  sFlow->m_subflowState = MpQuicSubFlow::Validating;
+  sFlow->m_subflowState = MpQuicSubFlow::Active;
   sFlow->SetSegSize(m_segSize);
   sFlow->m_tcb->m_initialSsThresh = m_initialSsThresh;
   // sFlow->m_tcb->m_cWnd = sFlow->m_tcb->m_initialCWnd;
