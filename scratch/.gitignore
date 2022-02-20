@@ -3,4 +3,4 @@
 !.gitignore
 !subdir/
 !scratch-simulator.cc
-!mpquic-wns3.cc
+!mpquic-example.cc
