@@ -51,7 +51,7 @@ QUIC implementation for ns-3
 ================================
 
 ## QUIC code base
-This repository contains in the code for a native IETF QUIC implementation in ns-3.
+The ns-3 QUIC module can be found at https://github.com/signetlabdei/quic.
 
 The implementation is described in [this paper](https://arxiv.org/abs/1902.06121).
 
