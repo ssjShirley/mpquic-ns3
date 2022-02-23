@@ -25,6 +25,9 @@
  *   /        TCP        \
  * n3                     n7
  *
+ * Sample script:
+ *   ./waf --run "scratch/wns3-two-flow-topo.cc --SchedulerType=0 --Rate0="10Mbps" --Rate1="10Mbps"" >log.out 2>d1
+ * 
  * Authors: Alvise De Biasio <alvise.debiasio@gmail.com>
  *          Federico Chiariotti <whatever@blbl.it>
  *          Michele Polese <michele.polese@gmail.com>
@@ -50,6 +53,39 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wns3-two-flow-topo");
 
+
+static void
+CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
+{
+    *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldCwnd << "\t" << newCwnd << std::endl;
+}
+
+static void
+Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
+{
+    AsciiTraceHelper asciiTraceHelper;
+
+    std::ostringstream path0CW;
+    path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
+
+    std::ostringstream path1CW;
+    path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/*/QuicSocketBase/CongestionWindow1";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
+
+    std::ostringstream file0CW;
+    file0CW << pathVersion << "QUIC-cwnd-change-0" << "" << finalPart;
+    std::ostringstream file1CW;
+    file1CW << pathVersion << "QUIC-cwnd-change-1"<< "" << finalPart;
+
+    Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
+    Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
+
+    Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
+    Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
+
+}
+
 void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon)
 {
     std::map<FlowId, FlowMonitor::FlowStats> flowStats = flowMon->GetFlowStats();
@@ -57,20 +93,20 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon)
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats = flowStats.begin (); stats != flowStats.end (); ++stats)
     {
         if (stats->first == 1 ) {
-            std::cout << " TCP 0 | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " TCP 0\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
         if (stats->first == 2 ) {
-            std::cout << " TCP 1 | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " TCP 1\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
         if (stats->first == 3 ) {
-            std::cout << " S 0 | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " S 0\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
         if (stats->first == 7 ) {
-            std::cout << " S 1 | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " S 1\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
     }
 
-    Simulator::Schedule(Seconds(1),&ThroughputMonitor, fmhelper, flowMon);
+    Simulator::Schedule(Seconds(0.1),&ThroughputMonitor, fmhelper, flowMon);
 
 }
 
@@ -78,13 +114,16 @@ int
 main (int argc, char *argv[])
 {
     int schedulerType = MpQuicScheduler::ROUND_ROBIN;
+    string rate0 = "10Mbps";
+    string rate1 = "10Mbps";
     int ccType = QuicSocketBase::OLIA;
     TypeId ccTypeId = MpQuicCongestionOps::GetTypeId ();
     CommandLine cmd;
     
-    cmd.AddValue ("SchedulerType", "in use scheduler type (MpQuicScheduler::ROUND_ROBIN or MpQuicScheduler::MIN_RTT)", schedulerType);
-    cmd.AddValue ("CcType", "in use congestion control type (QuicSocketBase::OLIA or QuicSocketBase::QuicNewReno)", ccType);
-    cmd.AddValue ("CcTypeId", "in use congestion control type (MpQuicCongestionOps::GetTypeId () or QuicCongestionOps::GetTypeId ())", ccTypeId);
+    cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT)", schedulerType);
+    cmd.AddValue ("Rate0", "e.g. 10Mbps", rate0);
+    cmd.AddValue ("Rate1", "e.g. 50Mbps", rate1);
+    cmd.AddValue ("CcType", "in use congestion control type (0 - QuicNewReno, 1 - OLIA)", ccType);
     cmd.Parse (argc, argv);
 
     std::cout
@@ -120,6 +159,13 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
 
+    if (ccType == QuicSocketBase::OLIA){
+        ccTypeId = MpQuicCongestionOps::GetTypeId ();
+    }
+    if(ccType == QuicSocketBase::QuicNewReno){
+        ccTypeId = QuicCongestionOps::GetTypeId ();
+    }
+
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
     Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(ccType));
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (ccTypeId));
@@ -131,7 +177,7 @@ main (int argc, char *argv[])
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
     uint32_t myRandomNo = x->GetInteger (500,570);
-    uint32_t maxBytes = myRandomNo * 1000;
+    uint32_t maxBytes = myRandomNo * 10000;
     
     NS_LOG_INFO ("Create nodes.");
     NodeContainer c;
@@ -170,17 +216,17 @@ main (int argc, char *argv[])
     // We create the channels first without any IP addressing information
     NS_LOG_INFO ("Create channels.");
     PointToPointHelper p2p;
-    p2p.SetDeviceAttribute ("DataRate", StringValue ("10Mbps"));
+    p2p.SetDeviceAttribute ("DataRate", StringValue (rate0));
     p2p.SetChannelAttribute ("Delay", StringValue ("10ms"));
     NetDeviceContainer d1d8 = p2p.Install (n1n8);
 
-    p2p.SetDeviceAttribute ("DataRate", StringValue ("50Mbps"));
+    p2p.SetDeviceAttribute ("DataRate", StringValue (rate1));
     p2p.SetChannelAttribute ("Delay", StringValue ("10ms"));
     NetDeviceContainer d6d9 = p2p.Install (n6n9);
 
     //background traffic
     p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("10ms"));
+    p2p.SetChannelAttribute ("Delay", StringValue ("0ms"));
     NetDeviceContainer d4d1 = p2p.Install (n4n1);
     NetDeviceContainer d0d1 = p2p.Install (n0n1);
     NetDeviceContainer d8d5 = p2p.Install (n8n5);
@@ -292,6 +338,9 @@ main (int argc, char *argv[])
     ApplicationContainer sinkApps2 = sink2.Install (c.Get (5));
     sinkApps2.Start (Seconds (0.0));
     sinkApps2.Stop (simulationEndTime);
+
+    Simulator::Schedule (Seconds (start_time+0.0000001), &Traces, c.Get (4)->GetId(),
+        "./wns3Client", ".txt");
 
     Packet::EnablePrinting ();
     Packet::EnableChecking ();

@@ -7,5 +7,4 @@
 !wns3-single-path.cc
 !wns3-multi-subflows.cc
 !wns3-two-flow-topo.cc
-!wns3-cwnd.cc
 !gnuplot-cwnd.cc
