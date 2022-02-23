@@ -54,13 +54,13 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon)
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats = flowStats.begin (); stats != flowStats.end (); ++stats)
     {
         if (stats->first == 1 ) {
-            std::cout << " TCP | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " TCP\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
         if (stats->first == 2 ) {
-            std::cout << " MPQUIC | Second: " << stats->second.timeLastRxPacket.GetSeconds()  << ", Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
+            std::cout << " MPQUIC\t| Second:\t" << stats->second.timeLastRxPacket.GetSeconds()  << "\t, Throughput:\t" << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024 << std::endl;
         }
     }
-    Simulator::Schedule(Seconds(1),&ThroughputMonitor, fmhelper, flowMon);
+    Simulator::Schedule(Seconds(0.1),&ThroughputMonitor, fmhelper, flowMon);
 }
 
 
@@ -149,7 +149,7 @@ main (int argc, char *argv[])
 
     //background traffic
     p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
-    p2p.SetChannelAttribute ("Delay", StringValue ("5ms"));
+    p2p.SetChannelAttribute ("Delay", StringValue ("0ms"));
     NetDeviceContainer d4d1 = p2p.Install (n4n1);
     NetDeviceContainer d0d1 = p2p.Install (n0n1);
     NetDeviceContainer d8d5 = p2p.Install (n8n5);

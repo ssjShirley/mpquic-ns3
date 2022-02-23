@@ -59,7 +59,7 @@ void Create2DPlotFile ()
   plot.SetLegend ("Time (s)", "Cwnd (Segment)");
   // plot.AppendExtra ("set yrange [0:+20]");
   // Set the range for the x axis.
-  plot.AppendExtra ("set xrange [1:+2]");
+  // plot.AppendExtra ("set xrange [1:+2]");
 
   // Instantiate the dataset, set its title, and make the points be
   // plotted along with connecting lines.
