@@ -87,7 +87,8 @@ MpQuicSubFlow::GetTypeId (void)
 MpQuicSubFlow::MpQuicSubFlow()
     : m_flowId (0),
       m_lastMaxData(0),
-      m_maxDataInterval(10)
+      m_maxDataInterval(10),
+      m_rounds(1)
 {
 
     m_numPacketsReceivedSinceLastAckSent = 0;

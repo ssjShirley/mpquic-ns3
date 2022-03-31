@@ -35,7 +35,8 @@ public:
   typedef enum
     {
       ROUND_ROBIN,       
-      MIN_RTT            
+      MIN_RTT,
+      MAB
     } SchedulerType_t;
   
   /**
@@ -55,11 +56,18 @@ public:
 private:
   Ptr<QuicSocketBase> m_socket;
   uint8_t m_lastUsedPathId;
+  
+  
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
   SchedulerType_t m_schedulerType;
 
+
   void RoundRobin();
   void MinRtt();
+  void Mab();
+
+  std::vector <uint32_t> m_rewards;
+  uint32_t m_rounds;
  
 };
 

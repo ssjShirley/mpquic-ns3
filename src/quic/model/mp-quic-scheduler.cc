@@ -57,8 +57,7 @@ MpQuicScheduler::GetTypeId (void)
                    "define the type of the scheduler",
                    IntegerValue (MIN_RTT),
                    MakeIntegerAccessor (&MpQuicScheduler::m_schedulerType),
-                   MakeIntegerChecker<int16_t> ())
-                   
+                   MakeIntegerChecker<int16_t> ())            
   ;
   return tid;
 }
@@ -66,9 +65,11 @@ MpQuicScheduler::GetTypeId (void)
 MpQuicScheduler::MpQuicScheduler ()
   : Object (),
   m_socket(0),
-  m_lastUsedPathId(0)
+  m_lastUsedPathId(0),
+  m_rounds(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  m_rewards.push_back(0);
 }
 
 MpQuicScheduler::~MpQuicScheduler ()
@@ -97,6 +98,10 @@ MpQuicScheduler::GetNextPathIdToUse()
       MinRtt();
       break;
     
+    case MAB:
+      Mab();
+      break;
+
     default:
       RoundRobin();
       break;
@@ -115,10 +120,10 @@ MpQuicScheduler::RoundRobin()
 void
 MpQuicScheduler::MinRtt()
 {
-    NS_LOG_FUNCTION (this);
-  uint16_t minPid = 0;
+  NS_LOG_FUNCTION (this);
+  uint8_t minPid = 0;
   Time minRtt = m_subflows[0]->m_tcb->m_lastRtt;
-  for (uint16_t pid = 1; pid < m_subflows.size(); pid++)
+  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
   {
     if (m_subflows[pid]->m_tcb->m_lastRtt < minRtt){
       minRtt = m_subflows[pid]->m_tcb->m_lastRtt;
@@ -135,5 +140,47 @@ MpQuicScheduler::SetSocket(Ptr<QuicSocketBase> sock)
   m_socket = sock;
 }
 
+
+void
+MpQuicScheduler::Mab()
+{
+  NS_LOG_FUNCTION (this);
+  uint8_t rPid = 0;
+  uint32_t mss = m_socket->GetSegSize();
+  Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
+  uint32_t reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(lostPackets)
+  m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
+  double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
+  double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
+  uint32_t maxAction = m_rewards[0] + normal*10000;
+  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
+  {
+    mss = m_socket->GetSegSize();
+    rtt = m_subflows[pid]->m_tcb->m_lastRtt;
+    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(lostPackets)
+    if(m_rewards.size() < m_subflows.size()){
+      m_rewards.push_back(0);
+    }
+    m_rewards[pid] = (m_rewards[pid]*(m_subflows[pid]->m_rounds) + reward)/(m_subflows[pid]->m_rounds+1);
+    
+    normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
+    uint32_t newAction = m_rewards[pid] + normal*10000;
+    if (m_rewards[pid] == 0 && newAction == 1) { //when new path just established
+      rPid = pid;
+    }
+    // if (rtt.GetSeconds() != 0){
+    //   rPid = pid;
+    // }
+    if (newAction >= maxAction){
+      maxAction = newAction;
+      rPid = pid;
+    }
+  }
+  m_lastUsedPathId = rPid;
+  m_subflows[m_lastUsedPathId]->m_rounds++;
+  m_rounds++;
+  // NS_LOG_INFO("In use pid: " << m_lastUsedPathId);
+ 
+}
 
 } // namespace ns3

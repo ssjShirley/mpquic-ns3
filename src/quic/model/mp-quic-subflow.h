@@ -102,6 +102,7 @@ public:
     Timer m_pacingTimer       {Timer::REMOVE_ON_DESTROY}; //!< Pacing Event
     std::vector<SequenceNumber32> m_receivedPacketNumbers;  //!< Received packet number vector
 
+    uint32_t m_rounds;
 
 private:
   TracedCallback<uint32_t, uint32_t> m_cWndTrace;
