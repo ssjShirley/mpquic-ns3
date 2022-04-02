@@ -380,6 +380,8 @@ public:
   void AddSentList ();
   // void FindSentList (uint8_t pathId);
 
+  int SentListIsEmpty();
+
   
 private:
   typedef std::list<Ptr<QuicSocketTxItem> > QuicTxPacketList;      //!< container for data stored in the buffer

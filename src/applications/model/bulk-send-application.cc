@@ -191,6 +191,7 @@ void BulkSendApplication::StopApplication (void) // Called at time specified by 
 
   if (m_socket != 0)
     {
+      // std::cout<<"client application stop socket"<<std::endl;
       m_socket->Close ();
       m_connected = false;
     }
@@ -244,7 +245,7 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
           packet = Create<Packet> (toSend);
         }
 
-      int actual = m_socket->Send (packet);
+      int actual = m_socket->Send (packet,1);
       if ((unsigned) actual == toSend)
         {
           m_totBytes += actual;
@@ -281,6 +282,7 @@ void BulkSendApplication::SendData (const Address &from, const Address &to)
   // Check if time to close (all sent)
   if (m_totBytes == m_maxBytes && m_connected)
     {
+      std::cout<<"client application close socket"<<std::endl;
       m_socket->Close ();
       m_connected = false;
     }

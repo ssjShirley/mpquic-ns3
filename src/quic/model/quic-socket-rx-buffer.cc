@@ -116,6 +116,7 @@ QuicSocketRxBuffer::Add (Ptr<Packet> p)
         }
     }
   NS_LOG_WARN ("Rejected. Not enough room to buffer packet.");
+  // std::cout<<"socket rx buffer, Rejected. Not enough room to buffer packet."<<std::endl;
   return false;
 }
 

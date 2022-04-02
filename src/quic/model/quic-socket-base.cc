@@ -304,6 +304,10 @@ QuicSocketBase::GetTypeId (void)
                      "The QUIC connection's congestion window",
                      MakeTraceSourceAccessor (&QuicSocketBase::m_cWndTrace1),
                      "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MabRewardTrace",
+                     "The average reward get by mab",
+                     MakeTraceSourceAccessor (&QuicSocketBase::m_rewardTrace),
+                     "ns3::TracedValueCallback::Uint32")    
     // .AddTraceSource ("Throughput0",
     //                  "TCP slow start threshold (bytes)",
     //                  MakeTraceSourceAccessor (&QuicSocketBase::m_thputTrace0),
@@ -328,6 +332,7 @@ QuicSocketBase::GetTypeId (void)
                      "Last RTT sample",
                      MakeTraceSourceAccessor (&QuicSocketBase::m_rttTrace1),
                      "ns3::Time::TracedValueCallback")
+     
     // .AddTraceSource ("Tx",
     //                  "Send QUIC packet to UDP protocol",
     //                  MakeTraceSourceAccessor (&QuicSocketBase::m_txTrace),
@@ -1781,20 +1786,26 @@ QuicSocketBase::Close (void)
   NS_LOG_FUNCTION (this);
   NS_LOG_INFO (this << " Close at time " << Simulator::Now ().GetSeconds ());
 
+  // std::cout << this << " Close at time " << Simulator::Now ().GetSeconds ()<<std::endl;
   m_receivedTransportParameters = false;
 
   if (m_idleTimeoutEvent.IsRunning () and m_socketState != IDLE
       and m_socketState != CLOSING)   //Connection Close from application signal
     {
-      SetState (CLOSING);
-      if (m_flushOnClose)
-        {
-          m_closeOnEmpty = true;
-        }
-      else
-        {
-          ScheduleCloseAndSendConnectionClosePacket ();
-        }
+      if(!m_txBuffer->SentListIsEmpty()) {
+        m_appCloseSentListNoEmpty = true;
+      } else {
+        m_appCloseSentListNoEmpty = false;
+        SetState (CLOSING);
+        if (m_flushOnClose)
+          {
+            m_closeOnEmpty = true;
+          }
+        else
+          {
+            ScheduleCloseAndSendConnectionClosePacket ();
+          }
+      } 
     }
   else if (m_idleTimeoutEvent.IsExpired () and m_socketState != CLOSING
            and m_socketState != IDLE and m_socketState != LISTENING) //Connection Close due to Idle Period termination
@@ -2192,6 +2203,7 @@ QuicSocketBase::OnReceivedFrame (QuicSubheader &sub)
 
       case QuicSubheader::CONNECTION_CLOSE:
         NS_LOG_INFO ("Received CONNECTION_CLOSE frame");
+        // std::cout<<"Received CONNECTION_CLOSE frame"<<std::endl;
         Close ();
         break;
 
@@ -2444,6 +2456,13 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
 
   // Find lost packets
   std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets (pathId);
+
+
+  if (m_appCloseSentListNoEmpty && m_txBuffer->SentListIsEmpty()){
+    Close();
+  }
+
+
   // Recover from losses
   if (!lostPackets.empty ())
     {
@@ -2785,7 +2804,7 @@ QuicSocketBase::ReceivedData (Ptr<Packet> p, const QuicHeader& quicHeader,
   m_currentFromAddress = address;
 
   NS_LOG_INFO ("Received packet of size " << p->GetSize ());
-  // std::cout<<"On Path "<<pathId << " pkt number "<<quicHeader.GetPacketNumber() <<" Received packet of size " << p->GetSize ()<<std::endl;
+  // std::cout<<"On Path "<<unsigned(pathId) << " pkt number "<<quicHeader.GetPacketNumber() <<" Received packet of size " << p->GetSize ()<<std::endl;
   // check if this packet is not received during the draining period
   if (!m_drainingPeriodEvent.IsRunning ())
     {
@@ -3050,6 +3069,7 @@ QuicSocketBase::AbortConnection (uint16_t transportErrorCode,
 
   NS_LOG_INFO (
     "Abort connection " << transportErrorCode << " because " << reasonPhrase);
+  // std::cout<< "Abort connection " << transportErrorCode << " because " << reasonPhrase <<std::endl;
 
   m_transportErrorCode = transportErrorCode;
 
@@ -3255,6 +3275,13 @@ QuicSocketBase::UpdateCwnd1 (uint32_t oldValue, uint32_t newValue)
 // }
 
 void
+QuicSocketBase::UpdateReward (uint32_t oldValue, uint32_t newValue)
+{
+  m_rewardTrace (oldValue, newValue);
+}
+
+
+void
 QuicSocketBase::TraceRTT0 (Time oldValue, Time newValue)
 {
   m_rttTrace0 (oldValue, newValue);
@@ -3361,6 +3388,7 @@ QuicSocketBase::CreateScheduler ()
   NS_LOG_FUNCTION (this);
   m_scheduler = CreateObject<MpQuicScheduler> ();
   m_scheduler->SetSocket(this);
+  m_scheduler->TraceConnectWithoutContext ("MabReward", MakeCallback (&QuicSocketBase::UpdateReward, this));
 }
 
 void

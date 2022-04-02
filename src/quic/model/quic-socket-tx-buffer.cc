@@ -418,6 +418,8 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
   NS_LOG_INFO (
     "Largest ACK: " << largestAcknowledged << ", blocks: " << block_print.str () << ", gaps: " << gap_print.str ());
 
+  // std::cout<<"Largest ACK: " << largestAcknowledged << ", blocks: " << block_print.str () << ", gaps: " << gap_print.str ()<<std::endl;
+
   // Iterate over the ACK blocks and gaps
   for (uint32_t numAckBlockAnalyzed = 0; numAckBlockAnalyzed < ackBlockCount;
        ++numAckBlockAnalyzed, ++ack_it, ++gap_it)
@@ -671,9 +673,6 @@ void QuicSocketTxBuffer::CleanSentList (uint8_t pathId)
         "Packet " << (*sent_it)->m_packetNumber << " received and ACKed. Removing from sent buffer");
       sent_it = m_subflowSentList[pathId].begin ();
     }
-  // if (m_sentList.empty()){
-  //   std::cout<<"QuicSocketTxBuffer::CleanSentList m_sentList is empty"<<std::endl;
-  // }
 }
 
 uint32_t QuicSocketTxBuffer::Available (void) const
@@ -913,6 +912,17 @@ void QuicSocketTxBuffer::AddSentList()
 }
 
 
+int QuicSocketTxBuffer::SentListIsEmpty()
+{
+  NS_LOG_FUNCTION (this);
+  // FindSentList (pathId);
+  for (uint8_t pid = 0; pid < m_subflowSentList.size(); pid++){
+    if (!m_subflowSentList[pid].empty()) {
+      return false;
+    }
+  }
+  return true;
+}
 // void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
 // {
 //   NS_LOG_FUNCTION (this);

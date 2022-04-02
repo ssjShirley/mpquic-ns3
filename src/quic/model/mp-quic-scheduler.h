@@ -27,6 +27,21 @@
 
 namespace ns3 {
 
+// class MpQuicSchedulerState : public Object
+// {
+// public:
+//   static TypeId GetTypeId (void);
+
+//   MpQuicSchedulerState ();
+//   MpQuicSchedulerState (const MpQuicSchedulerState &other);
+//   virtual  ~MpQuicSchedulerState (void)
+//   {}
+//   TracedValue<uint32_t> m_reward; 
+
+// };
+
+
+
 
 class MpQuicScheduler : public Object
 {
@@ -52,7 +67,8 @@ public:
   uint8_t GetNextPathIdToUse();
   void SetSocket(Ptr<QuicSocketBase> sock);
     
-  
+  void UpdateReward (uint32_t oldValue, uint32_t newValue);
+
 private:
   Ptr<QuicSocketBase> m_socket;
   uint8_t m_lastUsedPathId;
@@ -68,7 +84,8 @@ private:
 
   std::vector <uint32_t> m_rewards;
   uint32_t m_rounds;
- 
+  TracedValue<uint32_t> m_reward {0}; 
+  uint16_t m_rate;
 };
 
 } // namespace ns3

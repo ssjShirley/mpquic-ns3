@@ -45,6 +45,34 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE ("MpQuicScheduler");
 
 NS_OBJECT_ENSURE_REGISTERED (MpQuicScheduler);
+// NS_OBJECT_ENSURE_REGISTERED (MpQuicSchedulerState);
+
+// TypeId
+// MpQuicSchedulerState::GetTypeId (void)
+// {
+//   static TypeId tid =
+//     TypeId ("ns3::MpQuicSchedulerState")
+//     .SetParent<Object> ()
+//     .SetGroupName ("Internet")
+//     .AddTraceSource ("MabReward",
+//                      "The average reward get by mab",
+//                      MakeTraceSourceAccessor (&MpQuicSchedulerState::m_reward),
+//                      "ns3::TracedValueCallback::Uint32") 
+// ;
+//   return tid;
+// }
+
+// MpQuicSchedulerState::MpQuicSchedulerState ()
+//   : Object ()
+// {
+
+// }
+
+// MpQuicSchedulerState::MpQuicSchedulerState (const MpQuicSchedulerState &other)
+//   : Object (other),
+//     m_reward(other.m_reward)
+// {
+// }
 
 
 TypeId
@@ -57,7 +85,17 @@ MpQuicScheduler::GetTypeId (void)
                    "define the type of the scheduler",
                    IntegerValue (MIN_RTT),
                    MakeIntegerAccessor (&MpQuicScheduler::m_schedulerType),
-                   MakeIntegerChecker<int16_t> ())            
+                   MakeIntegerChecker<int16_t> ())
+    .AddAttribute ("MabRate",
+                   "define the type of the scheduler",
+                   UintegerValue (10000),
+                   MakeUintegerAccessor (&MpQuicScheduler::m_rate),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddTraceSource ("MabReward",
+                     "The average reward get by mab",
+                     MakeTraceSourceAccessor (&MpQuicScheduler::m_reward),
+                     "ns3::TracedValueCallback::Uint32")               
+     
   ;
   return tid;
 }
@@ -66,10 +104,13 @@ MpQuicScheduler::MpQuicScheduler ()
   : Object (),
   m_socket(0),
   m_lastUsedPathId(0),
-  m_rounds(0)
+  m_rounds(0),
+  m_reward(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_rewards.push_back(0);
+  // m_state = CreateObject<MpQuicSchedulerState> ();
+  // m_state->TraceConnectWithoutContext ("MabReward", MakeCallback (&MpQuicScheduler::UpdateReward, this));
 }
 
 MpQuicScheduler::~MpQuicScheduler ()
@@ -152,7 +193,7 @@ MpQuicScheduler::Mab()
   m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
   double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
   double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
-  uint32_t maxAction = m_rewards[0] + normal*10000;
+  uint32_t maxAction = m_rewards[0] + normal*m_rate;
   for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
   {
     mss = m_socket->GetSegSize();
@@ -164,7 +205,7 @@ MpQuicScheduler::Mab()
     m_rewards[pid] = (m_rewards[pid]*(m_subflows[pid]->m_rounds) + reward)/(m_subflows[pid]->m_rounds+1);
     
     normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
-    uint32_t newAction = m_rewards[pid] + normal*10000;
+    uint32_t newAction = m_rewards[pid] + normal*m_rate;
     if (m_rewards[pid] == 0 && newAction == 1) { //when new path just established
       rPid = pid;
     }
@@ -178,9 +219,13 @@ MpQuicScheduler::Mab()
   }
   m_lastUsedPathId = rPid;
   m_subflows[m_lastUsedPathId]->m_rounds++;
+  
+  m_reward = ((m_reward*m_rounds)+m_rewards[rPid])/(m_rounds+1);
   m_rounds++;
   // NS_LOG_INFO("In use pid: " << m_lastUsedPathId);
- 
 }
+
+
+
 
 } // namespace ns3

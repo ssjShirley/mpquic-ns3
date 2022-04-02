@@ -8,3 +8,6 @@
 !wns3-multi-subflows.cc
 !wns3-two-flow-topo.cc
 !gnuplot-cwnd.cc
+
+!mpquic-scheduler-demo.cc
+!gnuplot-scheduler-reward.cc

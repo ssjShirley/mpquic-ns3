@@ -196,6 +196,7 @@ public:
   void SetStreamId (uint64_t streamId);
   uint64_t GetStreamId (void);
   uint32_t GetStreamTxAvailable (void) const;
+  void UpdateRxBuf (uint32_t oldValue, uint32_t newValue);
 
 protected:
   QuicStreamTypes_t m_streamType;                    //!< The stream type
@@ -219,6 +220,10 @@ protected:
   uint32_t m_streamTxBufferSize;                     //!< Size of the stream TX buffer
   uint32_t m_streamRxBufferSize;                     //!< Size of the stream RX buffer
   EventId m_streamSendPendingDataEvent;              //!< Micro-delay event to send pending data
+
+  TracedCallback<uint32_t, uint32_t> m_rxbufTrace;
+  uint32_t m_avgBufferSize {0};
+  uint32_t m_rounds {0};
 
 };
 
