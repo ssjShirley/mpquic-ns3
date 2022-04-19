@@ -948,6 +948,7 @@ protected:
   
   double GetOliaAlpha(uint8_t pathId);
 
+  int m_appCloseSentListNoEmpty;
   
   // int FindMinRttPath();
   // uint16_t getSubflowToUse ();

@@ -913,6 +913,18 @@ void QuicSocketTxBuffer::AddSentList()
 }
 
 
+int QuicSocketTxBuffer::SentListIsEmpty()
+{
+  NS_LOG_FUNCTION (this);
+  // FindSentList (pathId);
+  for (uint8_t pid = 0; pid < m_subflowSentList.size(); pid++){
+    if (!m_subflowSentList[pid].empty()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
 // {
 //   NS_LOG_FUNCTION (this);

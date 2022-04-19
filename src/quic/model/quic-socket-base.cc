@@ -1786,15 +1786,20 @@ QuicSocketBase::Close (void)
   if (m_idleTimeoutEvent.IsRunning () and m_socketState != IDLE
       and m_socketState != CLOSING)   //Connection Close from application signal
     {
-      SetState (CLOSING);
-      if (m_flushOnClose)
-        {
-          m_closeOnEmpty = true;
-        }
-      else
-        {
-          ScheduleCloseAndSendConnectionClosePacket ();
-        }
+      if(!m_txBuffer->SentListIsEmpty()) {
+        m_appCloseSentListNoEmpty = true;
+      } else {
+        m_appCloseSentListNoEmpty = false;
+        SetState (CLOSING);
+        if (m_flushOnClose)
+          {
+            m_closeOnEmpty = true;
+          }
+        else
+          {
+            ScheduleCloseAndSendConnectionClosePacket ();
+          }
+      } 
     }
   else if (m_idleTimeoutEvent.IsExpired () and m_socketState != CLOSING
            and m_socketState != IDLE and m_socketState != LISTENING) //Connection Close due to Idle Period termination
@@ -2444,6 +2449,10 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
 
   // Find lost packets
   std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets (pathId);
+  if (m_appCloseSentListNoEmpty && m_txBuffer->SentListIsEmpty()){
+    Close();
+  }
+
   // Recover from losses
   if (!lostPackets.empty ())
     {

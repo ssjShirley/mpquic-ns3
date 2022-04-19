@@ -166,13 +166,18 @@ main (int argc, char *argv[])
         ccTypeId = QuicCongestionOps::GetTypeId ();
     }
 
+    Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicSocketBase::SocketRcvBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
+
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
     Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(ccType));
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (ccTypeId));
     Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(schedulerType));   
 
     
-    Time simulationEndTime = Seconds (5);
+    Time simulationEndTime = Seconds (20);
     int start_time = 1;
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
@@ -320,6 +325,7 @@ main (int argc, char *argv[])
     sinkApps1.Stop (simulationEndTime);
 
   
+    //mpquic
     uint16_t port2 = 9;  // well-known echo port number
     
     BulkSendHelper source ("ns3::QuicSocketFactory",

@@ -104,6 +104,11 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
 
+    Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicSocketBase::SocketRcvBufSize",UintegerValue (40000000));
+    Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
+
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
 
 
