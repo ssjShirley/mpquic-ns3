@@ -32,13 +32,13 @@ cd mpquic
 Configure and build mpquic from the folder:
 
 ```bash
-./waf configure --enable-tests --enable-examples
+./waf configure
 ./waf build
 ```
 
 If you are not interested in using the Python bindings, use
 ```bash
-./waf configure --enable-tests --enable-examples --disable-python
+./waf configure --disable-python
 ./waf build
 ```
 
