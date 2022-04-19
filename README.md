@@ -36,11 +36,11 @@ Configure and build mpquic from the folder:
 ./waf build
 ```
 
-If you are not interested in using the Python bindings, use
+<!-- If you are not interested in using the Python bindings, use
 ```bash
 ./waf configure --disable-python
 ./waf build
-```
+``` -->
 
 ### Run Example ###
 ```bash
