@@ -177,12 +177,12 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(schedulerType));   
 
     
-    Time simulationEndTime = Seconds (20);
+    Time simulationEndTime = Seconds (5);
     int start_time = 1;
 
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-    uint32_t myRandomNo = x->GetInteger (500,570);
-    uint32_t maxBytes = myRandomNo * 10000;
+    uint32_t myRandomNo = x->GetInteger (100,109);
+    uint32_t maxBytes = myRandomNo * 80000;
     
     NS_LOG_INFO ("Create nodes.");
     NodeContainer c;

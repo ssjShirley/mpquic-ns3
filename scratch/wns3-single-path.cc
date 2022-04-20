@@ -118,7 +118,7 @@ main (int argc, char *argv[])
     //set maxbytes
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
     uint32_t myRandomNo = x->GetInteger (400,450);
-    uint32_t maxBytes = myRandomNo * 1000;
+    uint32_t maxBytes = myRandomNo * 10000;
 
     
     NS_LOG_INFO ("Create nodes.");

@@ -102,6 +102,7 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
 
 
+    Config::SetDefault ("ns3::QuicSocketBase::StreamSize",UintegerValue(1));
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
     Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(QuicSocketBase::OLIA));
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
@@ -151,7 +152,7 @@ main (int argc, char *argv[])
     
     Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
     uint32_t myRandomNo = x->GetInteger (100,109);
-    uint32_t maxBytes = myRandomNo * 8000000;
+    uint32_t maxBytes = myRandomNo * 80000;
     // uint32_t maxBytes = 0;
     BulkSendHelper source ("ns3::QuicSocketFactory",
                             InetSocketAddress (ipv4Ints[0].GetAddress (1), port));
