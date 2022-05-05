@@ -139,6 +139,10 @@ MpQuicScheduler::GetNextPathIdToUse()
       MinRtt();
       break;
     
+    case BLEST:
+      Blest();
+      break;
+
     case MAB:
       Mab();
       break;
@@ -183,6 +187,52 @@ MpQuicScheduler::SetSocket(Ptr<QuicSocketBase> sock)
 
 
 void
+MpQuicScheduler::Blest() //only allow two subflows
+{
+  NS_LOG_FUNCTION (this);
+  if (m_subflows.size() <= 1){
+    m_lastUsedPathId = 0;
+    return;
+  }
+  
+  // MinRtt();
+  
+  Time rttS;
+  Time rttF;
+  uint8_t fastPathId = 1;
+  uint8_t slowPathId = 1;
+  uint32_t mss = m_socket->GetSegSize();
+
+  m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+
+  if (m_subflows[0]->m_tcb->m_lastRtt > m_subflows[1]->m_tcb->m_lastRtt){
+    rttS = m_subflows[0]->m_tcb->m_lastRtt;
+    rttF = m_subflows[1]->m_tcb->m_lastRtt;
+    slowPathId = 0;
+    fastPathId = 1;
+  } else {
+    rttS = m_subflows[1]->m_tcb->m_lastRtt;
+    rttF = m_subflows[0]->m_tcb->m_lastRtt;
+    slowPathId = 1;
+    fastPathId = 0;
+  }
+
+  if (m_lastUsedPathId == slowPathId) {
+    double_t rtts = rttS.GetSeconds()/rttF.GetSeconds();
+    double_t cwndF = m_subflows[fastPathId]->m_tcb->m_cWnd/mss;
+    double_t X = mss * (cwndF + (rtts-1)/2) * rtts;
+    double_t comp = m_socket->GetTxAvailable() - mss * (m_socket->BytesInFlight(slowPathId)+1);
+    double_t lambda = 1;
+    if(X * lambda > comp) { //not send on slow path
+      m_lastUsedPathId = fastPathId;
+    } 
+  }
+  
+  std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
+}
+
+
+void
 MpQuicScheduler::Mab()
 {
   NS_LOG_FUNCTION (this);
@@ -222,7 +272,7 @@ MpQuicScheduler::Mab()
   
   m_reward = ((m_reward*m_rounds)+m_rewards[rPid])/(m_rounds+1);
   m_rounds++;
-  // NS_LOG_INFO("In use pid: " << m_lastUsedPathId);
+  // NS_LOG_INFO("In use pid: " << unsigned(m_lastUsedPathId));
 }
 
 

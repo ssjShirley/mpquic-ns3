@@ -51,6 +51,7 @@ public:
     {
       ROUND_ROBIN,       
       MIN_RTT,
+      BLEST,
       MAB
     } SchedulerType_t;
   
@@ -81,6 +82,8 @@ private:
   void RoundRobin();
   void MinRtt();
   void Mab();
+  void Blest();
+
 
   std::vector <uint32_t> m_rewards;
   uint32_t m_rounds;

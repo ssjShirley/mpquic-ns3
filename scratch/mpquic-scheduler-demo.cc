@@ -172,7 +172,8 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ROUND_ROBIN));   
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MIN_RTT));   
-    Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   
+    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   
+    Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::BLEST));   
     Config::SetDefault ("ns3::MpQuicScheduler::MabRate", UintegerValue(50000));   
 
     NodeContainer nodes;
@@ -199,13 +200,18 @@ main (int argc, char *argv[])
     // rate[0]="50Mbps";
     // delay[0]="20ms";
     // rate[1]="10Mbps";
-    // delay[1]="160ms";
+    // delay[1]="140ms";
 
- 
-    rate[0]="10Mbps";
-    delay[0]="80ms";
-    rate[1]="50Mbps";
-    delay[1]="20ms";
+    // rate[0]="10Mbps";
+    // delay[0]="200ms";
+    // rate[1]="50Mbps";
+    // delay[1]="20ms";
+
+
+rate[0]="25Mbps";
+delay[0]="80ms";
+rate[1]="25Mbps";
+delay[1]="80ms";
 
 
     std::vector<Ipv4InterfaceContainer> ipv4Ints;
@@ -233,10 +239,10 @@ main (int argc, char *argv[])
 
     uint16_t port = 9;  // well-known echo port number
     
-    // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-    // uint32_t myRandomNo = x->GetInteger (100,109);
+    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+    uint32_t myRandomNo = x->GetInteger (100,500);
     // uint32_t maxBytes = myRandomNo * 8000;
-    uint32_t maxBytes = 10*1024*1024;
+    uint32_t maxBytes = 8*1024*1024+myRandomNo;
 
     BulkSendHelper source ("ns3::QuicSocketFactory",
                             InetSocketAddress (ipv4Ints[0].GetAddress (1), port));
