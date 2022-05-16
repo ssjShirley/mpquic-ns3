@@ -69,6 +69,7 @@ public:
   void SetSocket(Ptr<QuicSocketBase> sock);
     
   void UpdateReward (uint32_t oldValue, uint32_t newValue);
+  void SetNumOfLostPackets(uint16_t lost);
 
 private:
   Ptr<QuicSocketBase> m_socket;
@@ -89,6 +90,9 @@ private:
   uint32_t m_rounds;
   TracedValue<uint32_t> m_reward {0}; 
   uint16_t m_rate;
+  uint16_t m_lostPackets;
+  uint16_t m_lambda;
+  uint16_t m_bVar;
 };
 
 } // namespace ns3

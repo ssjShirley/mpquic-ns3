@@ -87,9 +87,19 @@ MpQuicScheduler::GetTypeId (void)
                    MakeIntegerAccessor (&MpQuicScheduler::m_schedulerType),
                    MakeIntegerChecker<int16_t> ())
     .AddAttribute ("MabRate",
-                   "define the type of the scheduler",
+                   "define the rate of the MAB scheduler",
                    UintegerValue (10000),
                    MakeUintegerAccessor (&MpQuicScheduler::m_rate),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("BlestLambda",
+                   "define the lambda of the BLEST",
+                   UintegerValue (1000),
+                   MakeUintegerAccessor (&MpQuicScheduler::m_lambda),
+                   MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("BlestVar",
+                   "define the lambda of the BLEST",
+                   UintegerValue (100),
+                   MakeUintegerAccessor (&MpQuicScheduler::m_bVar),
                    MakeUintegerChecker<uint16_t> ())
     .AddTraceSource ("MabReward",
                      "The average reward get by mab",
@@ -195,6 +205,10 @@ MpQuicScheduler::Blest() //only allow two subflows
     return;
   }
   
+  if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
+    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    return;
+  }
   // MinRtt();
   
   Time rttS;
@@ -221,14 +235,14 @@ MpQuicScheduler::Blest() //only allow two subflows
     double_t rtts = rttS.GetSeconds()/rttF.GetSeconds();
     double_t cwndF = m_subflows[fastPathId]->m_tcb->m_cWnd/mss;
     double_t X = mss * (cwndF + (rtts-1)/2) * rtts;
-    double_t comp = m_socket->GetTxAvailable() - mss * (m_socket->BytesInFlight(slowPathId)+1);
-    double_t lambda = 1;
-    if(X * lambda > comp) { //not send on slow path
+    double_t comp = m_socket->GetTxAvailable() - (m_socket->BytesInFlight(slowPathId)+mss);
+    m_lambda = m_lambda + m_bVar;
+    if(X * m_lambda > comp) { //not send on slow path
       m_lastUsedPathId = fastPathId;
     } 
   }
   
-  std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
+  // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
 }
 
 
@@ -239,7 +253,7 @@ MpQuicScheduler::Mab()
   uint8_t rPid = 0;
   uint32_t mss = m_socket->GetSegSize();
   Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
-  uint32_t reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(lostPackets)
+  uint32_t reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
   m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
   double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
   double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
@@ -248,7 +262,7 @@ MpQuicScheduler::Mab()
   {
     mss = m_socket->GetSegSize();
     rtt = m_subflows[pid]->m_tcb->m_lastRtt;
-    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(lostPackets)
+    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
     if(m_rewards.size() < m_subflows.size()){
       m_rewards.push_back(0);
     }
@@ -272,9 +286,16 @@ MpQuicScheduler::Mab()
   
   m_reward = ((m_reward*m_rounds)+m_rewards[rPid])/(m_rounds+1);
   m_rounds++;
+  // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
+
   // NS_LOG_INFO("In use pid: " << unsigned(m_lastUsedPathId));
 }
 
+
+void
+MpQuicScheduler::SetNumOfLostPackets(uint16_t lost){
+  m_lostPackets = lost;
+}
 
 
 

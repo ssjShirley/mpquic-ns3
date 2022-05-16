@@ -11,3 +11,8 @@
 
 !mpquic-scheduler-demo.cc
 !gnuplot-scheduler-reward.cc
+
+!mpquic-scheduler-bg-dy.cc
+!mpquic-scheduler-bg-ndy.cc
+!mpquic-scheduler-nbg-dy.cc
+!mpquic-scheduler-nbg-ndy.cc

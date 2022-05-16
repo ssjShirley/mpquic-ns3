@@ -208,10 +208,10 @@ main (int argc, char *argv[])
     // delay[1]="20ms";
 
 
-rate[0]="25Mbps";
-delay[0]="80ms";
-rate[1]="25Mbps";
-delay[1]="80ms";
+rate[0]="1Mbps";
+delay[0]="10ms";
+rate[1]="10Mbps";
+delay[1]="10ms";
 
 
     std::vector<Ipv4InterfaceContainer> ipv4Ints;
@@ -239,10 +239,10 @@ delay[1]="80ms";
 
     uint16_t port = 9;  // well-known echo port number
     
-    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-    uint32_t myRandomNo = x->GetInteger (100,500);
-    // uint32_t maxBytes = myRandomNo * 8000;
-    uint32_t maxBytes = 8*1024*1024+myRandomNo;
+    // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+    // uint32_t myRandomNo = x->GetInteger (100,500);
+    uint32_t maxBytes = 1024*1024;
+    // uint32_t maxBytes = 8*1024*1024+myRandomNo;
 
     BulkSendHelper source ("ns3::QuicSocketFactory",
                             InetSocketAddress (ipv4Ints[0].GetAddress (1), port));

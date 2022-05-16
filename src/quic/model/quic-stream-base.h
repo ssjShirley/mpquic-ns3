@@ -222,8 +222,6 @@ protected:
   EventId m_streamSendPendingDataEvent;              //!< Micro-delay event to send pending data
 
   TracedCallback<uint32_t, uint32_t> m_rxbufTrace;
-  uint32_t m_avgBufferSize {0};
-  uint32_t m_rounds {0};
 
 };
 

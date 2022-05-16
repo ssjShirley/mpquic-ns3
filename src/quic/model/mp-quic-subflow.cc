@@ -40,7 +40,7 @@
 #include <algorithm>
 #include <math.h>
 #include <cmath>
-#include <boost/assign/list_of.hpp>
+// #include <boost/assign/list_of.hpp>
 
 NS_LOG_COMPONENT_DEFINE ("MpQuicSubFlow");
 namespace ns3 {
