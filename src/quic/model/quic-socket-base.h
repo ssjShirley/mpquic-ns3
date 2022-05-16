@@ -681,7 +681,7 @@ public:
 
   // For scheduler use
   std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
-
+  uint32_t GetBytesInBuffer();
 
 
 

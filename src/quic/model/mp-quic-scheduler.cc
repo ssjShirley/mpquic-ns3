@@ -153,6 +153,10 @@ MpQuicScheduler::GetNextPathIdToUse()
       Blest();
       break;
 
+    case ECF:
+      Ecf();
+      break;
+
     case MAB:
       Mab();
       break;
@@ -242,6 +246,61 @@ MpQuicScheduler::Blest() //only allow two subflows
     } 
   }
   
+  // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
+}
+
+
+void
+MpQuicScheduler::Ecf() //only allow two subflows
+{
+  NS_LOG_FUNCTION (this);
+  if (m_subflows.size() <= 1){
+    m_lastUsedPathId = 0;
+    return;
+  }
+  
+  if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
+    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    return;
+  } 
+  
+  
+  Time rttS;
+  Time rttF;
+  uint8_t fastPathId = 1;
+  uint8_t slowPathId = 0;
+
+  if (m_subflows[0]->m_tcb->m_lastRtt > m_subflows[1]->m_tcb->m_lastRtt){
+    rttS = m_subflows[0]->m_tcb->m_lastRtt;
+    rttF = m_subflows[1]->m_tcb->m_lastRtt;
+    slowPathId = 0;
+    fastPathId = 1;
+  } else {
+    rttS = m_subflows[1]->m_tcb->m_lastRtt;
+    rttF = m_subflows[0]->m_tcb->m_lastRtt;
+    slowPathId = 1;
+    fastPathId = 0;
+  }
+
+  if (m_socket->AvailableWindow (fastPathId) > 0){
+    m_lastUsedPathId = fastPathId;
+  }else {
+    uint32_t k = m_socket->GetBytesInBuffer();
+    double n = 1 + k/m_subflows[fastPathId]->m_tcb->m_cWnd.Get();
+    double delta = max(m_subflows[fastPathId]->m_tcb->m_rttVar.GetSeconds(),m_subflows[slowPathId]->m_tcb->m_rttVar.GetSeconds());
+    if (n*rttF.GetSeconds() < (1+m_waiting*0.25)*(rttS.GetSeconds()+delta)){
+      if (k/m_subflows[slowPathId]->m_tcb->m_cWnd.Get() * rttS.GetSeconds() >= 2*rttF.GetSeconds()+delta){
+        m_waiting = 1;
+        m_lastUsedPathId = fastPathId;
+        return;
+      } else {
+        m_lastUsedPathId = slowPathId;
+      }
+    } else {
+      m_waiting = 0;
+      m_lastUsedPathId = slowPathId;
+    }
+  }  
   // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
 }
 

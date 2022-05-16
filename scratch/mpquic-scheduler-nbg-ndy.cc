@@ -216,6 +216,7 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::MpQuicScheduler::BlestVar", UintegerValue(bVar));   
     Config::SetDefault ("ns3::MpQuicScheduler::BlestLambda", UintegerValue(bLambda));   
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ROUND_ROBIN));   
+    Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ECF));   
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MIN_RTT));  
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::BLEST));  
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   

@@ -52,6 +52,7 @@ public:
       ROUND_ROBIN,       
       MIN_RTT,
       BLEST,
+      ECF,
       MAB
     } SchedulerType_t;
   
@@ -84,6 +85,7 @@ private:
   void MinRtt();
   void Mab();
   void Blest();
+  void Ecf();
 
 
   std::vector <uint32_t> m_rewards;
@@ -93,6 +95,7 @@ private:
   uint16_t m_lostPackets;
   uint16_t m_lambda;
   uint16_t m_bVar;
+  uint8_t m_waiting = 0;
 };
 
 } // namespace ns3

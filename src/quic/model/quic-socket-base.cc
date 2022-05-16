@@ -3584,5 +3584,11 @@ QuicSocketBase::GetOliaAlpha(uint8_t pathId)
 
 }
 
+uint32_t 
+QuicSocketBase::GetBytesInBuffer()
+{
+  return m_txBuffer->AppSize();
+}
+
 
 } // namespace ns3

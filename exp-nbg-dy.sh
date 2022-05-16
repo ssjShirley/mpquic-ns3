@@ -12,7 +12,7 @@ BLambda="200"
 BVar="20"
 
 mkdir ${DIR}
-for i in 0 1 2 3
+for i in 0 1 2 3 4
 # for i in 2
 do
     LOG="$i"
