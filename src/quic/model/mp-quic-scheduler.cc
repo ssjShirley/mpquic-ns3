@@ -88,9 +88,9 @@ MpQuicScheduler::GetTypeId (void)
                    MakeIntegerChecker<int16_t> ())
     .AddAttribute ("MabRate",
                    "define the rate of the MAB scheduler",
-                   UintegerValue (10000),
+                   UintegerValue (100),
                    MakeUintegerAccessor (&MpQuicScheduler::m_rate),
-                   MakeUintegerChecker<uint16_t> ())
+                   MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("BlestLambda",
                    "define the lambda of the BLEST",
                    UintegerValue (1000),
@@ -119,6 +119,9 @@ MpQuicScheduler::MpQuicScheduler ()
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_rewards.push_back(0);
+  m_rewardTemp.push_back(0);
+  m_rewardTemp0.push_back(0);
+  m_rewardAvg.push_back(0);
   // m_state = CreateObject<MpQuicSchedulerState> ();
   // m_state->TraceConnectWithoutContext ("MabReward", MakeCallback (&MpQuicScheduler::UpdateReward, this));
 }
@@ -161,6 +164,10 @@ MpQuicScheduler::GetNextPathIdToUse()
       Mab();
       break;
 
+    case MAB_DELAY:
+      MabDelay();
+      break;
+
     default:
       RoundRobin();
       break;
@@ -173,23 +180,63 @@ MpQuicScheduler::GetNextPathIdToUse()
 void
 MpQuicScheduler::RoundRobin()
 {
-  m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+  for (uint8_t i = 0; i < m_subflows.size(); i++){
+    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    if (m_socket->AvailableWindow (m_lastUsedPathId) > 0){
+      return;
+    }
+  }
+  
 }
 
 void
 MpQuicScheduler::MinRtt()
 {
   NS_LOG_FUNCTION (this);
-  uint8_t minPid = 0;
-  Time minRtt = m_subflows[0]->m_tcb->m_lastRtt;
-  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
-  {
-    if (m_subflows[pid]->m_tcb->m_lastRtt < minRtt){
-      minRtt = m_subflows[pid]->m_tcb->m_lastRtt;
-      minPid = pid;
-    }
+  // uint8_t minPid = 0;
+  // Time minRtt = m_subflows[0]->m_tcb->m_lastRtt;
+  // for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
+  // {
+  //   if (m_subflows[pid]->m_tcb->m_lastRtt < minRtt){
+  //     minRtt = m_subflows[pid]->m_tcb->m_lastRtt;
+  //     minPid = pid;
+  //   }
+  // }
+  // m_lastUsedPathId = minPid;
+
+
+  if (m_subflows.size() <= 1){
+    m_lastUsedPathId = 0;
+    return;
   }
-  m_lastUsedPathId = minPid;
+  
+  if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
+    m_lastUsedPathId = 1;
+    return;
+  }
+
+  Time rttS;
+  Time rttF;
+  uint8_t fastPathId = 1;
+  uint8_t slowPathId = 0;
+
+  if (m_subflows[0]->m_tcb->m_lastRtt >= m_subflows[1]->m_tcb->m_lastRtt){
+    rttS = m_subflows[0]->m_tcb->m_lastRtt;
+    rttF = m_subflows[1]->m_tcb->m_lastRtt;
+    slowPathId = 0;
+    fastPathId = 1;
+  } else {
+    rttS = m_subflows[1]->m_tcb->m_lastRtt;
+    rttF = m_subflows[0]->m_tcb->m_lastRtt;
+    slowPathId = 1;
+    fastPathId = 0;
+  }
+
+  if (m_socket->AvailableWindow (fastPathId) > 0){
+    m_lastUsedPathId = fastPathId;
+  }else {
+    m_lastUsedPathId = slowPathId;
+  }
 }
 
 void
@@ -210,18 +257,15 @@ MpQuicScheduler::Blest() //only allow two subflows
   }
   
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
-    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    m_lastUsedPathId = 1;
     return;
   }
-  // MinRtt();
   
   Time rttS;
   Time rttF;
   uint8_t fastPathId = 1;
-  uint8_t slowPathId = 1;
+  uint8_t slowPathId = 0;
   uint32_t mss = m_socket->GetSegSize();
-
-  m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
 
   if (m_subflows[0]->m_tcb->m_lastRtt > m_subflows[1]->m_tcb->m_lastRtt){
     rttS = m_subflows[0]->m_tcb->m_lastRtt;
@@ -235,15 +279,21 @@ MpQuicScheduler::Blest() //only allow two subflows
     fastPathId = 0;
   }
 
-  if (m_lastUsedPathId == slowPathId) {
+  if (m_socket->AvailableWindow (fastPathId) > 0){
+    m_lastUsedPathId = fastPathId;
+  } else {
     double_t rtts = rttS.GetSeconds()/rttF.GetSeconds();
     double_t cwndF = m_subflows[fastPathId]->m_tcb->m_cWnd/mss;
     double_t X = mss * (cwndF + (rtts-1)/2) * rtts;
     double_t comp = m_socket->GetTxAvailable() - (m_socket->BytesInFlight(slowPathId)+mss);
+    // double_t comp = m_subflows[fastPathId]->m_tcb->m_cWnd.Get() - m_socket->BytesInFlight(slowPathId) - mss;
+    // std::cout<<"available: "<<m_socket->GetTxAvailable()<<" cwnd: "<<m_subflows[fastPathId]->m_tcb->m_cWnd.Get()<<" X: "<<X<<" comp: "<<comp<<std::endl;
     m_lambda = m_lambda + m_bVar;
     if(X * m_lambda > comp) { //not send on slow path
       m_lastUsedPathId = fastPathId;
-    } 
+    } else {
+      m_lastUsedPathId = slowPathId;
+    }
   }
   
   // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
@@ -288,7 +338,7 @@ MpQuicScheduler::Ecf() //only allow two subflows
     uint32_t k = m_socket->GetBytesInBuffer();
     double n = 1 + k/m_subflows[fastPathId]->m_tcb->m_cWnd.Get();
     double delta = max(m_subflows[fastPathId]->m_tcb->m_rttVar.GetSeconds(),m_subflows[slowPathId]->m_tcb->m_rttVar.GetSeconds());
-    if (n*rttF.GetSeconds() < (1+m_waiting*0.25)*(rttS.GetSeconds()+delta)){
+    if (n*rttF.GetSeconds() < (1+m_waiting*1)*(rttS.GetSeconds()+delta)){
       if (k/m_subflows[slowPathId]->m_tcb->m_cWnd.Get() * rttS.GetSeconds() >= 2*rttF.GetSeconds()+delta){
         m_waiting = 1;
         m_lastUsedPathId = fastPathId;
@@ -309,32 +359,41 @@ void
 MpQuicScheduler::Mab()
 {
   NS_LOG_FUNCTION (this);
+  uint32_t reward;
+  double n;
   uint8_t rPid = 0;
-  uint32_t mss = m_socket->GetSegSize();
+  uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
   Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
-  uint32_t reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+  if (m_socket->AvailableWindow (0) > 0){
+    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+  } else {
+    n = m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+    // n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+    reward = mss/rtt.GetSeconds() * n;
+  }
   m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
   double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
   double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
-  uint32_t maxAction = m_rewards[0] + normal*m_rate;
+  double_t maxAction = m_rewards[0]/m_rate + normal;
   for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
   {
-    mss = m_socket->GetSegSize();
+    mss = m_subflows[pid]->m_tcb->m_cWnd.Get();
     rtt = m_subflows[pid]->m_tcb->m_lastRtt;
-    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+    if (m_socket->AvailableWindow (pid) > 0){
+      reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+    } else {
+      n = 1 + m_socket->GetBytesInBuffer()/m_subflows[pid]->m_tcb->m_cWnd.Get();
+      reward = mss/(n*rtt.GetSeconds());
+    }
     if(m_rewards.size() < m_subflows.size()){
       m_rewards.push_back(0);
     }
     m_rewards[pid] = (m_rewards[pid]*(m_subflows[pid]->m_rounds) + reward)/(m_subflows[pid]->m_rounds+1);
-    
     normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
-    uint32_t newAction = m_rewards[pid] + normal*m_rate;
+    double_t newAction = m_rewards[pid]/m_rate + normal;
     if (m_rewards[pid] == 0 && newAction == 1) { //when new path just established
       rPid = pid;
     }
-    // if (rtt.GetSeconds() != 0){
-    //   rPid = pid;
-    // }
     if (newAction >= maxAction){
       maxAction = newAction;
       rPid = pid;
@@ -343,12 +402,78 @@ MpQuicScheduler::Mab()
   m_lastUsedPathId = rPid;
   m_subflows[m_lastUsedPathId]->m_rounds++;
   
-  m_reward = ((m_reward*m_rounds)+m_rewards[rPid])/(m_rounds+1);
+  m_reward = m_rewards[rPid];
   m_rounds++;
-  // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
-
-  // NS_LOG_INFO("In use pid: " << unsigned(m_lastUsedPathId));
 }
+
+
+void
+MpQuicScheduler::MabDelay()
+{
+  NS_LOG_FUNCTION (this);
+  if (m_subflows.size() < 2){
+    m_lastUsedPathId = 0;
+    return;
+  }
+  if (m_rewardTemp.size() < 2){
+    m_lastUsedPathId = 1;
+    return;
+  }
+  
+  uint32_t reward;
+  uint8_t rPid = 0;
+  if (m_socket->AvailableWindow (0) > 0){
+    reward = m_rewardTemp[0];
+  } else {
+    reward = m_rewardTemp0[0];
+  }
+  m_rewardAvg[0] = m_rewardAvg[0]+(reward-m_rewardAvg[0])/(m_subflows[0]->m_rounds+1);
+  double_t delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
+  double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
+  double_t maxAction = m_rewardAvg[0]/m_rate + normal;
+  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
+  {
+    if (m_socket->AvailableWindow (pid) > 0){
+      reward = m_rewardTemp[0];
+    } else {
+      reward = m_rewardTemp0[0];
+    }
+    m_rewardAvg[pid] = m_rewardAvg[pid]+(reward-m_rewardAvg[pid])/(m_subflows[pid]->m_rounds+1);
+    normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
+    double_t newAction = m_rewardAvg[pid]/m_rate + normal;
+    if (newAction >= maxAction){
+      maxAction = newAction;
+      rPid = pid;
+    }
+  }
+  m_lastUsedPathId = rPid;
+  m_subflows[m_lastUsedPathId]->m_rounds++;
+  m_reward = m_rewardAvg[rPid];
+  m_rounds++;
+}
+
+
+void
+MpQuicScheduler::UpdateRewardMab(){
+  if (m_schedulerType != MAB_DELAY){
+    return;
+  }
+  uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
+  Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
+  double n;
+  for (uint8_t pid = 0; pid < m_subflows.size(); pid++)
+  {
+    if(m_rewardTemp.size() < m_subflows.size()){
+      m_rewardTemp.push_back(0);
+      m_rewardTemp0.push_back(0);
+    }
+    n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+    m_rewardTemp[pid] = mss/rtt.GetSeconds();
+    m_rewardTemp0[pid] = mss/(n*rtt.GetSeconds());
+    }
+}
+
+
 
 
 void

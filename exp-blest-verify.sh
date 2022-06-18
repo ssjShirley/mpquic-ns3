@@ -1,25 +1,24 @@
 
 #!/bin/bash
 
-FOLD="test1-nbg-ndy-$2-$3-$1"
+FOLD="ecfa$2"
 DIR="temp-result/$FOLD/"
-RATE0="10Mbps"
+RATE0="1Mbps"
 RATE1="$2Mbps"
-DELAY0="100ms"
-DELAY1="$3ms"
+DELAY0="10ms"
+DELAY1="10ms"
 LOSS="0.000000"
-BLambda="20"
-BVar="2"
-MRate="26214400"
+BLambda="200"
+BVar="20"
 
-mkdir ${DIR}
-for i in 0 1 2 3 4
-# for i in 2
+# mkdir ${DIR}
+# for i in 0 1 2 3 4
+for i in 2 3
 do
     LOG="$i"
     LOG1="scheduler${LOG}-queue.txt"
     LOG2="scheduler${LOG}-flowsum.txt"
-    ./waf --run "scratch/mpquic-scheduler-nbg-ndy.cc --Size=$1 --BVar=$BVar --BLambda=$BLambda --MabRate=$MRate --SchedulerType=$i{LOG} --Rate0=${RATE0} --Rate1=${RATE1} --Delay0=${DELAY0} --Delay1=${DELAY1} --LossRate=$LOSS" >$LOG1 2>$LOG2
+    ./waf --run "scratch/mpquic-scheduler-demo-blest-verify.cc --Size=$1 --BVar=$BVar --BLambda=$BLambda --SchedulerType=${LOG} --Rate0=${RATE0} --Rate1=${RATE1} --Delay0=${DELAY0} --Delay1=${DELAY1} --LossRate=$LOSS" >$LOG1 2>$LOG2
 
     FILE="scheduler${LOG}-reward.txt"
     cp $FILE "${DIR}${FILE}"

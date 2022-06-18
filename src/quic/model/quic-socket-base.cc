@@ -2560,6 +2560,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
                 }
             }
         }
+      m_scheduler->UpdateRewardMab();
     }
   else
     {
@@ -2571,6 +2572,8 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
     {
       NotifySend (GetTxAvailable ());
     }
+
+
 
   // try to send more data
   SendPendingData (m_connected);

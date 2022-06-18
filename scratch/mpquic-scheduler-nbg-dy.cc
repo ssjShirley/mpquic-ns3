@@ -66,40 +66,63 @@ CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
 // }
 
 static void
+RTTChange (Ptr<OutputStreamWrapper> stream, Time oldValue, Time newValue)
+{
+    *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldValue.GetSeconds() << "\t" << newValue.GetSeconds()<< std::endl;
+}
+
+static void
 Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
 {
     AsciiTraceHelper asciiTraceHelper;
 
-    // std::ostringstream path0CW;
-    // path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
-    // NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
+    std::ostringstream path0CW;
+    path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
 
-    // std::ostringstream path1CW;
-    // path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow1";
-    // NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
+    std::ostringstream path1CW;
+    path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow1";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
+
+    std::ostringstream path0rtt;
+    path0rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT0";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0rtt.str().c_str()).GetN());
+
+    std::ostringstream path1rtt;
+    path1rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT1";
+    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1rtt.str().c_str()).GetN());
 
     std::ostringstream reward;
     reward << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/MabRewardTrace";
     // reward << "/NodeList/" << serverId << "/$ns3::QuicL5Protocol/StreamList/*/QuicStreamBase/RxBufferTrace";
     NS_LOG_INFO("Matches cw " << Config::LookupMatches(reward.str().c_str()).GetN());
 
-    // std::ostringstream file0CW;
-    // file0CW << pathVersion << "-cwnd-change-0" << "" << finalPart;
-    // std::ostringstream file1CW;
-    // file1CW << pathVersion << "-cwnd-change-1"<< "" << finalPart;
+    std::ostringstream file0CW;
+    file0CW << pathVersion << "-cwnd-change-0" << "" << finalPart;
+    std::ostringstream file1CW;
+    file1CW << pathVersion << "-cwnd-change-1"<< "" << finalPart;
+    std::ostringstream file0rtt;
+    file0rtt << pathVersion << "-rtt-change-0" << "" << finalPart;
+    std::ostringstream file1rtt;
+    file1rtt << pathVersion << "-rtt-change-1"<< "" << finalPart;
     std::ostringstream fileReward;
     fileReward << pathVersion << "-reward"<< "" << finalPart;
 
 
-    // Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
-    // Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
+    Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
+    Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
 
-    // Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
-    // Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
+    Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
+    Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
 
     Ptr<OutputStreamWrapper> stream1 = asciiTraceHelper.CreateFileStream (fileReward.str ().c_str ());
     Config::ConnectWithoutContext (reward.str ().c_str (), MakeBoundCallback(&CwndChange, stream1));
 
+    Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (file0rtt.str ().c_str ());
+    Config::ConnectWithoutContext (path0rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream2));
+
+    Ptr<OutputStreamWrapper> stream3 = asciiTraceHelper.CreateFileStream (file1rtt.str ().c_str ());
+    Config::ConnectWithoutContext (path1rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream3));
 }
 
 // static void
@@ -144,29 +167,32 @@ int
 main (int argc, char *argv[])
 {
     int schedulerType = MpQuicScheduler::ROUND_ROBIN;
-    string rate0 = "5Mbps";
-    string rate1 = "50Mbps";
-    string delay0 = "80ms";
-    string delay1 = "20ms";
-    string myRandomNo = "80";
-    string lossrate = "0.0000";
-    int bVar = 100;
-    int bLambda = 1000;
+    string rate0 = "10Mbps";
+    string rate1 = "10Mbps";
+    string delay0 = "10ms";
+    string delay1 = "10ms";
+    string myRandomNo = "20";
+    string lossrate = "0.000005";
+    string rvar = "0.1";
+    int bVar = 2;
+    int bLambda = 100;
+    int mrate = 52428800;
     int ccType = QuicSocketBase::OLIA;
     TypeId ccTypeId = MpQuicCongestionOps::GetTypeId ();
     CommandLine cmd;
     
-    schedulerType = 2;
 
     cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT, 2 - BLEST, 3 - MAB)", schedulerType);
     cmd.AddValue ("BVar", "e.g. 100", bVar);
     cmd.AddValue ("BLambda", "e.g. 100", bLambda);
+    cmd.AddValue ("MabRate", "e.g. 100", mrate);
     cmd.AddValue ("Rate0", "e.g. 5Mbps", rate0);
     cmd.AddValue ("Rate1", "e.g. 50Mbps", rate1);
     cmd.AddValue ("Delay0", "e.g. 80ms", delay0);
     cmd.AddValue ("Delay1", "e.g. 20ms", delay1);
     cmd.AddValue ("Size", "e.g. 80", myRandomNo);
     cmd.AddValue ("LossRate", "e.g. 0.0001", lossrate);
+    cmd.AddValue ("RVar", "e.g. 0.0001", rvar);
     cmd.AddValue ("CcType", "in use congestion control type (0 - QuicNewReno, 1 - OLIA)", ccType);
     cmd.Parse (argc, argv);
 
@@ -225,7 +251,7 @@ main (int argc, char *argv[])
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MIN_RTT));  
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::BLEST));  
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   
-    Config::SetDefault ("ns3::MpQuicScheduler::MabRate", UintegerValue(50000)); 
+    Config::SetDefault ("ns3::MpQuicScheduler::MabRate", UintegerValue(mrate)); 
 
     
     Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
@@ -431,12 +457,27 @@ main (int argc, char *argv[])
     ThroughputMonitor(&flowmon, monitor, stream); 
     
 
-    int r0 = stoi(rate0);
-    double r0n = r0-r0*0.1;
-    // int r1 = stoi(rate1);
+    int r0 = stoi(rate1);
+    double r0a = r0-r0*stod(rvar);
+    double r0b = r0+r0*stod(rvar);
 
-    Simulator::Schedule (Seconds (2.5), &ModifyLinkRate, &d1d8, DataRate(std::to_string(r0n)+"Mbps"));
-    std::cout<<"time: "<< Seconds (2.5) <<" path0 : rate "<<std::to_string(r0n)<<"Mbps"<<"\n";
+    double add = 0.2;
+    // double av = 1+(stod(myRandomNo)-20)/20;
+    // if(stoi(delay1) == 10){
+    //     add = 0.5*av;
+    // } else if (stoi(delay1) == 100){
+    //     add = 1*av;
+    // } else {
+    //     add = 2*av;
+    // }
+
+    for (int i = 0; i < 10; i++) {
+        Simulator::Schedule (Seconds (1), &ModifyLinkRate, &d6d9, DataRate(std::to_string(r0a)+"Mbps"));
+        Simulator::Schedule (Seconds (1+add), &ModifyLinkRate, &d6d9, DataRate(std::to_string(r0)+"Mbps"));
+        Simulator::Schedule (Seconds (1+add*2), &ModifyLinkRate, &d6d9, DataRate(std::to_string(r0b)+"Mbps"));
+    }
+
+    // std::cout<<"time: "<< Seconds (2.5) <<" path0 : rate "<<std::to_string(r0n)<<"Mbps"<<"\n";
     // Simulator::Schedule (Seconds (2.5), &ModifyLinkRate, &d6d9, DataRate(std::to_string(5-1)+"Mbps"));
 
 

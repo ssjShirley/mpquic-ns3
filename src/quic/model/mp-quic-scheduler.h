@@ -53,7 +53,8 @@ public:
       MIN_RTT,
       BLEST,
       ECF,
-      MAB
+      MAB,
+      MAB_DELAY
     } SchedulerType_t;
   
   /**
@@ -71,6 +72,7 @@ public:
     
   void UpdateReward (uint32_t oldValue, uint32_t newValue);
   void SetNumOfLostPackets(uint16_t lost);
+  void UpdateRewardMab();
 
 private:
   Ptr<QuicSocketBase> m_socket;
@@ -84,14 +86,17 @@ private:
   void RoundRobin();
   void MinRtt();
   void Mab();
+  void MabDelay();
   void Blest();
   void Ecf();
 
-
-  std::vector <uint32_t> m_rewards;
+  std::vector <uint64_t> m_rewards;
+  std::vector <uint64_t> m_rewardTemp;
+  std::vector <uint64_t> m_rewardTemp0;
+  std::vector <uint64_t> m_rewardAvg;
   uint32_t m_rounds;
   TracedValue<uint32_t> m_reward {0}; 
-  uint16_t m_rate;
+  uint32_t m_rate;
   uint16_t m_lostPackets;
   uint16_t m_lambda;
   uint16_t m_bVar;
