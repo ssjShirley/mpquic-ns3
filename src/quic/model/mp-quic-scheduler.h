@@ -89,6 +89,7 @@ private:
   void MabDelay();
   void Blest();
   void Ecf();
+  void LocalOpt();
 
   std::vector <uint64_t> m_rewards;
   std::vector <uint64_t> m_rewardTemp;
@@ -101,6 +102,8 @@ private:
   uint16_t m_lambda;
   uint16_t m_bVar;
   uint8_t m_waiting = 0;
+  uint16_t m_select;
+  // int rounds;
 };
 
 } // namespace ns3

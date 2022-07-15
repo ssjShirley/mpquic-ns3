@@ -35,6 +35,7 @@
 #include <iomanip>
 #include <iterator>
 #include <vector>
+#include <bitset>
 
 #include "mp-quic-scheduler.h"
 
@@ -101,6 +102,11 @@ MpQuicScheduler::GetTypeId (void)
                    UintegerValue (100),
                    MakeUintegerAccessor (&MpQuicScheduler::m_bVar),
                    MakeUintegerChecker<uint16_t> ())
+    .AddAttribute ("Select",
+                   "string of select",
+                   UintegerValue (0),
+                   MakeUintegerAccessor (&MpQuicScheduler::m_select),
+                   MakeUintegerChecker<uint16_t> ())
     .AddTraceSource ("MabReward",
                      "The average reward get by mab",
                      MakeTraceSourceAccessor (&MpQuicScheduler::m_reward),
@@ -115,7 +121,8 @@ MpQuicScheduler::MpQuicScheduler ()
   m_socket(0),
   m_lastUsedPathId(0),
   m_rounds(0),
-  m_reward(0)
+  m_reward(0),
+  m_select(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_rewards.push_back(0);
@@ -180,6 +187,12 @@ MpQuicScheduler::GetNextPathIdToUse()
 void
 MpQuicScheduler::RoundRobin()
 {
+  if (m_subflows.size() <= 1){
+    m_lastUsedPathId = 0;
+    return;
+  }
+  std::cout<<"select 1"<<std::endl;
+
   for (uint8_t i = 0; i < m_subflows.size(); i++){
     m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
     if (m_socket->AvailableWindow (m_lastUsedPathId) > 0){
@@ -209,7 +222,7 @@ MpQuicScheduler::MinRtt()
     m_lastUsedPathId = 0;
     return;
   }
-  
+  std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = 1;
     return;
@@ -255,7 +268,7 @@ MpQuicScheduler::Blest() //only allow two subflows
     m_lastUsedPathId = 0;
     return;
   }
-  
+  std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = 1;
     return;
@@ -308,7 +321,8 @@ MpQuicScheduler::Ecf() //only allow two subflows
     m_lastUsedPathId = 0;
     return;
   }
-  
+
+  std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
     return;
@@ -359,6 +373,12 @@ void
 MpQuicScheduler::Mab()
 {
   NS_LOG_FUNCTION (this);
+  if (m_subflows.size() < 2){
+    m_lastUsedPathId = 0;
+    return;
+  }
+
+  std::cout<<"select 1"<<std::endl;
   uint32_t reward;
   double n;
   uint8_t rPid = 0;
@@ -404,6 +424,7 @@ MpQuicScheduler::Mab()
   
   m_reward = m_rewards[rPid];
   m_rounds++;
+  
 }
 
 
@@ -411,10 +432,6 @@ void
 MpQuicScheduler::MabDelay()
 {
   NS_LOG_FUNCTION (this);
-  if (m_subflows.size() < 2){
-    m_lastUsedPathId = 0;
-    return;
-  }
   if (m_rewardTemp.size() < 2){
     m_lastUsedPathId = 1;
     return;
@@ -458,22 +475,44 @@ MpQuicScheduler::UpdateRewardMab(){
   if (m_schedulerType != MAB_DELAY){
     return;
   }
-  uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
-  Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
-  double n;
-  for (uint8_t pid = 0; pid < m_subflows.size(); pid++)
-  {
-    if(m_rewardTemp.size() < m_subflows.size()){
-      m_rewardTemp.push_back(0);
-      m_rewardTemp0.push_back(0);
-    }
-    n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
-    m_rewardTemp[pid] = mss/rtt.GetSeconds();
-    m_rewardTemp0[pid] = mss/(n*rtt.GetSeconds());
-    }
+  // uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
+  // Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
+  // double n;
+  // for (uint8_t pid = 0; pid < m_subflows.size(); pid++)
+  // {
+  //   if(m_rewardTemp.size() < m_subflows.size()){
+  //     m_rewardTemp.push_back(0);
+  //     m_rewardTemp0.push_back(0);
+  //   }
+  //   n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+  //   m_rewardTemp[pid] = mss/rtt.GetSeconds();
+  //   m_rewardTemp0[pid] = mss/(n*rtt.GetSeconds());
+  //   }
 }
 
 
+
+void
+MpQuicScheduler::LocalOpt()
+{
+  NS_LOG_FUNCTION (this);
+  if (m_subflows.size() < 2){
+    m_lastUsedPathId = 0;
+    return;
+  }
+  bitset<12> binary(m_select);
+
+  // std::cout<<"select 1"<<std::endl;
+  if (m_rounds > 12){
+    m_rounds = 0;
+  }
+  char temp = binary.to_string().at(m_rounds);
+  string s;
+  s.push_back(temp);
+  m_lastUsedPathId = stoi(s);
+  m_rounds++;
+  // std::cout<<"m_lastUsedPathId "<<int(m_lastUsedPathId) <<std::endl;
+}
 
 
 void

@@ -162,16 +162,17 @@ int
 main (int argc, char *argv[])
 {
     int schedulerType = MpQuicScheduler::MAB_DELAY;
-    string rate0 = "8Mbps";
-    string rate1 = "40Mbps";
-    string delay0 = "50ms";
+    string rate0 = "2Mbps";
+    string rate1 = "10Mbps";
+    string delay0 = "100ms";
     string delay1 = "10ms";
-    string myRandomNo = "80";
+    string myRandomNo = "30000";
     string lossrate = "0.0000";
     int bVar = 2;
     int bLambda = 100;
     int mrate = 52428800;
     int ccType = QuicSocketBase::OLIA;
+    int mselect = 3;
     TypeId ccTypeId = MpQuicCongestionOps::GetTypeId ();
     CommandLine cmd;
 
@@ -186,6 +187,7 @@ main (int argc, char *argv[])
     cmd.AddValue ("Delay1", "e.g. 20ms", delay1);
     cmd.AddValue ("Size", "e.g. 80", myRandomNo);
     cmd.AddValue ("LossRate", "e.g. 0.0001", lossrate);
+    cmd.AddValue ("Select", "e.g. 0.0001", mselect);
     cmd.AddValue ("CcType", "in use congestion control type (0 - QuicNewReno, 1 - OLIA)", ccType);
     cmd.Parse (argc, argv);
 
@@ -246,6 +248,7 @@ main (int argc, char *argv[])
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::BLEST));  
     // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   
     Config::SetDefault ("ns3::MpQuicScheduler::MabRate", UintegerValue(mrate)); 
+    Config::SetDefault ("ns3::MpQuicScheduler::Select", UintegerValue(mselect)); 
 
     
     Ptr<RateErrorModel> em = CreateObjectWithAttributes<RateErrorModel> (
@@ -258,8 +261,9 @@ main (int argc, char *argv[])
 
     // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
     // uint32_t myRandomNo = x->GetInteger (80,90);
-    uint32_t maxBytes = stoi(myRandomNo) * 104857.6;
-    // uint32_t maxBytes = 8000000;
+    // uint32_t maxBytes = stoi(myRandomNo) * 104857.6;
+    uint32_t maxBytes = stoi(myRandomNo);
+    // uint32_t maxBytes = 10000;
     
     NS_LOG_INFO ("Create nodes.");
     NodeContainer c;
