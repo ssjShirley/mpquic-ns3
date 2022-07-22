@@ -1105,91 +1105,105 @@ QuicSocketBase::SendPendingData (bool withAck)
    // For multipath Implementaion
   // scheduler: select which subflow to use.
 
-  uint8_t sendingPathId = m_scheduler->GetNextPathIdToUse();
+  // uint8_t sendingPathId = m_scheduler->GetNextPathIdToUse();
   // uint8_t sendingPathId = getSubflowToUse();
-  uint32_t availableWindow = AvailableWindow (sendingPathId); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
+  // uint32_t availableWindow = AvailableWindow (sendingPathId); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
   // uint32_t connWin = ConnectionWindow (sendingPathId);
   // uint32_t bytesInFlight = BytesInFlight (sendingPathId);
 
 
-  while (availableWindow > 0 and m_txBuffer->AppSize () > 0)
+
+  std::vector<double> sendP = m_scheduler->GetNextPathIdToUse();
+
+  for (uint8_t sendingPathId = 0; sendingPathId < sendP.size(); sendingPathId++)
+  {
+    uint32_t availableWindow = AvailableWindow (sendingPathId);
+    uint32_t sendSize = m_txBuffer->AppSize () * sendP[sendingPathId];
+    uint32_t sendNumber = sendSize/GetSegSize();
+    if (sendSize > availableWindow)
     {
-      // check draining period
-      if (m_drainingPeriodEvent.IsRunning ())
-        {
-          NS_LOG_INFO ("Draining period: no packets can be sent");
-          return false;
-        }
+      sendNumber = availableWindow/GetSegSize();
+    } 
 
-      // check pacing timer
-      if (m_subflows[sendingPathId]->m_tcb->m_pacing)
-        {
-          NS_LOG_DEBUG ("Pacing is enabled");
-          if (m_pacingTimer.IsRunning ())
-            {
-              NS_LOG_INFO ("Skipping Packet due to pacing - for " << m_pacingTimer.GetDelayLeft ());
-              break;
-            }
-          NS_LOG_DEBUG ("Pacing Timer is not running");
-        }
+    while (sendNumber > 0 and availableWindow > 0 and m_txBuffer->AppSize () > 0)
+      {
+        // check draining period
+        if (m_drainingPeriodEvent.IsRunning ())
+          {
+            NS_LOG_INFO ("Draining period: no packets can be sent");
+            return false;
+          }
 
-      // check the state of the socket!
-      if (m_socketState == CONNECTING_CLT || m_socketState == CONNECTING_SVR)
-        {
-          NS_LOG_INFO ("CONNECTING_CLT and CONNECTING_SVR state; no data to transmit");
-          break;
-        }
+        // check pacing timer
+        if (m_subflows[sendingPathId]->m_tcb->m_pacing)
+          {
+            NS_LOG_DEBUG ("Pacing is enabled");
+            if (m_pacingTimer.IsRunning ())
+              {
+                NS_LOG_INFO ("Skipping Packet due to pacing - for " << m_pacingTimer.GetDelayLeft ());
+                break;
+              }
+            NS_LOG_DEBUG ("Pacing Timer is not running");
+          }
 
-      uint32_t availableData = m_txBuffer->AppSize ();
+        // check the state of the socket!
+        if (m_socketState == CONNECTING_CLT || m_socketState == CONNECTING_SVR)
+          {
+            NS_LOG_INFO ("CONNECTING_CLT and CONNECTING_SVR state; no data to transmit");
+            break;
+          }
 
-      if (availableData < availableWindow and !m_closeOnEmpty)
-        {
-          NS_LOG_INFO ("Ask the app for more data before trying to send");
-          NotifySend (GetTxAvailable ());
-        }
+        uint32_t availableData = m_txBuffer->AppSize ();
 
-      if (availableWindow < GetSegSize () and availableData > availableWindow and !m_closeOnEmpty)
-        {
-          NS_LOG_INFO ("Preventing Silly Window Syndrome. Wait to Send.");
-          break;
-        }
+        if (availableData < availableWindow and !m_closeOnEmpty)
+          {
+            NS_LOG_INFO ("Ask the app for more data before trying to send");
+            NotifySend (GetTxAvailable ());
+          }
 
-      SequenceNumber32 next = ++m_subflows[sendingPathId]->m_tcb->m_nextTxSequence;
-      // SequenceNumber32 next = ++sFlow->m_nextPktNum;
+        if (availableWindow < GetSegSize () and availableData > availableWindow and !m_closeOnEmpty)
+          {
+            NS_LOG_INFO ("Preventing Silly Window Syndrome. Wait to Send.");
+            break;
+          }
 
-      uint32_t s = std::min (availableWindow, GetSegSize ());
-      // std::cout<<"ssssss"<<s<<std::endl;
+        SequenceNumber32 next = ++m_subflows[sendingPathId]->m_tcb->m_nextTxSequence;
+        // SequenceNumber32 next = ++sFlow->m_nextPktNum;
 
-      uint32_t win = AvailableWindow (sendingPathId); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
-      uint32_t connWin = ConnectionWindow (sendingPathId);
-      uint32_t bytesInFlight = BytesInFlight (sendingPathId);
+        uint32_t s = std::min (availableWindow, GetSegSize ());
+        // std::cout<<"ssssss"<<s<<std::endl;
 
-      NS_LOG_DEBUG (
-        "BEFORE Available Window " << win
-                                  << " Connection RWnd " << connWin
-                                  << " BytesInFlight " << bytesInFlight
-                                  << " BufferedSize " << m_txBuffer->AppSize ()
-                                  << " MaxPacketSize " << GetSegSize ());
+        uint32_t win = AvailableWindow (sendingPathId); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
+        uint32_t connWin = ConnectionWindow (sendingPathId);
+        uint32_t bytesInFlight = BytesInFlight (sendingPathId);
 
-      NS_LOG_INFO ("on path " << sendingPathId << " SN " << next);
-      // uint32_t sz =
-      SendDataPacket (next, s, withAck, sendingPathId);
+        NS_LOG_DEBUG (
+          "BEFORE Available Window " << win
+                                    << " Connection RWnd " << connWin
+                                    << " BytesInFlight " << bytesInFlight
+                                    << " BufferedSize " << m_txBuffer->AppSize ()
+                                    << " MaxPacketSize " << GetSegSize ());
 
-      win = AvailableWindow (sendingPathId);
-      connWin = ConnectionWindow (sendingPathId);
-      bytesInFlight = BytesInFlight (sendingPathId);
-      NS_LOG_DEBUG (
-        "AFTER Available Window " << win
-                                  << " Connection RWnd " << connWin
-                                  << " BytesInFlight " << bytesInFlight
-                                  << " BufferedSize " << m_txBuffer->AppSize ()
-                                  << " MaxPacketSize " << GetSegSize ());
+        NS_LOG_INFO ("on path " << sendingPathId << " SN " << next);
+        // uint32_t sz =
+        SendDataPacket (next, s, withAck, sendingPathId);
 
-      ++nPacketsSent;
+        win = AvailableWindow (sendingPathId);
+        connWin = ConnectionWindow (sendingPathId);
+        bytesInFlight = BytesInFlight (sendingPathId);
+        NS_LOG_DEBUG (
+          "AFTER Available Window " << win
+                                    << " Connection RWnd " << connWin
+                                    << " BytesInFlight " << bytesInFlight
+                                    << " BufferedSize " << m_txBuffer->AppSize ()
+                                    << " MaxPacketSize " << GetSegSize ());
 
-      availableWindow = AvailableWindow(sendingPathId);
+        ++nPacketsSent;
 
-    }
+        availableWindow = AvailableWindow(sendingPathId);
+        sendNumber--;
+      }
+  }
 
   if (nPacketsSent > 0)
     {
@@ -1357,7 +1371,7 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
     {
       NS_LOG_LOGIC (this << " SendDataPacket - sending packet " << packetNumber.GetValue () << " of size " << maxSize << " at time " << Simulator::Now ().GetSeconds ());
       m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout, &QuicSocketBase::Close, this);
-      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId);
+      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId, m_scheduler->GetCurrentRound());
     }
 
   uint32_t sz = p->GetSize ();
@@ -2492,7 +2506,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
   /* else */ 
   if (ackedBytes > 0)
     {
-      
+      Ptr<QuicSocketTxItem> lastAcked = ackedPackets.at (0); 
       if (!m_quicCongestionControlLegacy)
         {
           NS_LOG_INFO ("Update the variables in the congestion control (QUIC)");
@@ -2526,7 +2540,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
           NS_LOG_INFO ("Update the variables in the congestion control (legacy), ackedBytes "
                        << ackedBytes << " ackedSegments " << ackedSegments);
           // new acks are ordered from the highest packet number to the smalles
-          Ptr<QuicSocketTxItem> lastAcked = ackedPackets.at (0);
+          
 
           NS_LOG_LOGIC ("Updating RTT estimate");
           // If the largest acked is newly acked, update the RTT.
@@ -2560,7 +2574,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
                 }
             }
         }
-      m_scheduler->UpdateRewardMab();
+      m_scheduler->UpdateRewardMab(pathId,m_txBuffer->GetLost (pathId), m_txBuffer->BytesInFlight (pathId), lastAcked->m_round);
     }
   else
     {

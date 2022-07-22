@@ -36,8 +36,10 @@
 #include <iterator>
 #include <vector>
 #include <bitset>
+#include <numeric>
 
 #include "mp-quic-scheduler.h"
+#include "ns3/random-variable-stream.h"
 
 
 
@@ -125,6 +127,8 @@ MpQuicScheduler::MpQuicScheduler ()
   m_select(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
+  m_lastUpdateRounds = 1;
+  m_e = 0;
   m_rewards.push_back(0);
   m_rewardTemp.push_back(0);
   m_rewardTemp0.push_back(0);
@@ -140,92 +144,93 @@ MpQuicScheduler::~MpQuicScheduler ()
 
 
 
-uint8_t 
+std::vector<double> 
 MpQuicScheduler::GetNextPathIdToUse()
 {
   m_subflows = m_socket->GetActiveSubflows();
+  std::vector<double> tosend(m_subflows.size(), 0.0);
   if (m_subflows.empty())
   {
-    m_lastUsedPathId = 0;
-    return 0;
+    // m_lastUsedPathId = 0;
+    tosend.push_back(1.0);
+    return tosend;
   }
   switch (m_schedulerType)
   {
     case ROUND_ROBIN:
-      RoundRobin();
+      tosend = RoundRobin();
       break;
 
     case MIN_RTT:
-      MinRtt();
+      tosend = MinRtt();
       break;
     
     case BLEST:
-      Blest();
+      tosend = Blest();
       break;
 
     case ECF:
-      Ecf();
+      tosend = Ecf();
       break;
 
     case MAB:
-      Mab();
+      tosend = Mab();
       break;
 
     case MAB_DELAY:
-      MabDelay();
+      tosend = MabDelay();
       break;
 
     default:
-      RoundRobin();
+      tosend = RoundRobin();
       break;
       
   }
 
-  return m_lastUsedPathId;
+  return tosend;
 }
 
-void
+std::vector<double>
 MpQuicScheduler::RoundRobin()
 {
+  std::vector<double> tosend(m_subflows.size(), 0.0);
   if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
-  std::cout<<"select 1"<<std::endl;
 
-  for (uint8_t i = 0; i < m_subflows.size(); i++){
-    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
-    if (m_socket->AvailableWindow (m_lastUsedPathId) > 0){
-      return;
-    }
-  }
-  
+  m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+
+  // std::cout<<"select 1"<<std::endl;
+
+  // for (uint8_t i = 0; i < m_subflows.size(); i++)
+  // {
+  //   m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+  //   if (m_socket->AvailableWindow (m_lastUsedPathId) > 0){
+  //     break;
+  //   }
+  // }
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
 }
 
-void
+std::vector<double>
 MpQuicScheduler::MinRtt()
 {
   NS_LOG_FUNCTION (this);
-  // uint8_t minPid = 0;
-  // Time minRtt = m_subflows[0]->m_tcb->m_lastRtt;
-  // for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
-  // {
-  //   if (m_subflows[pid]->m_tcb->m_lastRtt < minRtt){
-  //     minRtt = m_subflows[pid]->m_tcb->m_lastRtt;
-  //     minPid = pid;
-  //   }
-  // }
-  // m_lastUsedPathId = minPid;
-
+  std::vector<double> tosend(m_subflows.size(), 0.0);
 
   if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
-  std::cout<<"select 1"<<std::endl;
+  // std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = 1;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
 
   Time rttS;
@@ -250,6 +255,9 @@ MpQuicScheduler::MinRtt()
   }else {
     m_lastUsedPathId = slowPathId;
   }
+
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
 }
 
 void
@@ -260,18 +268,22 @@ MpQuicScheduler::SetSocket(Ptr<QuicSocketBase> sock)
 }
 
 
-void
+std::vector<double>
 MpQuicScheduler::Blest() //only allow two subflows
 {
   NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
+
   if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
   std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = 1;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
   
   Time rttS;
@@ -309,23 +321,28 @@ MpQuicScheduler::Blest() //only allow two subflows
     }
   }
   
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
   // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
 }
 
 
-void
+std::vector<double>
 MpQuicScheduler::Ecf() //only allow two subflows
 {
   NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
   if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
 
   std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   } 
   
   
@@ -356,7 +373,8 @@ MpQuicScheduler::Ecf() //only allow two subflows
       if (k/m_subflows[slowPathId]->m_tcb->m_cWnd.Get() * rttS.GetSeconds() >= 2*rttF.GetSeconds()+delta){
         m_waiting = 1;
         m_lastUsedPathId = fastPathId;
-        return;
+        tosend[m_lastUsedPathId] = 1.0;
+        return tosend;
       } else {
         m_lastUsedPathId = slowPathId;
       }
@@ -365,17 +383,22 @@ MpQuicScheduler::Ecf() //only allow two subflows
       m_lastUsedPathId = slowPathId;
     }
   }  
+
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
   // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
 }
 
 
-void
+std::vector<double>
 MpQuicScheduler::Mab()
 {
   NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
   if (m_subflows.size() < 2){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
 
   std::cout<<"select 1"<<std::endl;
@@ -425,58 +448,135 @@ MpQuicScheduler::Mab()
   m_reward = m_rewards[rPid];
   m_rounds++;
   
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
 }
 
 
-void
+std::vector<double>
 MpQuicScheduler::MabDelay()
 {
   NS_LOG_FUNCTION (this);
-  if (m_rewardTemp.size() < 2){
-    m_lastUsedPathId = 1;
-    return;
+  std::vector<double> tosend(m_subflows.size(), 0.0);
+  m_rounds++;
+  uint8_t K = m_subflows.size();
+  if(m_cost.size() < K)
+  {
+    m_cost.push_back(0.0);
+    m_L.push_back(0.0);
+    m_eL.push_back(0.0);
+    m_p.push_back(0.0);
+    for (uint8_t i = 0; i < K; i++)
+    {
+      m_p[i] = 1.0/K;
+    }
+  }
+
+  if (K < 2)
+  {
+    m_lastUsedPathId = 0;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
+  }
+
+  
+  if (m_p[0] == 1.0/K)
+  {
+    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+    m_lastUsedPathId = x->GetInteger (0,K-1);
+  }
+  else
+  {
+    m_lastUsedPathId = std::max_element(m_p.begin(),m_p.end()) - m_p.begin();
   }
   
-  uint32_t reward;
-  uint8_t rPid = 0;
-  if (m_socket->AvailableWindow (0) > 0){
-    reward = m_rewardTemp[0];
-  } else {
-    reward = m_rewardTemp0[0];
-  }
-  m_rewardAvg[0] = m_rewardAvg[0]+(reward-m_rewardAvg[0])/(m_subflows[0]->m_rounds+1);
-  double_t delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
-  double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
-  double_t maxAction = m_rewardAvg[0]/m_rate + normal;
-  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
-  {
-    if (m_socket->AvailableWindow (pid) > 0){
-      reward = m_rewardTemp[0];
-    } else {
-      reward = m_rewardTemp0[0];
-    }
-    m_rewardAvg[pid] = m_rewardAvg[pid]+(reward-m_rewardAvg[pid])/(m_subflows[pid]->m_rounds+1);
-    normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
-    double_t newAction = m_rewardAvg[pid]/m_rate + normal;
-    if (newAction >= maxAction){
-      maxAction = newAction;
-      rPid = pid;
-    }
-  }
-  m_lastUsedPathId = rPid;
-  m_subflows[m_lastUsedPathId]->m_rounds++;
-  m_reward = m_rewardAvg[rPid];
-  m_rounds++;
+  return m_p;
+  // std::cout<<"m_lastUsedPathId "<<int(m_lastUsedPathId) <<std::endl;
+  
+  // if (m_rewardTemp.size() < 2){
+  //   m_lastUsedPathId = 1;
+  //   return;
+  // }
+  
+  // uint32_t reward;
+  // uint8_t rPid = 0;
+  // if (m_socket->AvailableWindow (0) > 0){
+  //   reward = m_rewardTemp[0];
+  // } else {
+  //   reward = m_rewardTemp0[0];
+  // }
+  // m_rewardAvg[0] = m_rewardAvg[0]+(reward-m_rewardAvg[0])/(m_subflows[0]->m_rounds+1);
+  // double_t delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
+  // double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
+  // double_t maxAction = m_rewardAvg[0]/m_rate + normal;
+  // for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
+  // {
+  //   if (m_socket->AvailableWindow (pid) > 0){
+  //     reward = m_rewardTemp[0];
+  //   } else {
+  //     reward = m_rewardTemp0[0];
+  //   }
+  //   m_rewardAvg[pid] = m_rewardAvg[pid]+(reward-m_rewardAvg[pid])/(m_subflows[pid]->m_rounds+1);
+  //   normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
+  //   double_t newAction = m_rewardAvg[pid]/m_rate + normal;
+  //   if (newAction >= maxAction){
+  //     maxAction = newAction;
+  //     rPid = pid;
+  //   }
+  // }
+  // m_lastUsedPathId = rPid;
+  // m_subflows[m_lastUsedPathId]->m_rounds++;
+  // m_reward = m_rewardAvg[rPid];
+  // m_rounds++;
 }
 
 
 void
-MpQuicScheduler::UpdateRewardMab(){
+MpQuicScheduler::UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t inflight, uint32_t round)
+{
   if (m_schedulerType != MAB_DELAY){
     return;
   }
+  uint8_t K = m_subflows.size();
+  m_missingRounds.insert(m_missingRounds.end(), m_rounds - round);
+  // m_lastUpdateRounds = m_rounds;
+  if (std::accumulate(m_missingRounds.begin(), m_missingRounds.end(), 0.0) / m_missingRounds.size() >= std::pow(2, m_e))
+  {
+    m_e = m_e+1;
+    for (uint8_t i = 0; i < K; i++)
+    {
+      m_L[i] = 0.0;
+    }
+  }
+
+  double ln = std::log(K);
+  double eta = std::sqrt(ln/std::pow(2, m_e));
+  // double eta = std::sqrt(ln/(K*m_rounds));
+  // double eta = std::sqrt(ln/std::pow(2, 1));
+  
   // uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
-  // Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
+  Time rtt = m_subflows[pathId]->m_tcb->m_lastRtt;
+  m_cost[pathId] = rtt.GetSeconds() + (double)lostOut/10 + (double)inflight/m_subflows[pathId]->m_tcb->m_cWnd.Get()/10;
+  if (m_cost[pathId] > 1){
+    m_cost[pathId] = 1;
+  }
+
+  // m_L[pathId] = m_L[pathId] + eta * m_cost[pathId]/m_p[pathId];
+  m_L[pathId] = eta * m_cost[pathId]/m_p[pathId];
+
+  for (uint8_t i = 0; i < m_subflows.size(); i++)
+  {
+    m_eL[i] = std::exp(-m_L[i]);
+  }
+
+  double pSumTemp = std::accumulate(m_eL.begin(), m_eL.end(), 0.0);
+
+  for (uint8_t i = 0; i < m_subflows.size(); i++)
+  {
+    m_p[i] = m_eL[i]/pSumTemp;
+    std::cout<<"path "<< int(i) <<" m_cost "<<m_cost[i] <<" m_L "<< m_L[i] << " m_p "<< m_p[i] <<std::endl;
+  }
+
   // double n;
   // for (uint8_t pid = 0; pid < m_subflows.size(); pid++)
   // {
@@ -491,14 +591,23 @@ MpQuicScheduler::UpdateRewardMab(){
 }
 
 
+uint32_t 
+MpQuicScheduler::GetCurrentRound()
+{
+  NS_LOG_FUNCTION (this);
+  return m_rounds;
+}
 
-void
+
+std::vector<double>
 MpQuicScheduler::LocalOpt()
 {
   NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
   if (m_subflows.size() < 2){
     m_lastUsedPathId = 0;
-    return;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
   }
   bitset<12> binary(m_select);
 
@@ -512,6 +621,9 @@ MpQuicScheduler::LocalOpt()
   m_lastUsedPathId = stoi(s);
   m_rounds++;
   // std::cout<<"m_lastUsedPathId "<<int(m_lastUsedPathId) <<std::endl;
+
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
 }
 
 

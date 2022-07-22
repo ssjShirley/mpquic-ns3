@@ -161,13 +161,13 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, P
 int
 main (int argc, char *argv[])
 {
-    int schedulerType = MpQuicScheduler::MAB_DELAY;
+    int schedulerType = MpQuicScheduler::BLEST;
     string rate0 = "2Mbps";
     string rate1 = "10Mbps";
     string delay0 = "100ms";
     string delay1 = "10ms";
-    string myRandomNo = "30000";
-    string lossrate = "0.0000";
+    string myRandomNo = "800000";
+    string lossrate = "0.00001";
     int bVar = 2;
     int bLambda = 100;
     int mrate = 52428800;
@@ -503,7 +503,9 @@ main (int argc, char *argv[])
         
     }
 
-    NS_LOG_INFO("size: "<<maxBytes<<"\npath 0: rate "<< rate0 <<" delay "<< delay0 << "\npath 1: rate " << rate1 << " delay " << delay1);
+    NS_LOG_INFO("\nfile size: "<<maxBytes<< "Bytes, scheduler type " <<schedulerType<<
+                "\npath 0: rate "<< rate0 <<", delay "<< delay0 << 
+                "\npath 1: rate " << rate1 << ", delay " << delay1 );
 
     // std::cout
     //     << "\n\n#################### RUN FINISHED ####################\n\n\n";

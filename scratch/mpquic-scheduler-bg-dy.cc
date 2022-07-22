@@ -143,7 +143,7 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, P
 int
 main (int argc, char *argv[])
 {
-    int schedulerType = MpQuicScheduler::ROUND_ROBIN;
+    int schedulerType = MpQuicScheduler::MAB_DELAY;
     string rate0 = "5Mbps";
     string rate1 = "50Mbps";
     string delay0 = "80ms";

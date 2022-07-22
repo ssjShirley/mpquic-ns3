@@ -67,12 +67,13 @@ public:
   MpQuicScheduler (void);
   virtual ~MpQuicScheduler (void);
 
-  uint8_t GetNextPathIdToUse();
+  std::vector<double> GetNextPathIdToUse();
   void SetSocket(Ptr<QuicSocketBase> sock);
     
   void UpdateReward (uint32_t oldValue, uint32_t newValue);
   void SetNumOfLostPackets(uint16_t lost);
-  void UpdateRewardMab();
+  void UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t inflight, uint32_t round);
+  uint32_t GetCurrentRound();
 
 private:
   Ptr<QuicSocketBase> m_socket;
@@ -83,13 +84,13 @@ private:
   SchedulerType_t m_schedulerType;
 
 
-  void RoundRobin();
-  void MinRtt();
-  void Mab();
-  void MabDelay();
-  void Blest();
-  void Ecf();
-  void LocalOpt();
+  std::vector<double> RoundRobin();
+  std::vector<double> MinRtt();
+  std::vector<double> Mab();
+  std::vector<double> MabDelay();
+  std::vector<double> Blest();
+  std::vector<double> Ecf();
+  std::vector<double> LocalOpt();
 
   std::vector <uint64_t> m_rewards;
   std::vector <uint64_t> m_rewardTemp;
@@ -103,6 +104,14 @@ private:
   uint16_t m_bVar;
   uint8_t m_waiting = 0;
   uint16_t m_select;
+
+  std::vector <double> m_cost;
+  std::vector <uint32_t> m_missingRounds;
+  uint32_t m_lastUpdateRounds;
+  uint32_t m_e;
+  std::vector <double> m_L;
+  std::vector <double> m_eL;
+  std::vector <double> m_p;
   // int rounds;
 };
 
