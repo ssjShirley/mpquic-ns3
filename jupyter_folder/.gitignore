@@ -1,0 +1,6 @@
+# Ignore everything on scratch by default, except the provided examples
+/*
+!.gitignore
+!save/
+!Draw.ipynb
+!ins_goodput.png

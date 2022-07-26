@@ -279,7 +279,7 @@ MpQuicScheduler::Blest() //only allow two subflows
     tosend[m_lastUsedPathId] = 1.0;
     return tosend;
   }
-  std::cout<<"select 1"<<std::endl;
+  // std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = 1;
     tosend[m_lastUsedPathId] = 1.0;
@@ -338,7 +338,7 @@ MpQuicScheduler::Ecf() //only allow two subflows
     return tosend;
   }
 
-  std::cout<<"select 1"<<std::endl;
+  // std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
     m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
     tosend[m_lastUsedPathId] = 1.0;
@@ -401,7 +401,7 @@ MpQuicScheduler::Mab()
     return tosend;
   }
 
-  std::cout<<"select 1"<<std::endl;
+  // std::cout<<"select 1"<<std::endl;
   uint32_t reward;
   double n;
   uint8_t rPid = 0;
@@ -574,7 +574,7 @@ MpQuicScheduler::UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t infl
   for (uint8_t i = 0; i < m_subflows.size(); i++)
   {
     m_p[i] = m_eL[i]/pSumTemp;
-    std::cout<<"path "<< int(i) <<" m_cost "<<m_cost[i] <<" m_L "<< m_L[i] << " m_p "<< m_p[i] <<std::endl;
+    // std::cout<<"path "<< int(i) <<" m_cost "<<m_cost[i] <<" m_L "<< m_L[i] << " m_p "<< m_p[i] <<std::endl;
   }
 
   // double n;

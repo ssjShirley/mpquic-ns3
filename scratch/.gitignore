@@ -16,3 +16,5 @@
 !mpquic-scheduler-bg-ndy.cc
 !mpquic-scheduler-nbg-dy.cc
 !mpquic-scheduler-nbg-ndy.cc
+!mpquic-scheduler-nbg-ndy-dynamic.cc
+!mpquic-scheduler-nbg-ndy-rate.cc
