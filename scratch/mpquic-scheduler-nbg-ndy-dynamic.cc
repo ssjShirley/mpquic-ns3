@@ -167,7 +167,7 @@ ModifyLinkRate(NetDeviceContainer *ptp, DataRate lr/*, Time delay*/) {
 int
 main (int argc, char *argv[])
 {
-    int schedulerType = MpQuicScheduler::BLEST;
+    int schedulerType = MpQuicScheduler::ECF;
     string rate0 = "5Mbps";
     string rate1 = "10Mbps";
     string delay0 = "100ms";
@@ -261,13 +261,23 @@ main (int argc, char *argv[])
     "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
     "ErrorRate", DoubleValue (stod(lossrate)));
 
-    Ptr<NormalRandomVariable> rateVal0 = CreateObject<NormalRandomVariable> ();
-    rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
-    rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
+    // Ptr<NormalRandomVariable> rateVal0 = CreateObject<NormalRandomVariable> ();
+    // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
+    // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
 
-    Ptr<NormalRandomVariable> rateVal1 = CreateObject<NormalRandomVariable> ();
-    rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
-    rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
+    // Ptr<NormalRandomVariable> rateVal1 = CreateObject<NormalRandomVariable> ();
+    // rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
+    // rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
+
+    Ptr<UniformRandomVariable> rateVal0 = CreateObject<UniformRandomVariable> ();
+    rateVal0->SetAttribute ("Min", DoubleValue (5.0));
+    rateVal0->SetAttribute ("Max", DoubleValue (6.0));
+    // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
+    // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
+
+    Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
+    rateVal1->SetAttribute ("Min", DoubleValue (10.0));
+    rateVal1->SetAttribute ("Max", DoubleValue (11.0));
 
     // Ptr<NormalRandomVariable> delay = CreateObject<NormalRandomVariable> ();
     // delay->SetAttribute ("Mean", DoubleValue (50.0));

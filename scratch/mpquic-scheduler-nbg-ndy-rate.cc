@@ -167,12 +167,16 @@ ModifyLinkRate(NetDeviceContainer *ptp, DataRate lr/*, Time delay*/) {
 int
 main (int argc, char *argv[])
 {
+
+    RngSeedManager::SetSeed (3);  // Changes seed from default of 1 to 3
+    RngSeedManager::SetRun (7);
+
     int schedulerType = MpQuicScheduler::BLEST;
     string rate0 = "5Mbps";
     string rate1 = "10Mbps";
     string delay0 = "100ms";
     string delay1 = "10ms";
-    string myRandomNo = "800000";
+    // string myRandomNo = "800000";
     string lossrate = "0.00001";
     int bVar = 2;
     int bLambda = 100;
@@ -191,7 +195,7 @@ main (int argc, char *argv[])
     cmd.AddValue ("Rate1", "e.g. 50Mbps", rate1);
     cmd.AddValue ("Delay0", "e.g. 80ms", delay0);
     cmd.AddValue ("Delay1", "e.g. 20ms", delay1);
-    cmd.AddValue ("Size", "e.g. 80", myRandomNo);
+    // cmd.AddValue ("Size", "e.g. 80", myRandomNo);
     cmd.AddValue ("LossRate", "e.g. 0.0001", lossrate);
     cmd.AddValue ("Select", "e.g. 0.0001", mselect);
     cmd.AddValue ("CcType", "in use congestion control type (0 - QuicNewReno, 1 - OLIA)", ccType);
@@ -261,13 +265,17 @@ main (int argc, char *argv[])
     "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
     "ErrorRate", DoubleValue (stod(lossrate)));
 
-    Ptr<NormalRandomVariable> rateVal0 = CreateObject<NormalRandomVariable> ();
-    rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
-    rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
+    Ptr<UniformRandomVariable> rateVal0 = CreateObject<UniformRandomVariable> ();
+    rateVal0->SetAttribute ("Min", DoubleValue (5.0));
+    rateVal0->SetAttribute ("Max", DoubleValue (6.0));
+    // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
+    // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
 
-    Ptr<NormalRandomVariable> rateVal1 = CreateObject<NormalRandomVariable> ();
-    rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
-    rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
+    Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
+    rateVal1->SetAttribute ("Min", DoubleValue (10.0));
+    rateVal1->SetAttribute ("Max", DoubleValue (11.0));
+    // rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
+    // rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
 
     // Ptr<NormalRandomVariable> delay = CreateObject<NormalRandomVariable> ();
     // delay->SetAttribute ("Mean", DoubleValue (50.0));
@@ -284,7 +292,7 @@ main (int argc, char *argv[])
     // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
     // uint32_t myRandomNo = x->GetInteger (80,90);
     // uint32_t maxBytes = stoi(myRandomNo) * 104857.6;
-    uint32_t maxBytes = stoi(myRandomNo);
+    // uint32_t maxBytes = stoi(myRandomNo);
     // uint32_t maxBytes = 10000;
     
     NS_LOG_INFO ("Create nodes.");
@@ -442,23 +450,39 @@ main (int argc, char *argv[])
 
   
     uint16_t port2 = 9;  // well-known echo port number
+
+    QuicEchoServerHelper echoServer (9);
+
+    ApplicationContainer serverApps = echoServer.Install (c.Get (5));
+    serverApps.Start (Seconds (0.0));
+    serverApps.Stop (Seconds (simulationEndTime));
+
+    QuicEchoClientHelper echoClient (i8i5.GetAddress (1), port2);
+    echoClient.SetAttribute ("MaxPackets", UintegerValue (5000)); //The maximum number of packets the application will send
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.01))); 
+    echoClient.SetAttribute ("PacketSize", UintegerValue (5000)); //Size of echo data in outbound packets
+
+    ApplicationContainer clientApps = echoClient.Install (c.Get (4));
+    echoClient.SetFill (clientApps.Get (0), "Hello World");
+    clientApps.Start (Seconds (start_time));
+    clientApps.Stop (Seconds (simulationEndTime));
     
-    MpquicBulkSendHelper source ("ns3::QuicSocketFactory",
-                            InetSocketAddress (i8i5.GetAddress (1), port2));
-    // Set the amount of data to send in bytes.  Zero is unlimited.
-    source.SetAttribute ("MaxBytes", UintegerValue (maxBytes));
-    ApplicationContainer sourceApps = source.Install (c.Get (4));
-    sourceApps.Start (Seconds (start_time));
-    sourceApps.Stop (Seconds(simulationEndTime));
+    // MpquicBulkSendHelper source ("ns3::QuicSocketFactory",
+    //                         InetSocketAddress (i8i5.GetAddress (1), port2));
+    // // Set the amount of data to send in bytes.  Zero is unlimited.
+    // source.SetAttribute ("MaxBytes", UintegerValue (maxBytes));
+    // ApplicationContainer sourceApps = source.Install (c.Get (4));
+    // sourceApps.Start (Seconds (start_time));
+    // sourceApps.Stop (Seconds(simulationEndTime));
 
     //
     // Create a PacketSinkApplication and install it on node 1
-    //
-    PacketSinkHelper sink2 ("ns3::QuicSocketFactory",
-                            InetSocketAddress (Ipv4Address::GetAny (), port2));
-    ApplicationContainer sinkApps2 = sink2.Install (c.Get (5));
-    sinkApps2.Start (Seconds (0.0));
-    sinkApps2.Stop (Seconds(simulationEndTime));
+    // //
+    // PacketSinkHelper sink2 ("ns3::QuicSocketFactory",
+    //                         InetSocketAddress (Ipv4Address::GetAny (), port2));
+    // ApplicationContainer sinkApps2 = sink2.Install (c.Get (5));
+    // sinkApps2.Start (Seconds (0.0));
+    // sinkApps2.Stop (Seconds(simulationEndTime));
 
 
     std::ostringstream file;
@@ -533,7 +557,7 @@ main (int argc, char *argv[])
         
     }
 
-    NS_LOG_INFO("\nfile size: "<<maxBytes<< "Bytes, scheduler type " <<schedulerType<<
+    NS_LOG_INFO("\nscheduler type " <<schedulerType<<
                 "\npath 0: rate "<< rate0 <<", delay "<< delay0 << 
                 "\npath 1: rate " << rate1 << ", delay " << delay1 );
 
