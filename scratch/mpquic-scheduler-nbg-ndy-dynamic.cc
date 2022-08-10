@@ -270,14 +270,14 @@ main (int argc, char *argv[])
     // rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
 
     Ptr<UniformRandomVariable> rateVal0 = CreateObject<UniformRandomVariable> ();
-    rateVal0->SetAttribute ("Min", DoubleValue (5.0));
-    rateVal0->SetAttribute ("Max", DoubleValue (6.0));
+    rateVal0->SetAttribute ("Min", DoubleValue (5));
+    rateVal0->SetAttribute ("Max", DoubleValue (6));
     // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
     // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
 
     Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
-    rateVal1->SetAttribute ("Min", DoubleValue (10.0));
-    rateVal1->SetAttribute ("Max", DoubleValue (11.0));
+    rateVal1->SetAttribute ("Min", DoubleValue (40));
+    rateVal1->SetAttribute ("Max", DoubleValue (41));
 
     // Ptr<NormalRandomVariable> delay = CreateObject<NormalRandomVariable> ();
     // delay->SetAttribute ("Mean", DoubleValue (50.0));

@@ -224,13 +224,14 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("QuicL4Protocol", log_precision);
 //  LogComponentEnable ("QuicL5Protocol", log_precision);
 //  LogComponentEnable ("ObjectBase", log_precision);
-//  LogComponentEnable ("QuicEchoHelper", log_precision);
+//  LogComponentEnable ("QuicEchoClientApplication", log_precision);
+
 //  LogComponentEnable ("QuicSocketTxScheduler", log_precision);
 //  LogComponentEnable ("QuicSocketRxBuffer", log_precision);
 //  LogComponentEnable ("QuicHeader", log_precision);
 //  LogComponentEnable ("QuicSubheader", log_precision);
 //  LogComponentEnable ("Header", log_precision);
-//  LogComponentEnable ("PacketMetadata", log_precision);
+//  LogComponentEnable ("QuicEchoServerApplication", log_precision);
 
 
     if (ccType == QuicSocketBase::OLIA){
@@ -266,14 +267,14 @@ main (int argc, char *argv[])
     "ErrorRate", DoubleValue (stod(lossrate)));
 
     Ptr<UniformRandomVariable> rateVal0 = CreateObject<UniformRandomVariable> ();
-    rateVal0->SetAttribute ("Min", DoubleValue (5.0));
-    rateVal0->SetAttribute ("Max", DoubleValue (6.0));
+    rateVal0->SetAttribute ("Min", DoubleValue (15.0));
+    rateVal0->SetAttribute ("Max", DoubleValue (25.0));
     // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
     // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
 
     Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
-    rateVal1->SetAttribute ("Min", DoubleValue (10.0));
-    rateVal1->SetAttribute ("Max", DoubleValue (11.0));
+    rateVal1->SetAttribute ("Min", DoubleValue (15.0));
+    rateVal1->SetAttribute ("Max", DoubleValue (25.0));
     // rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
     // rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
 
@@ -459,8 +460,8 @@ main (int argc, char *argv[])
 
     QuicEchoClientHelper echoClient (i8i5.GetAddress (1), port2);
     echoClient.SetAttribute ("MaxPackets", UintegerValue (5000)); //The maximum number of packets the application will send
-    echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.01))); 
-    echoClient.SetAttribute ("PacketSize", UintegerValue (5000)); //Size of echo data in outbound packets
+    echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.1))); 
+    echoClient.SetAttribute ("PacketSize", UintegerValue (50000)); //Size of echo data in outbound packets
 
     ApplicationContainer clientApps = echoClient.Install (c.Get (4));
     echoClient.SetFill (clientApps.Get (0), "Hello World");

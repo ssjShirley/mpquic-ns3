@@ -445,7 +445,9 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
         }
       SetStreamStateRecvIf (m_streamStateRecv == RECV and m_fin, SIZE_KNOWN);
 
-    std::cout<< Simulator::Now ().GetSeconds () << "\t"<< m_streamId <<"\t" << m_recvSize<<"\t"<<sub.GetOffset ()<< "\t" << m_rxBuffer->Size () << "\t" <<std::endl;
+
+    // temp_comment
+    // std::cout<< Simulator::Now ().GetSeconds () << "\t"<< m_streamId <<"\t" << m_recvSize<<"\t"<<sub.GetOffset ()<< "\t" << m_rxBuffer->Size () << "\t" <<std::endl;
 
     //  std::cout<< Simulator::Now ().GetSeconds () << "--///--Received a frame on stream "<< m_streamId <<" with the size " << sub.GetLength ()<<" expected offset: "<<m_recvSize<<" actual offset:"<<sub.GetOffset ()<< " Buffer Size: " << m_rxBuffer->Size ()<<std::endl;
 
