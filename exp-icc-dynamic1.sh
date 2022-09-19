@@ -1,17 +1,17 @@
 
 #!/bin/bash
 
-FOLD="dynamic2-$1"
+FOLD="dynamic1-$1"
 DIR="results-icc/$FOLD/"
 RATE0a="5.0"
-RATE0b="5.5"
+RATE0b="5.25"
 RATE1a="10.0"
-RATE1b="11.0"
+RATE1b="10.5"
 DELAY0a="50.0"
-DELAY0b="55.0"
+DELAY0b="51.5"
 DELAY1a="10.0"
-DELAY1b="11.0"
-LOSS="0.000005"
+DELAY1b="10.3"
+LOSS="0.000003"
 BLambda="200"
 BVar="0"
 Size=5242800
@@ -38,4 +38,4 @@ do
 
 done
 
-python3 results-icc/draw.py $DIR
+# python3 results-icc/draw.py $DIR

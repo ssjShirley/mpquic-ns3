@@ -53,7 +53,7 @@ public:
       MIN_RTT,
       BLEST,
       ECF,
-      MAB,
+      PEEKABOO,
       MAB_DELAY
     } SchedulerType_t;
   
@@ -75,6 +75,8 @@ public:
   void UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t inflight, uint32_t round);
   uint32_t GetCurrentRound();
 
+  void PeekabooReward(uint8_t pathId, std::vector<ns3::Ptr<ns3::QuicSocketTxItem>> ackedPackets, Time lastActTime);
+
 private:
   Ptr<QuicSocketBase> m_socket;
   uint8_t m_lastUsedPathId;
@@ -86,7 +88,7 @@ private:
 
   std::vector<double> RoundRobin();
   std::vector<double> MinRtt();
-  std::vector<double> Mab();
+  std::vector<double> Peekaboo();
   std::vector<double> MabDelay();
   std::vector<double> Blest();
   std::vector<double> Ecf();
@@ -113,6 +115,29 @@ private:
   std::vector <double> m_eL;
   std::vector <double> m_p;
   // int rounds;
+
+
+  int c_index;  // the index of context combinations
+  uint8_t lastCtxId[8]; //the context ID in the last time slot on path j \in [0,7]
+  uint8_t lastActId[8]; //the action ID in the last time slot on path j \in [0,7]
+  std::map <std::string, uint8_t> ctxIdPair;  // context combination vs ID
+  double currBw, currRtt, currLoss;     //current BW, RTT and Loss rate each time when receiving ACK
+  bool isFirstTime = true;
+  double bw[8], rtt[8], loss[8];
+  double T_r, g = 1, R = 0, T_e;
+  static const int maxC2 = 27;
+  static const int maxA2 = 2;
+  double rewardTotal2[maxC2][maxA2];
+  double H2[maxC2][maxA2];
+  uint32_t N2[maxC2][maxA2];
+  uint32_t totalN2 = 1;
+  uint8_t lastCtxId2;
+  uint8_t lastActId2;
+  Time lastActTime;
+  void Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length);
+  void iniH2();
+  uint8_t ctxClass(double Bw, double rtt, double lossrate);
+  
 };
 
 } // namespace ns3

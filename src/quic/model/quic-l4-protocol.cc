@@ -453,12 +453,12 @@ QuicL4Protocol::ForwardUp (Ptr<Socket> sock)
       //           << " data size " << packet->GetSize () 
       //           <<"\n";
 
-      if (IsServer()){
-        std::cout<<"recv\t"
-                << (int)header.GetPathId() <<"\t"
-                << header.GetPacketNumber () <<"\t"
-                << Simulator::Now().GetSeconds()<< std::endl;
-      }
+      // if (IsServer()){
+      //   std::cout<<"recv\t"
+      //           << (int)header.GetPathId() <<"\t"
+      //           << header.GetPacketNumber () <<"\t"
+      //           << Simulator::Now().GetSeconds()<< std::endl;
+      // }
 
       uint64_t connectionId;
       if (header.HasConnectionId ())
@@ -802,12 +802,12 @@ QuicL4Protocol::SendPacket (Ptr<QuicSocketBase> socket, Ptr<Packet> pkt, const Q
                 << " data size " << pkt->GetSize ());
 
   //log for experiment
-  if (!IsServer()){
-    std::cout<<"send\t"
-             << (int)pathId <<"\t"
-             << outgoing.GetPacketNumber () <<"\t"
-             << Simulator::Now().GetSeconds()<< std::endl;
-  }
+  // if (!IsServer()){
+  //   std::cout<<"send\t"
+  //            << (int)pathId <<"\t"
+  //            << outgoing.GetPacketNumber () <<"\t"
+  //            << Simulator::Now().GetSeconds()<< std::endl;
+  // }
 
   
   NS_LOG_INFO ("Sending Packet Through UDP Socket");

@@ -53,11 +53,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wns3-two-flow-topo");
 
-static void
-CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
-{
-    *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldCwnd << "\t" << newCwnd << std::endl;
-}
+// static void
+// CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
+// {
+//     *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldCwnd << "\t" << newCwnd << std::endl;
+// }
 
 // static void
 // RewardChange (Ptr<OutputStreamWrapper> stream1, uint32_t oldReward, uint32_t newReward)
@@ -65,83 +65,67 @@ CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
 //     *stream1->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldReward << "\t" << newReward << std::endl;
 // }
 
-static void
-RTTChange (Ptr<OutputStreamWrapper> stream, Time oldValue, Time newValue)
-{
-    *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldValue.GetSeconds() << "\t" << newValue.GetSeconds()<< std::endl;
-}
-
-static void
-Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
-{
-    AsciiTraceHelper asciiTraceHelper;
-
-    std::ostringstream path0CW;
-    path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
-    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
-
-    std::ostringstream path1CW;
-    path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow1";
-    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
-
-    std::ostringstream path0rtt;
-    path0rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT0";
-    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0rtt.str().c_str()).GetN());
-
-    std::ostringstream path1rtt;
-    path1rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT1";
-    NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1rtt.str().c_str()).GetN());
-
-    std::ostringstream reward;
-    reward << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/MabRewardTrace";
-    // reward << "/NodeList/" << serverId << "/$ns3::QuicL5Protocol/StreamList/*/QuicStreamBase/RxBufferTrace";
-    NS_LOG_INFO("Matches cw " << Config::LookupMatches(reward.str().c_str()).GetN());
-
-    std::ostringstream file0CW;
-    file0CW << pathVersion << "-cwnd-change-0" << "" << finalPart;
-    std::ostringstream file1CW;
-    file1CW << pathVersion << "-cwnd-change-1"<< "" << finalPart;
-    std::ostringstream file0rtt;
-    file0rtt << pathVersion << "-rtt-change-0" << "" << finalPart;
-    std::ostringstream file1rtt;
-    file1rtt << pathVersion << "-rtt-change-1"<< "" << finalPart;
-    std::ostringstream fileReward;
-    fileReward << pathVersion << "-reward"<< "" << finalPart;
-
-
-    Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
-    Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
-
-    Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
-    Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
-
-    Ptr<OutputStreamWrapper> stream1 = asciiTraceHelper.CreateFileStream (fileReward.str ().c_str ());
-    Config::ConnectWithoutContext (reward.str ().c_str (), MakeBoundCallback(&CwndChange, stream1));
-
-    Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (file0rtt.str ().c_str ());
-    Config::ConnectWithoutContext (path0rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream2));
-
-    Ptr<OutputStreamWrapper> stream3 = asciiTraceHelper.CreateFileStream (file1rtt.str ().c_str ());
-    Config::ConnectWithoutContext (path1rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream3));
-
-}
+// static void
+// RTTChange (Ptr<OutputStreamWrapper> stream, Time oldValue, Time newValue)
+// {
+//     *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldValue.GetSeconds() << "\t" << newValue.GetSeconds()<< std::endl;
+// }
 
 // static void
-// TracesServer(uint32_t serverId, std::string pathVersion, std::string finalPart)
+// Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
 // {
 //     AsciiTraceHelper asciiTraceHelper;
- 
-//     std::ostringstream queueSize;
-//     queueSize << "/NodeList/" << serverId << "/$ns3::QuicL5Protocol/StreamList/1/QuicStreamBase/RxBufferTrace";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(queueSize.str().c_str()).GetN());
+
+//     std::ostringstream path0CW;
+//     path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
+//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
+
+//     std::ostringstream path1CW;
+//     path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow1";
+//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
+
+//     std::ostringstream path0rtt;
+//     path0rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT0";
+//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0rtt.str().c_str()).GetN());
+
+//     std::ostringstream path1rtt;
+//     path1rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT1";
+//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1rtt.str().c_str()).GetN());
+
+//     std::ostringstream reward;
+//     reward << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/MabRewardTrace";
+//     // reward << "/NodeList/" << serverId << "/$ns3::QuicL5Protocol/StreamList/*/QuicStreamBase/RxBufferTrace";
+//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(reward.str().c_str()).GetN());
 
 //     std::ostringstream file0CW;
-//     file0CW << pathVersion << "QUIC-stram-rxbuffer" << "" << finalPart;
+//     file0CW << pathVersion << "-cwnd-change-0" << "" << finalPart;
+//     std::ostringstream file1CW;
+//     file1CW << pathVersion << "-cwnd-change-1"<< "" << finalPart;
+//     std::ostringstream file0rtt;
+//     file0rtt << pathVersion << "-rtt-change-0" << "" << finalPart;
+//     std::ostringstream file1rtt;
+//     file1rtt << pathVersion << "-rtt-change-1"<< "" << finalPart;
+//     std::ostringstream fileReward;
+//     fileReward << pathVersion << "-reward"<< "" << finalPart;
+
 
 //     Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
-//     Config::ConnectWithoutContext (queueSize.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
+//     Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
+
+//     Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
+//     Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
+
+//     Ptr<OutputStreamWrapper> stream1 = asciiTraceHelper.CreateFileStream (fileReward.str ().c_str ());
+//     Config::ConnectWithoutContext (reward.str ().c_str (), MakeBoundCallback(&CwndChange, stream1));
+
+//     Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (file0rtt.str ().c_str ());
+//     Config::ConnectWithoutContext (path0rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream2));
+
+//     Ptr<OutputStreamWrapper> stream3 = asciiTraceHelper.CreateFileStream (file1rtt.str ().c_str ());
+//     Config::ConnectWithoutContext (path1rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream3));
 
 // }
+
 
 void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, Ptr<OutputStreamWrapper> stream)
 {
@@ -149,9 +133,7 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, P
     Ptr<Ipv4FlowClassifier> classing = DynamicCast<Ipv4FlowClassifier> (fmhelper->GetClassifier());
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats = flowStats.begin (); stats != flowStats.end (); ++stats)
     {
-        // Ipv4FlowClassifier::FiveTuple fiveTuple = classing->FindFlow (stats->first);
         if (stats->first == 1 || stats->first == 3){
-            // std::cout << " Flow: " << stats->first  << " Seconds: " << stats->second.timeLastRxPacket.GetSeconds()  << " Tx Bytes: " << stats->second.txBytes << " Received Bytes: " << stats->second.rxBytes << " First seconds: " << stats->second.timeFirstTxPacket.GetSeconds() << std::endl;
             *stream->GetStream () << stats->first  << "\t" << Simulator::Now().GetSeconds()/*->second.timeLastRxPacket.GetSeconds()*/ << "\t" << stats->second.rxBytes << "\t" << stats->second.rxPackets << "\t" << stats->second.lastDelay.GetMilliSeconds() << "\t" << stats->second.rxBytes*8/1024/1024/(stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstRxPacket.GetSeconds())  << std::endl;
         }
     }
@@ -159,26 +141,34 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, P
 }
 
 void
-ModifyLinkRate(NetDeviceContainer *ptp, DataRate lr/*, Time delay*/) {
+ModifyLinkRate(NetDeviceContainer *ptp, DataRate lr, Time delay) {
     StaticCast<PointToPointNetDevice>(ptp->Get(0))->SetDataRate(lr);
-    // StaticCast<PointToPointChannel>(StaticCast<PointToPointNetDevice>(ptp->Get(0))->GetChannel())->SetAttribute("Delay", TimeValue(delay));
+    StaticCast<PointToPointChannel>(StaticCast<PointToPointNetDevice>(ptp->Get(0))->GetChannel())->SetAttribute("Delay", TimeValue(delay));
 }
 
 int
 main (int argc, char *argv[])
 {
-    int schedulerType = MpQuicScheduler::ECF;
-    string rate0 = "5Mbps";
-    string rate1 = "10Mbps";
-    string delay0 = "100ms";
-    string delay1 = "10ms";
-    string myRandomNo = "800000";
+    int schedulerType = MpQuicScheduler::PEEKABOO;
+    
+    string myRandomNo = "5242880";
     string lossrate = "0.00001";
+
+    double rate0a = 5.0;
+    double rate1a = 10.0;
+    double delay0a = 50.0;
+    double delay1a = 10.0;
+    double rate0b = 5.0;
+    double rate1b = 10.0;
+    double delay0b = 50.0;
+    double delay1b = 10.0;    
+
     int bVar = 2;
     int bLambda = 100;
     int mrate = 52428800;
     int ccType = QuicSocketBase::OLIA;
     int mselect = 3;
+    int seed = 1;
     TypeId ccTypeId = MpQuicCongestionOps::GetTypeId ();
     CommandLine cmd;
 
@@ -187,11 +177,16 @@ main (int argc, char *argv[])
     cmd.AddValue ("BVar", "e.g. 100", bVar);
     cmd.AddValue ("BLambda", "e.g. 100", bLambda);
     cmd.AddValue ("MabRate", "e.g. 100", mrate);
-    cmd.AddValue ("Rate0", "e.g. 5Mbps", rate0);
-    cmd.AddValue ("Rate1", "e.g. 50Mbps", rate1);
-    cmd.AddValue ("Delay0", "e.g. 80ms", delay0);
-    cmd.AddValue ("Delay1", "e.g. 20ms", delay1);
+    cmd.AddValue ("Rate0a", "e.g. 5Mbps", rate0a);
+    cmd.AddValue ("Rate1a", "e.g. 50Mbps", rate1a);
+    cmd.AddValue ("Delay0a", "e.g. 80ms", delay0a);
+    cmd.AddValue ("Delay1a", "e.g. 20ms", delay1a);
+    cmd.AddValue ("Rate0b", "e.g. 5Mbps", rate0b);
+    cmd.AddValue ("Rate1b", "e.g. 50Mbps", rate1b);
+    cmd.AddValue ("Delay0b", "e.g. 80ms", delay0b);
+    cmd.AddValue ("Delay1b", "e.g. 20ms", delay1b);
     cmd.AddValue ("Size", "e.g. 80", myRandomNo);
+    cmd.AddValue ("Seed", "e.g. 80", seed);
     cmd.AddValue ("LossRate", "e.g. 0.0001", lossrate);
     cmd.AddValue ("Select", "e.g. 0.0001", mselect);
     cmd.AddValue ("CcType", "in use congestion control type (0 - QuicNewReno, 1 - OLIA)", ccType);
@@ -228,6 +223,7 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("Header", log_precision);
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
+    RngSeedManager::SetSeed (seed);  
 
     if (ccType == QuicSocketBase::OLIA){
         ccTypeId = MpQuicCongestionOps::GetTypeId ();
@@ -247,12 +243,7 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (ccTypeId));
     Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(schedulerType));   
     Config::SetDefault ("ns3::MpQuicScheduler::BlestVar", UintegerValue(bVar));   
-    Config::SetDefault ("ns3::MpQuicScheduler::BlestLambda", UintegerValue(bLambda));   
-    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ROUND_ROBIN));   
-    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ECF));   
-    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MIN_RTT));  
-    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::BLEST));  
-    // Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::MAB));   
+    Config::SetDefault ("ns3::MpQuicScheduler::BlestLambda", UintegerValue(bLambda));     
     Config::SetDefault ("ns3::MpQuicScheduler::MabRate", UintegerValue(mrate)); 
     Config::SetDefault ("ns3::MpQuicScheduler::Select", UintegerValue(mselect)); 
 
@@ -261,41 +252,27 @@ main (int argc, char *argv[])
     "RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"),
     "ErrorRate", DoubleValue (stod(lossrate)));
 
-    // Ptr<NormalRandomVariable> rateVal0 = CreateObject<NormalRandomVariable> ();
-    // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
-    // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
-
-    // Ptr<NormalRandomVariable> rateVal1 = CreateObject<NormalRandomVariable> ();
-    // rateVal1->SetAttribute ("Mean", DoubleValue (10.0));
-    // rateVal1->SetAttribute ("Variance", DoubleValue (0.4));
-
     Ptr<UniformRandomVariable> rateVal0 = CreateObject<UniformRandomVariable> ();
-    rateVal0->SetAttribute ("Min", DoubleValue (5));
-    rateVal0->SetAttribute ("Max", DoubleValue (6));
-    // rateVal0->SetAttribute ("Mean", DoubleValue (5.0));
-    // rateVal0->SetAttribute ("Variance", DoubleValue (0.4));
+    rateVal0->SetAttribute ("Min", DoubleValue (rate0a));
+    rateVal0->SetAttribute ("Max", DoubleValue (rate0b));
 
     Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
-    rateVal1->SetAttribute ("Min", DoubleValue (40));
-    rateVal1->SetAttribute ("Max", DoubleValue (41));
+    rateVal1->SetAttribute ("Min", DoubleValue (rate1a));
+    rateVal1->SetAttribute ("Max", DoubleValue (rate1b));
 
-    // Ptr<NormalRandomVariable> delay = CreateObject<NormalRandomVariable> ();
-    // delay->SetAttribute ("Mean", DoubleValue (50.0));
-    // delay->SetAttribute ("Variance", DoubleValue (0.5));
+    Ptr<UniformRandomVariable> delayVal0 = CreateObject<UniformRandomVariable> ();
+    delayVal0->SetAttribute ("Min", DoubleValue (delay0a));
+    delayVal0->SetAttribute ("Max", DoubleValue (delay0b));
 
-    // Ptr<NormalRandomVariable> delay = CreateObject<NormalRandomVariable> ();
-    // delay->SetAttribute ("Mean", DoubleValue (50.0));
-    // delay->SetAttribute ("Variance", DoubleValue (0.5));
+    Ptr<UniformRandomVariable> delayVal1 = CreateObject<UniformRandomVariable> ();
+    delayVal1->SetAttribute ("Min", DoubleValue (delay1a));
+    delayVal1->SetAttribute ("Max", DoubleValue (delay1b));
 
 
     int simulationEndTime = 20;
     int start_time = 1;
 
-    // Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
-    // uint32_t myRandomNo = x->GetInteger (80,90);
-    // uint32_t maxBytes = stoi(myRandomNo) * 104857.6;
     uint32_t maxBytes = stoi(myRandomNo);
-    // uint32_t maxBytes = 10000;
     
     NS_LOG_INFO ("Create nodes.");
     NodeContainer c;
@@ -334,13 +311,13 @@ main (int argc, char *argv[])
     // We create the channels first without any IP addressing information
     NS_LOG_INFO ("Create channels.");
     PointToPointHelper p2p;
-    p2p.SetDeviceAttribute ("DataRate", StringValue (rate0));
-    p2p.SetChannelAttribute ("Delay", StringValue (delay0));
+    p2p.SetDeviceAttribute ("DataRate", StringValue (std::to_string(rateVal0->GetValue())+"Mbps"));
+    p2p.SetChannelAttribute ("Delay", StringValue (std::to_string(delayVal0->GetValue())+"ms"));
     NetDeviceContainer d1d8 = p2p.Install (n1n8);
     d1d8.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
-    p2p.SetDeviceAttribute ("DataRate", StringValue (rate1));
-    p2p.SetChannelAttribute ("Delay", StringValue (delay1));
+    p2p.SetDeviceAttribute ("DataRate", StringValue (std::to_string(rateVal1->GetValue())+"Mbps"));
+    p2p.SetChannelAttribute ("Delay", StringValue (std::to_string(delayVal1->GetValue())+"ms"));
     NetDeviceContainer d6d9 = p2p.Install (n6n9);
     d6d9.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
@@ -408,49 +385,6 @@ main (int argc, char *argv[])
     // tables in the nodes.
     Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
     
-    // //background 1
-    // uint16_t port0 = 11;  // well-known echo port number
-    // BulkSendHelper source0 ("ns3::TcpSocketFactory",
-    //                     InetSocketAddress (i1i2.GetAddress (1), port0));
-    // // Set the amount of data to send in bytes.  Zero is unlimited.
-    // source0.SetAttribute ("MaxBytes", UintegerValue (0));
-    // ApplicationContainer sourceApps0 = source0.Install (c.Get (0));
-
-    // for (int i = 1; i < simulationEndTime; i++) {
-    //     sourceApps0.Start (Seconds (i));
-    //     sourceApps0.Stop (Seconds (i+0.3));
-    //     sourceApps0.Start (Seconds (i+0.6));
-    //     sourceApps0.Stop (Seconds (i+0.9));
-    // }
-    
-    // PacketSinkHelper sink0 ("ns3::TcpSocketFactory",
-    //                     InetSocketAddress (Ipv4Address::GetAny (), port0));
-    // ApplicationContainer sinkApps0 = sink0.Install (c.Get (2));
-    // sinkApps0.Start (Seconds (0.0));
-    // sinkApps0.Stop (Seconds(simulationEndTime));
-
- 
-    // //background2
-    // uint16_t port1 = 13;  // well-known echo port number
-    // // uint32_t maxBytes1 = 0;
-    // BulkSendHelper source1 ("ns3::TcpSocketFactory",
-    //                         InetSocketAddress (i6i7.GetAddress (1), port1));
-    // // Set the amount of data to send in bytes.  Zero is unlimited.
-    // source1.SetAttribute ("MaxBytes", UintegerValue (0));
-    // ApplicationContainer sourceApps1 = source1.Install (c.Get (3));
-    // for (int i = 1; i < simulationEndTime; i++) {
-    //     sourceApps1.Start (Seconds (i+0.1));
-    //     sourceApps1.Stop (Seconds (i+0.4));
-    //     sourceApps1.Start (Seconds (i+0.7));
-    //     sourceApps1.Stop (Seconds (i+1));
-    // }
-    // PacketSinkHelper sink1 ("ns3::TcpSocketFactory",
-    //                         InetSocketAddress (Ipv4Address::GetAny (), port1));
-    // ApplicationContainer sinkApps1 = sink1.Install (c.Get (7));
-    // sinkApps1.Start (Seconds (0.0));
-    // sinkApps1.Stop (Seconds(simulationEndTime));
-
-  
     uint16_t port2 = 9;  // well-known echo port number
     
     MpquicBulkSendHelper source ("ns3::QuicSocketFactory",
@@ -473,8 +407,8 @@ main (int argc, char *argv[])
 
     std::ostringstream file;
     file<<"./scheduler" << schedulerType;
-    Simulator::Schedule (Seconds (start_time+0.0000001), &Traces, c.Get (4)->GetId(),
-    file.str (), ".txt");
+    // Simulator::Schedule (Seconds (start_time+0.0000001), &Traces, c.Get (4)->GetId(),
+    // file.str (), ".txt");
 
     AsciiTraceHelper asciiTraceHelper;
     std::ostringstream fileName;
@@ -488,9 +422,8 @@ main (int argc, char *argv[])
     
 
     for (double i = 1; i < simulationEndTime; i = i+0.1){
-        Simulator::Schedule (Seconds (i), &ModifyLinkRate, &d1d8  , DataRate(std::to_string(rateVal0->GetValue())+"Mbps"));
-        // Time::FromInteger(delay->GetValue(), Time::MS)
-        Simulator::Schedule (Seconds (i), &ModifyLinkRate, &d6d9  , DataRate(std::to_string(rateVal1->GetValue())+"Mbps"));
+        Simulator::Schedule (Seconds (i), &ModifyLinkRate, &d1d8  , DataRate(std::to_string(rateVal0->GetValue())+"Mbps"),  Time::FromInteger(delayVal0->GetValue(), Time::MS));
+        Simulator::Schedule (Seconds (i), &ModifyLinkRate, &d6d9  , DataRate(std::to_string(rateVal1->GetValue())+"Mbps"),Time::FromInteger(delayVal1->GetValue(), Time::MS));
     }
 
 
@@ -516,36 +449,13 @@ main (int argc, char *argv[])
         << "\n Rx Bytes: " << i->second.rxBytes
         << "\n DelaySum(s): " << i->second.delaySum.GetSeconds()
         << "\n rxPackets: " << i->second.rxPackets);
-        
-        // std::cout << "Flow " << i->first  << " (" << t.sourceAddress << " -> " << t.destinationAddress << ")\n";
-        // std::cout << "  Tx Bytes:  " << i->second.txBytes << "\n"; 
-        // std::cout << "  Tx time: " << (i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds()<<"\n";  
-        // std::cout << " First tx seconds: " << i->second.timeFirstTxPacket.GetSeconds() << std::endl;
-        // std::cout << " First rx seconds: " << i->second.timeFirstRxPacket.GetSeconds() << std::endl;
-        // std::cout << " Last tx Seconds: " << i->second.timeLastTxPacket.GetSeconds()  << std::endl;
-        // std::cout << " Last rx Seconds: " << i->second.timeLastRxPacket.GetSeconds()  << std::endl;
-        // std::cout << " Tx Bytes: " << i->second.txBytes << std::endl;
-        // std::cout << " Rx Bytes: " << i->second.rxBytes << std::endl;
-        // std::cout << " Dropped Bytes vector size: " << i->second.bytesDropped.size() << std::endl;
-        // std::cout << " Dropped Packets vector size: " << i->second.packetsDropped.size() << std::endl;
-        // std::cout << " Rx Duration(s): " << (i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstRxPacket.GetSeconds()) << std::endl;
-        // std::cout << " RX Goodput: " << i->second.rxBytes * 8.0 / 1024 / 1024 /(i->second.timeLastRxPacket.GetSeconds() - i->second.timeFirstRxPacket.GetSeconds()) << " Mbps\n"; 
-        // std::cout << " DelaySum(s): " << i->second.delaySum.GetSeconds() << std::endl;
-        // std::cout << " rxPackets: " << i->second.rxPackets << std::endl;
-        // std::cout << " Avg. Delay: " << i->second.delaySum.GetSeconds()/i->second.rxPackets << std::endl;
-
-
-        // std::cout << " jitterSum: " << i->second.jitterSum.GetSeconds() << std::endl;
-        // std::cout << " lastDelay: " << i->second.lastDelay.GetSeconds() << std::endl;
-        // std::cout << " lostPackets number: " << i->second.lostPackets << std::endl;
-        // std::cout << " timesForwarded: " << i->second.timesForwarded << std::endl;
         }
         
     }
 
     NS_LOG_INFO("\nfile size: "<<maxBytes<< "Bytes, scheduler type " <<schedulerType<<
-                "\npath 0: rate "<< rate0 <<", delay "<< delay0 << 
-                "\npath 1: rate " << rate1 << ", delay " << delay1 );
+                "\npath 0: rate "<< rate0a <<", delay "<< delay0a << 
+                "\npath 1: rate " << rate1a << ", delay " << delay1a );
 
     // std::cout
     //     << "\n\n#################### RUN FINISHED ####################\n\n\n";

@@ -583,7 +583,7 @@ uint32_t QuicSocketTxBuffer::Retransmission (SequenceNumber32 packetNumber, uint
           retx->m_packet = Create<Packet>();
           NS_LOG_INFO (
             "Retx packet " << item->m_packetNumber << " as " << retx->m_packetNumber.GetValue ());
-          std::cout<<"retx\t"<<(int)pathId<<"\t"<<item->m_packetNumber << "\t" << retx->m_packetNumber.GetValue ()<< std::endl;
+          // std::cout<<"retx\t"<<(int)pathId<<"\t"<<item->m_packetNumber << "\t" << retx->m_packetNumber.GetValue ()<< std::endl;
           QuicSocketTxItem::MergeItems (*retx, *item);
           retx->m_lost = false;
           retx->m_retrans = true;

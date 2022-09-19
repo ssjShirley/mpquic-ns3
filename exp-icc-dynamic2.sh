@@ -38,4 +38,4 @@ do
 
 done
 
-python3 results-icc/draw.py $DIR
+# python3 results-icc/draw.py $DIR

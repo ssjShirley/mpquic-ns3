@@ -2575,6 +2575,8 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
             }
         }
       m_scheduler->UpdateRewardMab(pathId,m_txBuffer->GetLost (pathId), m_txBuffer->BytesInFlight (pathId), lastAcked->m_round);
+      m_scheduler->PeekabooReward(pathId, ackedPackets, lastAckTime);
+      lastAckTime = Now();
     }
   else
     {

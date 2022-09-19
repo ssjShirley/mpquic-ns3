@@ -173,8 +173,8 @@ MpQuicScheduler::GetNextPathIdToUse()
       tosend = Ecf();
       break;
 
-    case MAB:
-      tosend = Mab();
+    case PEEKABOO:
+      tosend = Peekaboo();
       break;
 
     case MAB_DELAY:
@@ -389,68 +389,175 @@ MpQuicScheduler::Ecf() //only allow two subflows
   // std::cout <<"In use pid: " << unsigned(m_lastUsedPathId) <<std::endl;
 }
 
+// std::vector<double>
+// MpQuicScheduler::Mab()
+// {
+//   NS_LOG_FUNCTION (this);
+//   std::vector<double> tosend(m_subflows.size(), 0.0);
+//   if (m_subflows.size() < 2){
+//     m_lastUsedPathId = 0;
+//     tosend[m_lastUsedPathId] = 1.0;
+//     return tosend;
+//   }
+
+//   // std::cout<<"select 1"<<std::endl;
+//   uint32_t reward;
+//   double n;
+//   uint8_t rPid = 0;
+//   uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
+//   Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
+//   if (m_socket->AvailableWindow (0) > 0){
+//     reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+//   } else {
+//     n = m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+//     // n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
+//     reward = mss/rtt.GetSeconds() * n;
+//   }
+//   m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
+//   double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
+//   double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
+//   double_t maxAction = m_rewards[0]/m_rate + normal;
+//   for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
+//   {
+//     mss = m_subflows[pid]->m_tcb->m_cWnd.Get();
+//     rtt = m_subflows[pid]->m_tcb->m_lastRtt;
+//     if (m_socket->AvailableWindow (pid) > 0){
+//       reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+//     } else {
+//       n = 1 + m_socket->GetBytesInBuffer()/m_subflows[pid]->m_tcb->m_cWnd.Get();
+//       reward = mss/(n*rtt.GetSeconds());
+//     }
+//     if(m_rewards.size() < m_subflows.size()){
+//       m_rewards.push_back(0);
+//     }
+//     m_rewards[pid] = (m_rewards[pid]*(m_subflows[pid]->m_rounds) + reward)/(m_subflows[pid]->m_rounds+1);
+//     normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
+//     double_t newAction = m_rewards[pid]/m_rate + normal;
+//     if (m_rewards[pid] == 0 && newAction == 1) { //when new path just established
+//       rPid = pid;
+//     }
+//     if (newAction >= maxAction){
+//       maxAction = newAction;
+//       rPid = pid;
+//     }
+//   }
+//   m_lastUsedPathId = rPid;
+//   m_subflows[m_lastUsedPathId]->m_rounds++;
+  
+//   m_reward = m_rewards[rPid];
+//   m_rounds++;
+  
+//   tosend[m_lastUsedPathId] = 1.0;
+//   return tosend;
+// }
 
 std::vector<double>
-MpQuicScheduler::Mab()
+MpQuicScheduler::Peekaboo()
 {
   NS_LOG_FUNCTION (this);
+
+  if (isFirstTime) 
+    {iniH2(); isFirstTime = false;}
+
   std::vector<double> tosend(m_subflows.size(), 0.0);
-  if (m_subflows.size() < 2){
+  if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
     tosend[m_lastUsedPathId] = 1.0;
     return tosend;
   }
 
   // std::cout<<"select 1"<<std::endl;
-  uint32_t reward;
-  double n;
-  uint8_t rPid = 0;
-  uint32_t mss = m_subflows[0]->m_tcb->m_cWnd.Get(); //m_socket->GetSegSize(); //
-  Time rtt = m_subflows[0]->m_tcb->m_lastRtt;
-  if (m_socket->AvailableWindow (0) > 0){
-    reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
+  if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
+    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
+  } 
+  
+  
+
+  uint8_t fastPathId = 1;
+  if (m_subflows[0]->m_tcb->m_lastRtt > m_subflows[1]->m_tcb->m_lastRtt){
+    fastPathId = 1;
   } else {
-    n = m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
-    // n = 1 + m_socket->GetBytesInBuffer()/m_subflows[0]->m_tcb->m_cWnd.Get();
-    reward = mss/rtt.GetSeconds() * n;
+    fastPathId = 0;
   }
-  m_rewards[0] = (m_rewards[0]*(m_subflows[0]->m_rounds) + reward)/(m_subflows[0]->m_rounds+1);
-  double delta = 1+ m_rounds * std::log(m_rounds) * std::log(m_rounds);
-  double_t normal = std::sqrt(2*std::log(delta)/m_subflows[0]->m_rounds);
-  double_t maxAction = m_rewards[0]/m_rate + normal;
-  for (uint8_t pid = 1; pid < m_subflows.size(); pid++)
-  {
-    mss = m_subflows[pid]->m_tcb->m_cWnd.Get();
-    rtt = m_subflows[pid]->m_tcb->m_lastRtt;
-    if (m_socket->AvailableWindow (pid) > 0){
-      reward = mss/rtt.GetSeconds(); // * 1/std::sqrt(m_lostPackets)
-    } else {
-      n = 1 + m_socket->GetBytesInBuffer()/m_subflows[pid]->m_tcb->m_cWnd.Get();
-      reward = mss/(n*rtt.GetSeconds());
-    }
-    if(m_rewards.size() < m_subflows.size()){
-      m_rewards.push_back(0);
-    }
-    m_rewards[pid] = (m_rewards[pid]*(m_subflows[pid]->m_rounds) + reward)/(m_subflows[pid]->m_rounds+1);
-    normal = std::sqrt(2*std::log(delta)/m_subflows[pid]->m_rounds);
-    double_t newAction = m_rewards[pid]/m_rate + normal;
-    if (m_rewards[pid] == 0 && newAction == 1) { //when new path just established
-      rPid = pid;
-    }
-    if (newAction >= maxAction){
-      maxAction = newAction;
-      rPid = pid;
-    }
+
+  uint8_t actionId;
+  if (m_socket->AvailableWindow (fastPathId) > 0){
+    m_lastUsedPathId = fastPathId;
+    actionId = fastPathId;
+  }else {
+    double H_max = 0.0;
+    uint8_t c_id = ctxClass(currBw, currRtt, currLoss);
+
+    for (int j = 0; j < 2; j++)
+      {
+        if (H_max < H2[c_id][j])
+        {
+          actionId = j;
+          H_max = H2[c_id][j];
+        }
+      }
+    lastCtxId2 = c_id; 
+    lastActId2 = actionId;
+
+
+    // std::cout<<" c_id: "<<(int)c_id
+    //           <<" actionId: "<< (int)actionId
+    //           <<" N[c_id][actionId]++: "<<N2[c_id][actionId]
+    //           <<std::endl;
+
+
+    totalN2++;
+    N2[c_id][actionId]++; 
+    tosend[actionId] = 1.0;
   }
-  m_lastUsedPathId = rPid;
-  m_subflows[m_lastUsedPathId]->m_rounds++;
-  
-  m_reward = m_rewards[rPid];
-  m_rounds++;
-  
-  tosend[m_lastUsedPathId] = 1.0;
+
   return tosend;
 }
+
+
+void
+MpQuicScheduler::PeekabooReward(uint8_t pathId, std::vector<ns3::Ptr<ns3::QuicSocketTxItem>> ackedPackets, Time lastActTime)
+{
+  NS_LOG_FUNCTION (this);
+ 
+  rtt[pathId] = m_subflows[pathId]->m_tcb->m_lastRtt.Get().GetDouble();
+  if (rtt[0]==0) rtt[0] = 20;     // initialize rtt0 with 20ms
+  if (rtt[1]==0) rtt[1] = 20;     // initialize rtt0 with 20ms
+
+  for (auto i = ackedPackets.rbegin(); i != ackedPackets.rend() and !ackedPackets.empty ();++i) 
+  {
+
+    double rtt_f = std::min(rtt[0], rtt[1]);
+    double rtt_s = std::max(rtt[0], rtt[1]);
+
+    T_r = std::max(2*rtt_f, rtt_s);
+    T_e = (Now () - lastActTime).GetMilliSeconds();
+    if (T_e < 3 * T_r)
+      {
+        double r = 1460 * 1000 * 1e9/ (Now() - (*i)->m_firstSentTime).GetDouble();
+        R = R + r * g;
+        if (T_e <= T_r)
+          {
+            g = 0.9 * g;
+          }
+        else if (T_e <= 2 * T_r)
+          {
+            g = 0.7 * g;
+          }
+        else
+          {
+            g = 0.5 * g;
+          }
+      }
+  }
+  rewardTotal2[lastCtxId2][lastActId2] += R;
+  if (N2[lastCtxId2][lastActId2] == 0) N2[lastCtxId2][lastActId2] = 1;  // at the first time, UCB function is not launched, so N[c_id][a_id] = 0
+  H2[lastCtxId2][lastActId2] = rewardTotal2[lastCtxId2][lastActId2] / N2[lastCtxId2][lastActId2] + 0.8 * std::sqrt( (2 * std::log(totalN2)) / N2[lastCtxId2][lastActId2]);
+  
+}
+
 
 
 std::vector<double>
@@ -633,5 +740,81 @@ MpQuicScheduler::SetNumOfLostPackets(uint16_t lost){
 }
 
 
+
+uint8_t
+MpQuicScheduler::ctxClass(double Bw, double rtt, double lossrate)   //tag the context with typeID [0-26] 
+{
+  NS_LOG_FUNCTION (this);
+  uint8_t ctxID;
+  int i,j,k;
+  if (Bw <= 1e6) i = 1;
+  else if (Bw > 1e6 && Bw <= 1e7 ) i = 2;
+  else i = 3;
+
+  if (rtt <= 100) j = 1;
+  else if (rtt > 100 && rtt <= 300 ) j = 2;
+  else j = 3;
+
+  if (lossrate <= 1e-5) k = 1;
+  else if (lossrate > 1e-5 && lossrate <= 1e-4 ) k = 2;
+  else k = 3;
+
+  std::string str = std::to_string(i)+std::to_string(j)+std::to_string(k);
+
+  if (ctxIdPair.empty())
+    {
+      int length = 3;
+      char str[] = {'1', '2', '3'};
+      int n = sizeof str;
+      Permutation_With_Repetition(str, "", n, length);  //Note: this function works on all cases and not just the case above
+    }
+  auto result = ctxIdPair.find(str);
+  if (result == ctxIdPair.end())   //no found this combination, trigger errors in the existing addr_id map
+    {
+      NS_ABORT_MSG ("@QuicSocketTxBuffer::ctxClass@ context classification errors !!!");
+    }
+  else
+    {
+      ctxID = ctxIdPair[str];
+    }
+  return ctxID;
+
+}
+
+
+void
+MpQuicScheduler::iniH2()
+{
+  for (int i = 0; i < 27; i++)
+    for (int j = 0; j < 2; j++)
+      {
+        H2[i][j] = 5e7;
+      }
+}
+
+
+void 
+MpQuicScheduler::Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length)
+{
+  NS_LOG_FUNCTION (this);
+  if (length == 1)
+    {
+      for (int j = 0; j < n; j++)
+        {
+          // std::cout << prefix + str[j] << std::endl;
+          ctxIdPair.insert(std::pair<std::string, uint8_t> (prefix + str[j], c_index++));
+        }
+      
+    }//Base case: lenght = 1, print the string "lenght" times + the remaining letter
+
+  else
+    {
+        // One by one add all characters from "str" and recursively call for "lenght" equals to "lenght"-1
+        for (int i = 0; i < n; i++)
+        // Next character of input added
+        Permutation_With_Repetition(str, prefix + str[i], n, length - 1);
+        // "lenght" is decreased, because we have added a new character
+    }
+}
 
 } // namespace ns3
