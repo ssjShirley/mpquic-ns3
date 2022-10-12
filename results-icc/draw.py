@@ -36,7 +36,7 @@ rr = help(0,dir)
 minrtt = help(1,dir)
 blest = help(2,dir)  
 ecf = help(3,dir)
-pee = help(4,dir)
+# pee = help(4,dir)
 mab = help(5,dir)  
 
 # print(rr)
@@ -51,7 +51,7 @@ plt.plot(rr['Time'], rr['goodput'], color="green", label="RR", linewidth=2)
 plt.plot(minrtt['Time'], minrtt['goodput'], color="red", label="Min-RTT", linewidth=2)
 plt.plot(blest['Time'], blest['goodput'], color="blue", label="BLEST", linewidth=2)
 plt.plot(ecf['Time'], ecf['goodput'], color="yellow", label="ECF", linewidth=2)
-plt.plot(pee['Time'], pee['goodput'], color="black", label="Peekaboo", linewidth=2)
+# plt.plot(pee['Time'], pee['goodput'], color="black", label="Peekaboo", linewidth=2)
 plt.plot(mab['Time'], mab['goodput'], color="orange", label="MAB", linewidth=2)
 
 # group_labels = ['1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9']  # x轴刻度的标识
