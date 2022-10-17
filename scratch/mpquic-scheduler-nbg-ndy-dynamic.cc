@@ -269,7 +269,7 @@ main (int argc, char *argv[])
     delayVal1->SetAttribute ("Max", DoubleValue (delay1b));
 
 
-    int simulationEndTime = 20;
+    int simulationEndTime = 30;
     int start_time = 1;
 
     uint32_t maxBytes = stoi(myRandomNo);

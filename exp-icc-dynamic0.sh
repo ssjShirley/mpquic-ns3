@@ -1,7 +1,7 @@
 
 #!/bin/bash
 
-FOLD="dynamic0-$1"
+FOLD="peedynamic0-$1"
 DIR="results-icc/$FOLD/"
 RATE0a="5.0"
 RATE0b="5.05"
@@ -17,9 +17,8 @@ BVar="0"
 Size=5242800
 SEED=$1
 
-# mkdir ${DIR}
-for i in 4
-# for i in 2
+mkdir ${DIR}
+for i in {0..5}
 do
     LOG="$i"
     LOG1="scheduler${LOG}-queue.txt"

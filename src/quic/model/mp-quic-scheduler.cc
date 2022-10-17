@@ -41,7 +41,10 @@
 #include "mp-quic-scheduler.h"
 #include "ns3/random-variable-stream.h"
 
+#include <eigen3/Eigen/Dense>
 
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 namespace ns3 {
 
@@ -455,110 +458,164 @@ std::vector<double>
 MpQuicScheduler::Peekaboo()
 {
   NS_LOG_FUNCTION (this);
-
-  if (isFirstTime) 
-    {iniH2(); isFirstTime = false;}
-
+  uint8_t K = m_subflows.size();
+  if(EPR.size() < K)
+  {
+    EPR.push_back(0.0);
+    A.push_back(MatrixXd::Identity(6,6));
+    b.push_back(VectorXd::Constant(6,0));
+  }
   std::vector<double> tosend(m_subflows.size(), 0.0);
+
   if (m_subflows.size() <= 1){
     m_lastUsedPathId = 0;
     tosend[m_lastUsedPathId] = 1.0;
     return tosend;
   }
-
   // std::cout<<"select 1"<<std::endl;
   if (m_subflows[1]->m_tcb->m_lastRtt.Get().GetSeconds() == 0) {
-    m_lastUsedPathId = (m_lastUsedPathId + 1) % m_subflows.size();
+    m_lastUsedPathId = 1;
     tosend[m_lastUsedPathId] = 1.0;
     return tosend;
-  } 
-  
-  
+  }
 
+  Time rttS;
+  Time rttF;
   uint8_t fastPathId = 1;
-  if (m_subflows[0]->m_tcb->m_lastRtt > m_subflows[1]->m_tcb->m_lastRtt){
+  uint8_t slowPathId = 0;
+
+  if (m_subflows[0]->m_tcb->m_lastRtt >= m_subflows[1]->m_tcb->m_lastRtt){
+    rttS = m_subflows[0]->m_tcb->m_lastRtt;
+    rttF = m_subflows[1]->m_tcb->m_lastRtt;
+    slowPathId = 0;
     fastPathId = 1;
   } else {
+    rttS = m_subflows[1]->m_tcb->m_lastRtt;
+    rttF = m_subflows[0]->m_tcb->m_lastRtt;
+    slowPathId = 1;
     fastPathId = 0;
   }
 
-  uint8_t actionId;
   if (m_socket->AvailableWindow (fastPathId) > 0){
     m_lastUsedPathId = fastPathId;
-    actionId = fastPathId;
   }else {
-    double H_max = 0.0;
-    uint8_t c_id = ctxClass(currBw, currRtt, currLoss);
+    for (int i = 0; i < 2; i++){
+      MatrixXd zeta = A[i]*b[i];
+      EPR[i] = (peek_x.transpose() * zeta).value() + 0.8 * std::sqrt(peek_x.transpose() * A[i].inverse() * peek_x);
+    }
 
-    for (int j = 0; j < 2; j++)
-      {
-        if (H_max < H2[c_id][j])
-        {
-          actionId = j;
-          H_max = H2[c_id][j];
-        }
-      }
-    lastCtxId2 = c_id; 
-    lastActId2 = actionId;
+    if(EPR[fastPathId] > EPR[slowPathId]){
+      m_lastUsedPathId = fastPathId; //wait
+    } else {
+      m_lastUsedPathId = slowPathId; //transmit on slow path
+    }
 
+    A[m_lastUsedPathId] = A[m_lastUsedPathId] + peek_x * peek_x.transpose();
+    b[m_lastUsedPathId] = b[m_lastUsedPathId] + R * peek_x;
 
-    // std::cout<<" c_id: "<<(int)c_id
-    //           <<" actionId: "<< (int)actionId
-    //           <<" N[c_id][actionId]++: "<<N2[c_id][actionId]
-    //           <<std::endl;
-
-
-    totalN2++;
-    N2[c_id][actionId]++; 
-    tosend[actionId] = 1.0;
   }
 
+  tosend[m_lastUsedPathId] = 1.0;
   return tosend;
+
 }
 
 
 void
-MpQuicScheduler::PeekabooReward(uint8_t pathId, std::vector<ns3::Ptr<ns3::QuicSocketTxItem>> ackedPackets, Time lastActTime)
+MpQuicScheduler::PeekabooReward(uint8_t pathId, Time lastActTime)
 {
   NS_LOG_FUNCTION (this);
- 
+  
   rtt[pathId] = m_subflows[pathId]->m_tcb->m_lastRtt.Get().GetDouble();
-  if (rtt[0]==0) rtt[0] = 20;     // initialize rtt0 with 20ms
-  if (rtt[1]==0) rtt[1] = 20;     // initialize rtt0 with 20ms
-
-  for (auto i = ackedPackets.rbegin(); i != ackedPackets.rend() and !ackedPackets.empty ();++i) 
-  {
-
-    double rtt_f = std::min(rtt[0], rtt[1]);
-    double rtt_s = std::max(rtt[0], rtt[1]);
-
-    T_r = std::max(2*rtt_f, rtt_s);
-    T_e = (Now () - lastActTime).GetMilliSeconds();
-    if (T_e < 3 * T_r)
-      {
-        double r = 1460 * 1000 * 1e9/ (Now() - (*i)->m_firstSentTime).GetDouble();
-        R = R + r * g;
-        if (T_e <= T_r)
-          {
-            g = 0.9 * g;
-          }
-        else if (T_e <= 2 * T_r)
-          {
-            g = 0.7 * g;
-          }
-        else
-          {
-            g = 0.5 * g;
-          }
-      }
+  if (rtt[0]==0) rtt[0] = 10;     // initialize rtt0 with 20ms
+  if (rtt[1]==0) rtt[1] = 10;     // initialize rtt0 with 20ms
+  if(pathId == 0){
+    peek_x[0] = m_subflows[pathId]->m_tcb->m_cWnd.Get()/rtt[pathId];
+    peek_x[1] = m_subflows[pathId]->m_tcb->m_bytesInFlight.Get()/rtt[pathId];
+    peek_x[2] = m_subflows[pathId]->m_tcb->m_cWnd.Get()/rtt[pathId];
+  } else{
+    peek_x[3] = m_subflows[pathId]->m_tcb->m_cWnd.Get()/rtt[pathId];
+    peek_x[4] = m_subflows[pathId]->m_tcb->m_bytesInFlight.Get()/rtt[pathId];
+    peek_x[5] = m_subflows[pathId]->m_tcb->m_cWnd.Get()/rtt[pathId];
   }
-  rewardTotal2[lastCtxId2][lastActId2] += R;
-  if (N2[lastCtxId2][lastActId2] == 0) N2[lastCtxId2][lastActId2] = 1;  // at the first time, UCB function is not launched, so N[c_id][a_id] = 0
-  H2[lastCtxId2][lastActId2] = rewardTotal2[lastCtxId2][lastActId2] / N2[lastCtxId2][lastActId2] + 0.8 * std::sqrt( (2 * std::log(totalN2)) / N2[lastCtxId2][lastActId2]);
+
+
+  double rtt_f = std::min(rtt[0], rtt[1]);
+  double rtt_s = std::max(rtt[0], rtt[1]);
+
+  T_r = std::max(2*rtt_f, rtt_s);
+  T_e = (Now () - lastActTime).GetMilliSeconds();
+  if (T_e < 3 * T_r)
+    {
+      // double r = 1460 * 1000 * 1e9/ (Now() - (*i)->m_firstSentTime).GetDouble();
+      double r = 1460 * 1000 * 1e9/ (Now() - lastActTime).GetDouble();
+      R = R + r * g;
+      if (T_e <= T_r)
+        {
+          g = 0.9 * g;
+        }
+      else if (T_e <= 2 * T_r)
+        {
+          g = 0.7 * g;
+        }
+      else
+        {
+          g = 0.5 * g;
+        }
+    }
+  
   
 }
 
+// uint8_t
+// MpQuicScheduler::ctxClass(uint8_t pathId, double rtt)   //tag the context with typeID [0-26] 
+// {
+//   NS_LOG_FUNCTION (this);
+  
+  
 
+//   m = (m + MatrixXd::Constant(3,3,1.2)) * 50;
+//   std::cout << "m =" << std::endl << m << std::endl;
+//   VectorXd v(3);
+//   v << 1, 2, 3;
+//   std::cout << "m * v =" << std::endl << m * v << std::endl;
+
+
+//   uint8_t ctxID = 0;
+  // int i,j,k;
+  // if (Bw <= 1e6) i = 1;
+  // else if (Bw > 1e6 && Bw <= 1e7 ) i = 2;
+  // else i = 3;
+
+  // if (rtt <= 100) j = 1;
+  // else if (rtt > 100 && rtt <= 300 ) j = 2;
+  // else j = 3;
+
+  // if (lossrate <= 1e-5) k = 1;
+  // else if (lossrate > 1e-5 && lossrate <= 1e-4 ) k = 2;
+  // else k = 3;
+
+  // std::string str = std::to_string(i)+std::to_string(j)+std::to_string(k);
+
+  // if (ctxIdPair.empty())
+  //   {
+  //     int length = 3;
+  //     char str[] = {'1', '2', '3'};
+  //     int n = sizeof str;
+  //     Permutation_With_Repetition(str, "", n, length);  //Note: this function works on all cases and not just the case above
+  //   }
+  // auto result = ctxIdPair.find(str);
+  // if (result == ctxIdPair.end())   //no found this combination, trigger errors in the existing addr_id map
+  //   {
+  //     NS_ABORT_MSG ("@QuicSocketTxBuffer::ctxClass@ context classification errors !!!");
+  //   }
+  // else
+  //   {
+  //     ctxID = ctxIdPair[str];
+  //   }
+//   return ctxID;
+
+// }
 
 std::vector<double>
 MpQuicScheduler::MabDelay()
@@ -741,80 +798,42 @@ MpQuicScheduler::SetNumOfLostPackets(uint16_t lost){
 
 
 
-uint8_t
-MpQuicScheduler::ctxClass(double Bw, double rtt, double lossrate)   //tag the context with typeID [0-26] 
-{
-  NS_LOG_FUNCTION (this);
-  uint8_t ctxID;
-  int i,j,k;
-  if (Bw <= 1e6) i = 1;
-  else if (Bw > 1e6 && Bw <= 1e7 ) i = 2;
-  else i = 3;
-
-  if (rtt <= 100) j = 1;
-  else if (rtt > 100 && rtt <= 300 ) j = 2;
-  else j = 3;
-
-  if (lossrate <= 1e-5) k = 1;
-  else if (lossrate > 1e-5 && lossrate <= 1e-4 ) k = 2;
-  else k = 3;
-
-  std::string str = std::to_string(i)+std::to_string(j)+std::to_string(k);
-
-  if (ctxIdPair.empty())
-    {
-      int length = 3;
-      char str[] = {'1', '2', '3'};
-      int n = sizeof str;
-      Permutation_With_Repetition(str, "", n, length);  //Note: this function works on all cases and not just the case above
-    }
-  auto result = ctxIdPair.find(str);
-  if (result == ctxIdPair.end())   //no found this combination, trigger errors in the existing addr_id map
-    {
-      NS_ABORT_MSG ("@QuicSocketTxBuffer::ctxClass@ context classification errors !!!");
-    }
-  else
-    {
-      ctxID = ctxIdPair[str];
-    }
-  return ctxID;
-
-}
 
 
-void
-MpQuicScheduler::iniH2()
-{
-  for (int i = 0; i < 27; i++)
-    for (int j = 0; j < 2; j++)
-      {
-        H2[i][j] = 5e7;
-      }
-}
+
+// void
+// MpQuicScheduler::iniH2()
+// {
+//   for (int i = 0; i < 27; i++)
+//     for (int j = 0; j < 2; j++)
+//       {
+//         H2[i][j] = 5e7;
+//       }
+// }
 
 
-void 
-MpQuicScheduler::Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length)
-{
-  NS_LOG_FUNCTION (this);
-  if (length == 1)
-    {
-      for (int j = 0; j < n; j++)
-        {
-          // std::cout << prefix + str[j] << std::endl;
-          ctxIdPair.insert(std::pair<std::string, uint8_t> (prefix + str[j], c_index++));
-        }
+// void 
+// MpQuicScheduler::Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length)
+// {
+//   NS_LOG_FUNCTION (this);
+//   if (length == 1)
+//     {
+//       for (int j = 0; j < n; j++)
+//         {
+//           // std::cout << prefix + str[j] << std::endl;
+//           ctxIdPair.insert(std::pair<std::string, uint8_t> (prefix + str[j], c_index++));
+//         }
       
-    }//Base case: lenght = 1, print the string "lenght" times + the remaining letter
+//     }//Base case: lenght = 1, print the string "lenght" times + the remaining letter
 
-  else
-    {
-        // One by one add all characters from "str" and recursively call for "lenght" equals to "lenght"-1
-        for (int i = 0; i < n; i++)
-        // Next character of input added
-        Permutation_With_Repetition(str, prefix + str[i], n, length - 1);
-        // "lenght" is decreased, because we have added a new character
-    }
-}
+//   else
+//     {
+//         // One by one add all characters from "str" and recursively call for "lenght" equals to "lenght"-1
+//         for (int i = 0; i < n; i++)
+//         // Next character of input added
+//         Permutation_With_Repetition(str, prefix + str[i], n, length - 1);
+//         // "lenght" is decreased, because we have added a new character
+//     }
+// }
 
 } // namespace ns3

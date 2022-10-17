@@ -1,7 +1,7 @@
 
 #!/bin/bash
 
-FOLD="dynamic1-$1"
+FOLD="peedynamic1-$1"
 DIR="results-icc/$FOLD/"
 RATE0a="5.0"
 RATE0b="5.25"
@@ -18,7 +18,7 @@ Size=5242800
 SEED=$1
 
 mkdir ${DIR}
-for i in 0 1 2 3 5
+for i in 0 1 2 3 4 5
 # for i in 2
 do
     LOG="$i"
