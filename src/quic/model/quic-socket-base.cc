@@ -234,10 +234,10 @@ QuicSocketBase::GetTypeId (void)
                    BooleanValue (false),
                    MakeBooleanAccessor (&QuicSocketBase::m_enableMultipath),
                    MakeBooleanChecker ())
-    .AddAttribute ("StreamSize", "Maximum StreamId for Unidirectional Streams",
-                   UintegerValue (2),                                  // according to the QUIC RFC this value should default to 0, and be increased by the client/server
-                   MakeUintegerAccessor (&QuicSocketBase::m_streamSize),
-                   MakeUintegerChecker<uint8_t> ())
+    // .AddAttribute ("StreamSize", "Maximum StreamId for Unidirectional Streams",
+    //                UintegerValue (2),                                  // according to the QUIC RFC this value should default to 0, and be increased by the client/server
+    //                MakeUintegerAccessor (&QuicSocketBase::m_streamSize),
+    //                MakeUintegerChecker<uint8_t> ())
     .AddAttribute ("CcType",
                    "define the type of the scheduler",
                    IntegerValue (QuicNewReno),
@@ -963,7 +963,7 @@ QuicSocketBase::Send (Ptr<Packet> p)
       return 0;
     }
 
-  int data = m_quicl5->DispatchSend (p, m_streamSize);
+  int data = m_quicl5->DispatchSend (p);
 
   return data;
 }
@@ -2474,19 +2474,12 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
 
   // Find lost packets
   std::vector<Ptr<QuicSocketTxItem> > lostPackets = m_txBuffer->DetectLostPackets (pathId);
-<<<<<<< HEAD
-=======
 
-
->>>>>>> scheduler/wns3-2023
   if (m_appCloseSentListNoEmpty && m_txBuffer->SentListIsEmpty()){
     Close();
   }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> scheduler/wns3-2023
   // Recover from losses
   if (!lostPackets.empty ())
     {

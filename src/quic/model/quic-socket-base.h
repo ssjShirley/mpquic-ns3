@@ -947,12 +947,6 @@ protected:
   void OnReceivedPathResponseFrame (QuicSubheader &sub);
   
   double GetOliaAlpha(uint8_t pathId);
-<<<<<<< HEAD
-
-  int m_appCloseSentListNoEmpty;
-  uint8_t m_streamSize;
-=======
->>>>>>> scheduler/wns3-2023
   
   TracedCallback<uint32_t, uint32_t> m_rewardTrace;
   void UpdateReward (uint32_t oldValue, uint32_t newValue);

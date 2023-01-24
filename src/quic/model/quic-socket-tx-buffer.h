@@ -383,10 +383,6 @@ public:
 
   int SentListIsEmpty();
 
-<<<<<<< HEAD
-=======
-  
->>>>>>> scheduler/wns3-2023
 private:
   typedef std::list<Ptr<QuicSocketTxItem> > QuicTxPacketList;      //!< container for data stored in the buffer
 

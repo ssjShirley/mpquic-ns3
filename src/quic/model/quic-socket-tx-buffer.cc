@@ -926,10 +926,7 @@ int QuicSocketTxBuffer::SentListIsEmpty()
   }
   return true;
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> scheduler/wns3-2023
 // void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
 // {
 //   NS_LOG_FUNCTION (this);

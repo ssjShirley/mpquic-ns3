@@ -95,20 +95,13 @@ main (int argc, char *argv[])
 //  LogComponentEnable ("Header", log_precision);
 //  LogComponentEnable ("PacketMetadata", log_precision);
 
-<<<<<<< HEAD
 
-=======
->>>>>>> scheduler/wns3-2023
     Config::SetDefault ("ns3::QuicSocketBase::SocketSndBufSize",UintegerValue (40000000));
     Config::SetDefault ("ns3::QuicStreamBase::StreamSndBufSize",UintegerValue (40000000));
     Config::SetDefault ("ns3::QuicSocketBase::SocketRcvBufSize",UintegerValue (40000000));
     Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
 
-<<<<<<< HEAD
 
-    Config::SetDefault ("ns3::QuicSocketBase::StreamSize",UintegerValue(1));
-=======
->>>>>>> scheduler/wns3-2023
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
     Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(QuicSocketBase::OLIA));
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));

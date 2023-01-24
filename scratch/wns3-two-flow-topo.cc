@@ -171,10 +171,7 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::QuicSocketBase::SocketRcvBufSize",UintegerValue (40000000));
     Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
 
-<<<<<<< HEAD
-=======
 
->>>>>>> scheduler/wns3-2023
     Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
     Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(ccType));
     Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (ccTypeId));
