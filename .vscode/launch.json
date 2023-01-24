@@ -8,7 +8,7 @@
             "name": "(gdb) mpquic",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/scratch/mpquic-wns3",
+            "program": "${workspaceFolder}/build/scratch/mpquic-scheduler-nbg-ndy",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

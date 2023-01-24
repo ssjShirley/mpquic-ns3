@@ -40,7 +40,7 @@
 #include <algorithm>
 #include <math.h>
 #include <cmath>
-#include <boost/assign/list_of.hpp>
+// #include <boost/assign/list_of.hpp>
 
 NS_LOG_COMPONENT_DEFINE ("MpQuicSubFlow");
 namespace ns3 {
@@ -87,7 +87,8 @@ MpQuicSubFlow::GetTypeId (void)
 MpQuicSubFlow::MpQuicSubFlow()
     : m_flowId (0),
       m_lastMaxData(0),
-      m_maxDataInterval(10)
+      m_maxDataInterval(10),
+      m_rounds(1)
 {
 
     m_numPacketsReceivedSinceLastAckSent = 0;

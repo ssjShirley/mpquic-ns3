@@ -24,8 +24,26 @@
 
 #include "ns3/node.h"
 #include "quic-socket-base.h"
+#include <eigen3/Eigen/Dense>
+using Eigen::MatrixXd;
+using Eigen::VectorXd;
 
 namespace ns3 {
+
+// class MpQuicSchedulerState : public Object
+// {
+// public:
+//   static TypeId GetTypeId (void);
+
+//   MpQuicSchedulerState ();
+//   MpQuicSchedulerState (const MpQuicSchedulerState &other);
+//   virtual  ~MpQuicSchedulerState (void)
+//   {}
+//   TracedValue<uint32_t> m_reward; 
+
+// };
+
+
 
 
 class MpQuicScheduler : public Object
@@ -35,7 +53,11 @@ public:
   typedef enum
     {
       ROUND_ROBIN,       
-      MIN_RTT            
+      MIN_RTT,
+      BLEST,
+      ECF,
+      PEEKABOO,
+      MAB_DELAY
     } SchedulerType_t;
   
   /**
@@ -48,19 +70,82 @@ public:
   MpQuicScheduler (void);
   virtual ~MpQuicScheduler (void);
 
-  uint8_t GetNextPathIdToUse();
+  std::vector<double> GetNextPathIdToUse();
   void SetSocket(Ptr<QuicSocketBase> sock);
     
-  
+  void UpdateReward (uint32_t oldValue, uint32_t newValue);
+  void SetNumOfLostPackets(uint16_t lost);
+  void UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t inflight, uint32_t round);
+  uint32_t GetCurrentRound();
+
+  void PeekabooReward(uint8_t pathId, Time lastActTime);
+
 private:
   Ptr<QuicSocketBase> m_socket;
   uint8_t m_lastUsedPathId;
+  
+  
   std::vector <Ptr<MpQuicSubFlow>> m_subflows;
   SchedulerType_t m_schedulerType;
 
-  void RoundRobin();
-  void MinRtt();
- 
+
+  std::vector<double> RoundRobin();
+  std::vector<double> MinRtt();
+  std::vector<double> Peekaboo();
+  std::vector<double> MabDelay();
+  std::vector<double> Blest();
+  std::vector<double> Ecf();
+  std::vector<double> LocalOpt();
+
+  std::vector <uint64_t> m_rewards;
+  std::vector <uint64_t> m_rewardTemp;
+  std::vector <uint64_t> m_rewardTemp0;
+  std::vector <uint64_t> m_rewardAvg;
+  uint32_t m_rounds;
+  TracedValue<uint32_t> m_reward {0}; 
+  uint32_t m_rate;
+  uint16_t m_lostPackets;
+  uint16_t m_lambda;
+  uint16_t m_bVar;
+  uint8_t m_waiting = 0;
+  uint16_t m_select;
+
+  std::vector <double> m_cost;
+  std::vector <uint32_t> m_missingRounds;
+  uint32_t m_lastUpdateRounds;
+  uint32_t m_e;
+  std::vector <double> m_L;
+  std::vector <double> m_eL;
+  std::vector <double> m_p;
+  std::vector <double> EPR;
+  std::vector <MatrixXd> A;
+  std::vector <VectorXd> b;
+  VectorXd peek_x = VectorXd::Constant(6,0);
+  double T_r, g = 1, R = 0, T_e;
+  double rtt[8];
+  // int rounds;
+
+
+  // int c_index;  // the index of context combinations
+  // uint8_t lastCtxId[8]; //the context ID in the last time slot on path j \in [0,7]
+  // uint8_t lastActId[8]; //the action ID in the last time slot on path j \in [0,7]
+  // std::map <std::string, uint8_t> ctxIdPair;  // context combination vs ID
+  // double currBw, currRtt, currLoss;     //current BW, RTT and Loss rate each time when receiving ACK
+  // bool isFirstTime = true;
+  // double bw[8], rtt[8], loss[8];
+  // static const int maxC2 = 27;
+  // static const int maxA2 = 2;
+  // double rewardTotal2[maxC2][maxA2];
+  // double H2[maxC2][maxA2];
+  // uint32_t N2[maxC2][maxA2];
+  // uint32_t totalN2 = 1;
+  // uint8_t lastCtxId2;
+  // uint8_t lastActId2;
+  // Time lastActTime;
+  // void Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length);
+  // void iniH2();
+  // uint8_t ctxClass(uint8_t, double rtt);
+  
 };
 
 } // namespace ns3

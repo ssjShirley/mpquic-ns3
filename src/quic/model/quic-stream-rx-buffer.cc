@@ -75,6 +75,10 @@ QuicStreamRxBuffer::GetTypeId (void)
     .SetParent<Object> ()
     .SetGroupName ("Internet")
     .AddConstructor<QuicStreamRxBuffer> ()
+    .AddTraceSource ("RxBuffer",
+                    "The QUIC receive buffer",
+                    MakeTraceSourceAccessor (&QuicStreamRxBuffer::m_numBytesInBuffer),
+                    "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }
@@ -160,6 +164,7 @@ QuicStreamRxBuffer::Add (Ptr<Packet> p, const QuicSubheader& sub)
         }
     }
   NS_LOG_WARN ("Rejected. Not enough room to buffer packet.");
+  // std::cout<<"stream rx buffer, Rejected. Not enough room to buffer packet."<<std::endl;
   return false;
 }
 
@@ -168,7 +173,7 @@ QuicStreamRxBuffer::Extract (uint32_t maxSize)
 {
   NS_LOG_FUNCTION (this << maxSize);
 
-  uint32_t extractSize = std::min (maxSize, m_numBytesInBuffer);
+  uint32_t extractSize = std::min (maxSize, m_numBytesInBuffer.Get());
   NS_LOG_INFO (
     "Requested to extract " << extractSize << " bytes from QuicStreamRxBuffer of size = " << m_numBytesInBuffer);
 

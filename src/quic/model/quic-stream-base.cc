@@ -70,6 +70,10 @@ QuicStreamBase::GetTypeId (void)
                    UintegerValue (15000),                 // 10 packets
                    MakeUintegerAccessor (&QuicStreamBase::m_maxDataInterval),
                    MakeUintegerChecker<uint32_t> ())
+    .AddTraceSource ("RxBufferTrace",
+                     "The QUIC connection's congestion window",
+                     MakeTraceSourceAccessor (&QuicStreamBase::m_rxbufTrace),
+                     "ns3::TracedValueCallback::Uint32")
   ;
   return tid;
 }
@@ -100,6 +104,7 @@ QuicStreamBase::QuicStreamBase (void)
   NS_LOG_FUNCTION (this);
   m_rxBuffer = CreateObject<QuicStreamRxBuffer> ();
   m_txBuffer = CreateObject<QuicStreamTxBuffer> ();
+  m_rxBuffer->TraceConnectWithoutContext ("RxBuffer",MakeCallback (&QuicStreamBase::UpdateRxBuf, this));
 }
 
 QuicStreamBase::~QuicStreamBase (void)
@@ -441,7 +446,11 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
       SetStreamStateRecvIf (m_streamStateRecv == RECV and m_fin, SIZE_KNOWN);
 
 
-//  std::cout<<"--///--Received a frame with the size " << sub.GetLength ()<<" expected offset: "<<m_recvSize<<" actual offset:"<<sub.GetOffset ()<<std::endl;
+    // temp_comment
+    std::cout<< Simulator::Now ().GetSeconds () << "\t"<< m_streamId <<"\t" << m_recvSize<<"\t"<<sub.GetOffset ()<< "\t" << m_rxBuffer->Size () << "\t" <<std::endl;
+
+    //  std::cout<< Simulator::Now ().GetSeconds () << "--///--Received a frame on stream "<< m_streamId <<" with the size " << sub.GetLength ()<<" expected offset: "<<m_recvSize<<" actual offset:"<<sub.GetOffset ()<< " Buffer Size: " << m_rxBuffer->Size ()<<std::endl;
+
       if (m_recvSize == sub.GetOffset ()) 
         {
 
@@ -758,6 +767,13 @@ uint32_t
 QuicStreamBase::GetStreamRcvBufSize (void) const
 {
   return m_rxBuffer->GetMaxBufferSize ();
+}
+
+
+void
+QuicStreamBase::UpdateRxBuf (uint32_t oldValue, uint32_t newValue)
+{
+  m_rxbufTrace (oldValue, newValue);
 }
 
 } // namespace ns3

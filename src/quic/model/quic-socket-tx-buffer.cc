@@ -172,6 +172,7 @@ void QuicSocketTxItem::SplitItems (QuicSocketTxItem &t1, QuicSocketTxItem &t2,
   t2.m_packet = t1.m_packet->Copy ();
   // Remove the first size bytes from t2
   t2.m_packet->RemoveAtStart (size);
+  t2.m_round = t1.m_round;
 
   // Change subheader
   QuicSubheader qsb;
@@ -329,7 +330,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextStream0Sequence (
 
 Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
                                               const SequenceNumber32 seq,
-                                              uint8_t pathId)
+                                              uint8_t pathId, uint32_t currentRound)
 {
   NS_LOG_FUNCTION (this << numBytes << seq);
 
@@ -342,6 +343,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
       outItem->m_packetNumber = seq;
       outItem->m_lastSent = Now ();
       Ptr<Packet> toRet = outItem->m_packet;
+      outItem->m_round = currentRound;
       return toRet;
     }
   else
@@ -417,6 +419,8 @@ std::vector<Ptr<QuicSocketTxItem> > QuicSocketTxBuffer::OnAckUpdate (
 
   NS_LOG_INFO (
     "Largest ACK: " << largestAcknowledged << ", blocks: " << block_print.str () << ", gaps: " << gap_print.str ());
+
+  // std::cout<<"Largest ACK: " << largestAcknowledged << ", blocks: " << block_print.str () << ", gaps: " << gap_print.str ()<<std::endl;
 
   // Iterate over the ACK blocks and gaps
   for (uint32_t numAckBlockAnalyzed = 0; numAckBlockAnalyzed < ackBlockCount;
@@ -579,6 +583,7 @@ uint32_t QuicSocketTxBuffer::Retransmission (SequenceNumber32 packetNumber, uint
           retx->m_packet = Create<Packet>();
           NS_LOG_INFO (
             "Retx packet " << item->m_packetNumber << " as " << retx->m_packetNumber.GetValue ());
+          // std::cout<<"retx\t"<<(int)pathId<<"\t"<<item->m_packetNumber << "\t" << retx->m_packetNumber.GetValue ()<< std::endl;
           QuicSocketTxItem::MergeItems (*retx, *item);
           retx->m_lost = false;
           retx->m_retrans = true;
@@ -671,9 +676,6 @@ void QuicSocketTxBuffer::CleanSentList (uint8_t pathId)
         "Packet " << (*sent_it)->m_packetNumber << " received and ACKed. Removing from sent buffer");
       sent_it = m_subflowSentList[pathId].begin ();
     }
-  // if (m_sentList.empty()){
-  //   std::cout<<"QuicSocketTxBuffer::CleanSentList m_sentList is empty"<<std::endl;
-  // }
 }
 
 uint32_t QuicSocketTxBuffer::Available (void) const
@@ -924,7 +926,10 @@ int QuicSocketTxBuffer::SentListIsEmpty()
   }
   return true;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> scheduler/wns3-2023
 // void QuicSocketTxBuffer::FindSentList (uint16_t pathId)
 // {
 //   NS_LOG_FUNCTION (this);

@@ -170,7 +170,7 @@ private:
   typedef std::vector<QuicStreamRxItem*> QuicStreamRxPacketList;  //!< container for data stored in the buffer
 
   QuicStreamRxPacketList m_streamRecvList;  //!< List of received packets with additional info
-  uint32_t m_numBytesInBuffer;              //!< Current buffer occupancy
+  TracedValue<uint32_t> m_numBytesInBuffer;              //!< Current buffer occupancy
   uint32_t m_finalSize;                     //!< Final buffer size
   uint32_t m_maxBuffer;                     //!< Maximum buffer size
   bool m_recvFin;                           //!< FIN bit reception flag
