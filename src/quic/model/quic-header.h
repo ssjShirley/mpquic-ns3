@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Shengjie Shu <shengjies@uvic.ca>
+ *          
  */
 
 #ifndef QUICHEADER_H
@@ -64,8 +64,7 @@ public:
     RETRY  = 2,               //!< Retry
     HANDSHAKE  = 3,           //!< Handshake
     ZRTT_PROTECTED  = 4,      //!< 0-Rtt Protected
-    NONE = 5,                  //!< No type byte
-
+    NONE = 5                  //!< No type byte
   } TypeLong_t;
 
   /**
@@ -153,7 +152,6 @@ public:
    * \return the generated QuicHeader
    */
   static QuicHeader Create0RTT (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber);
-
 
   /**
    * Create the header for a Version Negotiation packet, sends to the client a list of supported versions
@@ -325,21 +323,6 @@ public:
    */
   friend bool operator== (const QuicHeader &lhs, const QuicHeader &rhs);
 
-  // for multipath implementation
-
-    /**
-   * @brief Get the Path Id object
-   * @return uint8_t 
-   */
-  uint8_t GetPathId () const;
-
-  /**
-   * @brief Set the Path Id object
-   * @param pathId 
-   */
-  void SetPathId (uint8_t pathId);  
-
-
 private:
   /**
    * \brief Calculates the header length (in words)
@@ -358,7 +341,6 @@ private:
   uint64_t m_connectionId;          //!< Connection Id
   SequenceNumber32 m_packetNumber;  //!< Packet number
   uint32_t m_version;               //!< Version
-  uint8_t m_pathId;                 //!< Path Id for multipath
 };
 
 } // namespace ns3

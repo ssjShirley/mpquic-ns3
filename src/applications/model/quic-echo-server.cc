@@ -174,21 +174,21 @@ QuicEchoServer::HandleRead (Ptr<Socket> socket)
       uint8_t *buffer = new uint8_t[packet->GetSize ()];
       packet->CopyData (buffer, packet->GetSize ());
       std::string s = std::string ((char*)buffer);
-      // if (s != "CONNECTION_CLOSE")
-      //   {
-      //     NS_LOG_INFO ("Server received: " << s);
-      //   }
-      // else
-      //   {
-      //     NS_LOG_INFO ("Server received: " << s);
-      //   }
+      if (s != "CONNECTION_CLOSE")
+        {
+          NS_LOG_INFO ("Server received: " << s);
+        }
+      else
+        {
+          NS_LOG_INFO ("Server received: " << s);
+        }
 
 
 
       if (s != "CONNECTION_CLOSE")
         {
           NS_LOG_INFO ("##########  QUIC Echo Server ECHOING at time " << Simulator::Now ().GetSeconds () << " ##########");
-          //socket->SendTo (packet, 0, from);
+          socket->SendTo (packet, 0, from);
         }
       //socket->Send (packet, 0);
       //socket->SendTo (packet, 0, from);
@@ -207,10 +207,10 @@ QuicEchoServer::HandleRead (Ptr<Socket> socket)
         }
 
 
-      // if (s != "CONNECTION_CLOSE")
-      //   {
-      //     NS_LOG_INFO ("Server sent: " << s);
-      //   }
+      if (s != "CONNECTION_CLOSE")
+        {
+          NS_LOG_INFO ("Server sent: " << s);
+        }
 
       //NS_LOG_LOGIC ("Echoed packettt");
     }

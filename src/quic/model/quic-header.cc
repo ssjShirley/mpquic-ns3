@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Shengjie Shu <shengjies@uvic.ca>
+ *          
  */
 
 #include <stdint.h>
@@ -37,13 +37,12 @@ NS_OBJECT_ENSURE_REGISTERED (QuicHeader);
 
 QuicHeader::QuicHeader ()
   : m_form (SHORT),
-  m_c (false),
-  m_k (PHASE_ZERO),
-  m_type (0),
-  m_connectionId (0),
-  m_packetNumber (0),
-  m_version (0),
-  m_pathId (0)
+    m_c (false),
+    m_k (PHASE_ZERO),
+    m_type (0),
+    m_connectionId (0),
+    m_packetNumber (0),
+    m_version (0)
 {
 }
 
@@ -55,7 +54,7 @@ QuicHeader::~QuicHeader ()
 std::string
 QuicHeader::TypeToString () const
 {
-  static const char* longTypeNames[7] = {
+  static const char* longTypeNames[6] = {
     "Version Negotiation",
     "Initial",
     "Retry",
@@ -117,14 +116,12 @@ QuicHeader::CalculateHeaderLength () const
 
   if (IsLong ())
     {
-      len = 8 + 64 + 32 + 32 + 8 + 32;
+      len = 8 + 64 + 32 + 32;
     }
   else
     {
-      len = 8 + 64 * HasConnectionId () + GetPacketNumLen () + 8 + 32;
+      len = 8 + 64 * HasConnectionId () + GetPacketNumLen ();
     }
-  
-  len += 16+32;
   return len / 8;
 }
 
@@ -171,7 +168,6 @@ QuicHeader::Serialize (Buffer::Iterator start) const
 
   uint8_t t = m_type + (m_form << 7);
 
-
   if (m_form)
     {
       i.WriteU8 (t);
@@ -205,8 +201,6 @@ QuicHeader::Serialize (Buffer::Iterator start) const
           break;
         }
     }
-  i.WriteU8 (m_pathId);
-  // i.WriteHtonU32 (m_seq.GetValue ());
 }
 
 uint32_t
@@ -244,7 +238,6 @@ QuicHeader::Deserialize (Buffer::Iterator start)
         {
           SetPacketNumber (SequenceNumber32 (i.ReadNtohU32 ()));
         }
-      
     }
   else
     {
@@ -261,9 +254,6 @@ QuicHeader::Deserialize (Buffer::Iterator start)
           break;
         }
     }
-
-  SetPathId(i.ReadU8 ());
-  // SetSeq(SequenceNumber32 (i.ReadNtohU32 ()));
 
   NS_LOG_INFO ("Deserialize::Serialized Size " << CalculateHeaderLength ());
 
@@ -297,11 +287,8 @@ QuicHeader::Print (std::ostream &os) const
       os << "Version " << (uint64_t)m_version << "|\n";
       os << "PacketNumber " << m_packetNumber << "|\n|";
     }
-  os << "PathID " << unsigned(m_pathId) << "|\n";
-  // os << "Seq " << m_seq << "|\n";
+
 }
-
-
 
 QuicHeader
 QuicHeader::CreateInitial (uint64_t connectionId, uint32_t version, SequenceNumber32 packetNumber)
@@ -520,31 +507,6 @@ QuicHeader::IsVersionNegotiation () const
   return m_type == VERSION_NEGOTIATION;
 }
 
-uint8_t
-QuicHeader::GetPathId () const
-{
-  return m_pathId;
-}
-
-void
-QuicHeader::SetPathId (uint8_t pathId)
-{
-  m_pathId = pathId;
-}
-
-// SequenceNumber32
-// QuicHeader::GetSeq () const
-// {
-//   return m_seq;
-// }
-
-// void
-// QuicHeader::SetSeq (SequenceNumber32 packNum)
-// {
-//   NS_LOG_INFO (packNum);
-//   m_seq = packNum;
-// }
-
 bool
 QuicHeader::IsInitial () const
 {
@@ -562,8 +524,6 @@ QuicHeader::IsHandshake () const
 {
   return m_type == HANDSHAKE;
 }
-
-
 
 bool
 QuicHeader::IsORTT () const
@@ -585,16 +545,14 @@ bool
 operator== (const QuicHeader &lhs, const QuicHeader &rhs)
 {
   return (
-    lhs.m_form == rhs.m_form
-    && lhs.m_c == rhs.m_c
-    && lhs.m_k  == rhs.m_k
-    && lhs.m_type == rhs.m_type
-    && lhs.m_connectionId == rhs.m_connectionId
-    && lhs.m_packetNumber == rhs.m_packetNumber
-    && lhs.m_version == rhs.m_version
-    && lhs.m_pathId == rhs.m_pathId
-    // && lhs.m_seq == rhs.m_seq
-    );
+           lhs.m_form == rhs.m_form
+           && lhs.m_c == rhs.m_c
+           && lhs.m_k  == rhs.m_k
+           && lhs.m_type == rhs.m_type
+           && lhs.m_connectionId == rhs.m_connectionId
+           && lhs.m_packetNumber == rhs.m_packetNumber
+           && lhs.m_version == rhs.m_version
+           );
 }
 
 std::ostream&

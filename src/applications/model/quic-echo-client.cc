@@ -179,7 +179,7 @@ QuicEchoClient::StartApplication (void)
 
   m_socket->SetRecvCallback (MakeCallback (&QuicEchoClient::HandleRead, this));
   m_socket->SetAllowBroadcast (true);
-  ScheduleTransmit (Seconds (0));
+  ScheduleTransmit (Seconds (2.));
 }
 
 void
@@ -455,7 +455,7 @@ QuicEchoClient::Send (void)
   uint8_t *buffer = new uint8_t[p->GetSize ()];
   p->CopyData (buffer, p->GetSize ());
   std::string s = std::string ((char*)buffer);
-  // NS_LOG_INFO ("Client sent: " << s << "");
+  NS_LOG_INFO ("Client sent: " << s << "");
 
   if (m_sent < m_count)
     {

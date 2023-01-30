@@ -16,9 +16,6 @@ def build(bld):
         'model/quic-l4-protocol.cc',
         'model/quic-socket-rx-buffer.cc',
         'model/quic-socket-tx-buffer.cc',
-        'model/quic-socket-tx-scheduler.cc',
-        'model/quic-socket-tx-pfifo-scheduler.cc',
-        'model/quic-socket-tx-edf-scheduler.cc',
         'model/quic-stream.cc',
         'model/quic-stream-base.cc',
         'model/quic-l5-protocol.cc',
@@ -27,11 +24,6 @@ def build(bld):
         'model/quic-header.cc',
         'model/quic-subheader.cc',
         'model/quic-transport-parameters.cc',
-        'model/quic-bbr.cc',
-        'model/mp-quic-subflow.cc',
-        'model/mp-quic-scheduler.cc',
-        'model/mp-quic-path-manager.cc',
-        'model/mp-quic-congestion-ops.cc',
         'helper/quic-helper.cc'
         ]
 
@@ -52,9 +44,6 @@ def build(bld):
         'model/quic-l4-protocol.h',
         'model/quic-socket-rx-buffer.h',
         'model/quic-socket-tx-buffer.h',
-        'model/quic-socket-tx-scheduler.h',
-        'model/quic-socket-tx-pfifo-scheduler.h',
-        'model/quic-socket-tx-edf-scheduler.h',
         'model/quic-stream.h',
         'model/quic-stream-base.h',
         'model/quic-l5-protocol.h',
@@ -63,13 +52,7 @@ def build(bld):
         'model/quic-header.h',
         'model/quic-subheader.h',
         'model/quic-transport-parameters.h',
-        'model/quic-bbr.h',
-        'helper/quic-helper.h',
-        'model/mp-quic-subflow.h',
-        'model/mp-quic-scheduler.h',
-        'model/mp-quic-path-manager.h',
-        'model/mp-quic-congestion-ops.h',
-        'model/windowed-filter.h'
+        'helper/quic-helper.h'
         ]
 
     if bld.env.ENABLE_EXAMPLES:

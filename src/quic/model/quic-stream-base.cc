@@ -19,14 +19,12 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Wenjun Yang <wenjunyang@uvic.ca>
- *          Shengjie Shu <shengjies@uvic.ca>
- *
+ *          
  */
-/*
+
 #define NS_LOG_APPEND_CONTEXT \
   if (m_node and m_connectionId and (m_streamId >= 0)) { std::clog << " [node " << m_node->GetId () << " socket " << m_connectionId << " stream " << m_streamId << " " << StreamDirectionTypeToString () << "] "; }
-*/
+
 
 #include "ns3/abort.h"
 #include "ns3/node.h"
@@ -58,17 +56,14 @@ QuicStreamBase::GetTypeId (void)
     .AddAttribute ("StreamSndBufSize",
                    "QuicStreamBase maximum transmit buffer size (bytes)",
                    UintegerValue (131072), // 128k
-                   MakeUintegerAccessor (&QuicStreamBase::m_streamTxBufferSize),
+                   MakeUintegerAccessor (&QuicStreamBase::GetStreamSndBufSize,
+                                         &QuicStreamBase::SetStreamSndBufSize),
                    MakeUintegerChecker<uint32_t> ())
     .AddAttribute ("StreamRcvBufSize",
                    "QuicStreamBase maximum receive buffer size (bytes)",
                    UintegerValue (131072), // 128k
-                   MakeUintegerAccessor (&QuicStreamBase::m_streamRxBufferSize),
-                   MakeUintegerChecker<uint32_t> ())
-    .AddAttribute ("MaxDataInterval",
-                   "Interval between MAX_DATA frames",
-                   UintegerValue (15000),                 // 10 packets
-                   MakeUintegerAccessor (&QuicStreamBase::m_maxDataInterval),
+                   MakeUintegerAccessor (&QuicStreamBase::GetStreamRcvBufSize,
+                                         &QuicStreamBase::SetStreamRcvBufSize),
                    MakeUintegerChecker<uint32_t> ())
   ;
   return tid;
@@ -81,21 +76,20 @@ QuicStreamBase::GetInstanceTypeId () const
 }
 
 
-QuicStreamBase::QuicStreamBase (void) 
+QuicStreamBase::QuicStreamBase (void)
   : QuicStream (),
-  m_streamType (NONE),
-  m_streamDirectionType (UNKNOWN),
-  m_streamStateSend (IDLE),
-  m_streamStateRecv (IDLE),
-  m_node (0),
-  m_connectionId (0),
-  m_streamId (0),
-  m_quicl5 (0),
-  m_maxStreamData (0),
-  m_maxAdvertisedData (0),
-  m_sentSize (0),
-  m_recvSize (0),
-  m_fin (false)
+    m_streamType (NONE),
+    m_streamDirectionType (UNKNOWN),
+    m_streamStateSend (IDLE),
+    m_streamStateRecv (IDLE),
+    m_node (0),
+    m_connectionId (0),
+    m_streamId (0),
+    m_quicl5 (0),
+    m_maxStreamData (0),
+    m_sentSize (0),
+    m_recvSize (0),
+    m_fin (false)
 {
   NS_LOG_FUNCTION (this);
   m_rxBuffer = CreateObject<QuicStreamRxBuffer> ();
@@ -112,8 +106,6 @@ QuicStreamBase::SetQuicL5 (Ptr<QuicL5Protocol> quicl5)
 {
   NS_LOG_FUNCTION (this);
   m_quicl5 = quicl5;
-  SetStreamRcvBufSize (m_streamRxBufferSize);
-  SetStreamSndBufSize (m_streamTxBufferSize);
 }
 
 
@@ -135,18 +127,7 @@ QuicStreamBase::Send (Ptr<Packet> frame)
         {
           if (!m_streamSendPendingDataEvent.IsRunning ())
             {
-              // std::cout<<"quic-stream-base.cc ----tst"<<std::endl;
-              //m_streamSendPendingDataEvent = Simulator::Schedule (TimeStep (1), &QuicStreamBase::SendPendingData, this);
-              // if (m_quicl5->vnReceived)
-              // {
-                // std::cout<<"****m_quicl5->vnReceived = 1";
-              //   SendPendingData();
-              //   m_quicl5->vnReceived = 0;
-
-              // }else{
-                m_streamSendPendingDataEvent = Simulator::ScheduleNow (&QuicStreamBase::SendPendingData, this);
-                // std::cout<<"quic-stream-base.cc ----sendpendingdata"<<std::endl;
-              // }
+              m_streamSendPendingDataEvent = Simulator::Schedule (TimeStep (1), &QuicStreamBase::SendPendingData, this);
             }
         }
       return sent;
@@ -176,9 +157,9 @@ QuicStreamBase::AppendingTx (Ptr<Packet> frame)
 }
 
 uint32_t
-QuicStreamBase::GetStreamTxAvailable () const
+QuicStreamBase::GetStreamTxAvailable() const
 {
-  return m_txBuffer->Available ();
+  return m_txBuffer->Available();
 }
 
 
@@ -265,8 +246,9 @@ QuicStreamBase::SendDataFrame (SequenceNumber32 seq, uint32_t maxSize)
   bool lengthBit = true;
 
   QuicSubheader sub = QuicSubheader::CreateStreamSubHeader (m_streamId, (uint64_t)seq.GetValue (), frame->GetSize (), m_sentSize != 0, lengthBit, m_fin);
-  // std::cout<<"size"<< frame->GetSize ()<<std::endl;
+  sub.SetMaxStreamData (m_recvSize + m_rxBuffer->Available ());
   m_sentSize += frame->GetSize ();
+  NS_LOG_DEBUG ("Sending RWND = " << sub.GetMaxStreamData ());
 
   frame->AddHeader (sub);
   int size = m_quicl5->Send (frame);
@@ -341,6 +323,7 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
                                            "RST_STREAM causes final offset to change for a Stream");
           return -1;
         }
+
       SetStreamStateRecvIf (m_streamStateRecv == RECV or m_streamStateSend == SIZE_KNOWN or m_streamStateSend == DATA_RECVD, RESET_RECVD);
 
       break;
@@ -412,17 +395,16 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
                                            "Received more data w.r.t. Max Stream Data limit");
           return -1;
         }
+
       SetStreamStateRecvIf (m_streamStateRecv == IDLE, RECV);
 
       if (m_quicl5->ContainsTransportParameters () and m_streamId == 0)
         {
           QuicTransportParameters transport;
-          // std::cout<<frame->ToString()<<"\n";
-          // std::cout<<m_quicl5->ContainsTransportParameters ()<<"\n";
           frame->RemoveHeader (transport);
           m_quicl5->OnReceivedTransportParameters (transport);
         }
-      
+
       if (m_fin and sub.IsStreamFin () and m_rxBuffer->GetFinalSize () != sub.GetOffset ())
         {
           m_quicl5->SignalAbortConnection (QuicSubheader::TransportErrorCodes_t::FINAL_OFFSET_ERROR,
@@ -438,26 +420,21 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
                                            "Received Stream FIN in Stream 0");
           return -1;
         }
+
       SetStreamStateRecvIf (m_streamStateRecv == RECV and m_fin, SIZE_KNOWN);
 
-
-//  std::cout<<"--///--Received a frame with the size " << sub.GetLength ()<<" expected offset: "<<m_recvSize<<" actual offset:"<<sub.GetOffset ()<<std::endl;
-      if (m_recvSize == sub.GetOffset ()) 
+      if (m_recvSize == sub.GetOffset ())
         {
 
           NS_LOG_INFO ("Received a frame with the correct order of size " << sub.GetLength ());
-         
           m_recvSize += sub.GetLength ();
 
-          if (m_maxAdvertisedData == 0 || m_recvSize + m_rxBuffer->Available () > m_maxAdvertisedData + m_maxDataInterval)
-            {
-              m_maxAdvertisedData = m_recvSize + m_rxBuffer->Available ();
-              QuicSubheader sub = QuicSubheader::CreateMaxData (m_recvSize + m_rxBuffer->Available ());
-              // build empty packet
-              Ptr<Packet> maxStream = Create<Packet> (0);
-              maxStream->AddHeader (sub);
-              m_quicl5->Send (maxStream);
-            }
+          QuicSubheader sub;
+          sub.SetMaxStreamData (m_recvSize + m_rxBuffer->Available ());
+          // build empty packet
+          Ptr<Packet> maxStream = Create<Packet> (0);
+          maxStream->AddHeader (sub);
+          m_quicl5->Send (maxStream);
 
           NS_LOG_LOGIC ("Try to Flush RxBuffer if Available - offset " << m_recvSize);
           // check if the packets in the RX buffer can be released (in order release)
@@ -467,11 +444,10 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
             {
               Ptr<Packet> payload = m_rxBuffer->Extract (offSetLength.second);
               m_recvSize += offSetLength.second;
-              if (payload) {
-                frame->AddAtEnd (payload);
-              }
+              frame->AddAtEnd (payload);
             }
           NS_LOG_LOGIC ("Flushed RxBuffer - new offset " << m_recvSize << ", " << m_rxBuffer->Available () << "bytes available");
+
           SetStreamStateRecvIf (m_streamStateRecv == SIZE_KNOWN and m_rxBuffer->Size () == 0, DATA_RECVD);
 
           if (m_streamId != 0 )
@@ -487,6 +463,7 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
             {
               NS_LOG_INFO ("Received handshake Message in Stream 0");
             }
+
           SetStreamStateRecvIf (m_streamStateRecv == DATA_RECVD, DATA_READ);
 
         }
@@ -497,16 +474,13 @@ QuicStreamBase::Recv (Ptr<Packet> frame, const QuicSubheader& sub, Address &addr
               SetMaxStreamData (sub.GetMaxStreamData ());
               NS_LOG_LOGIC ("Received window set to offset " << sub.GetMaxStreamData ());
             }
-          NS_LOG_INFO ("Buffering unordered received frame - offset " << m_recvSize << ", frame offset " << sub.GetOffset ());
-          // std::cout<<"quic-stream-base.cc  Buffering unordered received frame of size " << sub.GetLength () <<" m_recvSize: "<<m_recvSize<< ", frame offset " << sub.GetOffset ()<<std::endl;
-          if (!m_rxBuffer->Add (frame, sub) && frame->GetSize () > 0)
+          NS_LOG_INFO ("Buffering unordered received frame - offset " << m_recvSize << ", frame offset "<< sub.GetOffset());
+          if (!m_rxBuffer->Add (frame, sub) && frame->GetSize() > 0)
             {
-              // Insert failed: No or duplicate data, or RX buffer full
-              NS_LOG_WARN ("Dropping packet as it could not be inserted in RX buffer");
-              if (frame->GetSize() > m_rxBuffer->Available()) {
-                  // Abort connection if indeed buffer is full
-                  m_quicl5->SignalAbortConnection (QuicSubheader::TransportErrorCodes_t::NO_ERROR, "Aborting connection due to full RX buffer");
-              }
+              // Insert failed: No data or RX buffer full
+              NS_LOG_INFO ("Dropping packet due to full RX buffer");
+              // Abort simulation!
+              NS_ABORT_MSG ("Aborting Connection");
             }
         }
 
@@ -594,7 +568,7 @@ QuicStreamBase::SetStreamDirectionType (const QuicStreamDirectionTypes_t& stream
 
 QuicStream::QuicStreamDirectionTypes_t
 QuicStreamBase::GetStreamDirectionType ()
-{
+{  
   return m_streamDirectionType;
 }
 
@@ -608,7 +582,7 @@ QuicStreamBase::SetStreamType (const QuicStreamTypes_t& streamType)
 void
 QuicStreamBase::SetStreamStateSend (const QuicStreamStates_t& streamState)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION(this);
 
   if (m_streamType == SERVER_INITIATED_BIDIRECTIONAL or m_streamType == SERVER_INITIATED_UNIDIRECTIONAL)
     {
@@ -640,7 +614,7 @@ QuicStreamBase::SetStreamStateSendIf (bool condition, const QuicStreamStates_t& 
 void
 QuicStreamBase::SetStreamStateRecv (const QuicStreamStates_t& streamState)
 {
-  NS_LOG_FUNCTION (this);
+  NS_LOG_FUNCTION(this);
 
   if (m_streamType == SERVER_INITIATED_BIDIRECTIONAL or m_streamType == SERVER_INITIATED_UNIDIRECTIONAL)
     {

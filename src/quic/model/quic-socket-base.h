@@ -19,9 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Umberto Paro <umberto.paro@me.com>
- *          Wenjun Yang <wenjunyang@uvic.ca>
- *          Shengjie Shu <shengjies@uvic.ca>
+ *          
  */
 
 #ifndef QUICSOCKETBASE_H
@@ -43,27 +41,17 @@
 // #include "ns3/ipv4-end-point.h"
 #include "ns3/tcp-socket-base.h"
 #include "ns3/tcp-congestion-ops.h"
-#include "quic-socket-tx-scheduler.h"
-
-
-// ------- For multipath implementation -------
-#include "mp-quic-path-manager.h"
-#include "mp-quic-subflow.h"
-#include "mp-quic-scheduler.h"
-
 
 namespace ns3 {
 
 class QuicL5Protocol;
 class QuicL4Protocol;
-class MpQuicPathManager;
-class MpQuicScheduler;
 
 /**
  * \brief Data structure that records the congestion state of a connection
  *
  * In this data structure, basic informations that should be passed between
- * socket and the congestion control algorithm are saved.
+ * socket and the congestion control algorithm are saved. 
  */
 class QuicSocketState : public TcpSocketState
 {
@@ -78,7 +66,8 @@ public:
   QuicSocketState ();
   QuicSocketState (const QuicSocketState &other);
   virtual  ~QuicSocketState (void)
-  {}
+  {
+  }
 
   // Loss Detection variables of interest
   EventId m_lossDetectionAlarm;            //!< Multi-modal alarm used for loss detection.
@@ -125,19 +114,6 @@ public:
   Time m_kDefaultInitialRtt;                    //!< The default RTT used before an RTT sample is taken.
   uint32_t m_kMaxPacketsReceivedBeforeAckSend;  //!< The number of packets to be received before an ACK is triggered
 
-  // RateSample variables of interest
-  uint64_t              m_delivered       {0};              //!< The total amount of data in bytes delivered so far
-  Time                  m_deliveredTime   {Seconds (0)};    //!< Simulation time when m_delivered was last updated
-  Time                  m_firstSentTime   {Seconds (0)};    //!< The send time of the packet that was most recently marked as delivered
-  uint64_t              m_appLimitedUntil {0};              //!< Connection is application-limited until m_appLimitedUntil > m_delivered
-  uint32_t              m_txItemDelivered {0};              /**< amount of data (in bytes) delivered when last packet
-                                                                marked asdelivered was first sent */
-  uint32_t              m_lastAckedSackedBytes {0};         //!< Size of data sacked in the last ack
-  uint32_t              m_ackBytesSent    {0};              //!< amount of ACK-only bytes sent
-
-  //For OLIA use
-  uint32_t m_bytesBeforeLost1;
-  uint32_t m_bytesBeforeLost2;
 };
 
 /**
@@ -166,19 +142,19 @@ public:
  *
  * Transmission Control Block (TCB)
  * --------------------------------
- *
+ * 
  * Taking as a reference the TCP implementation, the variables needed to congestion
- * control classes to operate correctly have been moved inside the QuicSocketState
- * class. Extending TcpSocketState, the class contains information on both the Quic
+ * control classes to operate correctly have been moved inside the QuicSocketState 
+ * class. Extending TcpSocketState, the class contains information on both the Quic 
  * and the TCP windows and thresholds as well as the Congestion state machine of TCP.
  *
  * Streams
  * --------------------------------
- *
- * Streams in QUIC constitute a lightweight, ordered byte-stream abstraction within a
- * QUIC connection. The multiplexing/demultiplexing of frames in streams is handled
+ * 
+ * Streams in QUIC constitute a lightweight, ordered byte-stream abstraction within a 
+ * QUIC connection. The multiplexing/demultiplexing of frames in streams is handled 
  * through L5 Protocol that plays a dispatcher role. Frames are buffered in reception
- * and in transmission and are processed in QuicStreams according to QUIC semantics.
+ * and in transmission and are processed in QuicStreams according to QUIC semantics. 
  *
  */
 class QuicSocketBase : public QuicSocket
@@ -199,44 +175,10 @@ public:
    */
   virtual TypeId GetInstanceTypeId () const;
 
-  /**
-   * \brief Build an object. InitializeScheduling() must be called after construction to instantiate the frame scheduler, or the construction will fail
-   *
-   */
   QuicSocketBase (void);
   QuicSocketBase (const QuicSocketBase&);
 
-
-
-    //multipath
-  void SetSubsocket ();
-  bool IsSubsocket ();
-
   virtual ~QuicSocketBase (void);
-
-  static void NotifyConnectionEstablishedEnb (std::string context,
-                                uint64_t imsi,
-                                uint16_t cellid,
-                                uint16_t rnti);
-
-  static void NotifyHandoverEndOkEnb (std::string context,
-                        uint64_t imsi,
-                        uint16_t cellid,
-                        uint16_t rnti);
-
-  // static void NotifyHandoverStartEnb (std::string context,
-  //                       uint64_t imsi,
-  //                       uint16_t cellid,
-  //                       uint16_t rnti,
-  //                       uint16_t targetCellId);
-  /**
-   * \brief obtain SINR info dynamically.
-   *
-   */
-
-  static void ReportUeSinr (std::string context, uint16_t cellId, uint16_t rnti, double sinrLinear, uint8_t componentCarrierId);
-
-
 
   /**
    * \brief Install a congestion control algorithm on this socket
@@ -286,7 +228,7 @@ public:
    *
    * \return the generated ACK frame
    */
-  Ptr<Packet> OnSendingAckFrame (uint8_t pathId);
+  Ptr<Packet> OnSendingAckFrame ();
 
   /**
    * \brief Return an object with the transport parameters of this socket
@@ -327,11 +269,6 @@ public:
   void SetQuicL4 (Ptr<QuicL4Protocol> quic);
 
   /**
-   * \brief Initialize socket TX buffer scheduler
-   */
-  void InitializeScheduling ();
-
-  /**
    * \brief Set the connection ID, e.g., for client-initiated connections
    *
    * \param connectionId the connection ID
@@ -357,23 +294,21 @@ public:
    *
    * \return the available window
    */
-  uint32_t AvailableWindow (uint8_t pathId);
+  uint32_t AvailableWindow () const;
 
   /**
    * \brief Get the connection window
    *
    * \return the connection window
    */
-  uint32_t ConnectionWindow (uint8_t pathId);
-
-
+  uint32_t ConnectionWindow () const;
 
   /**
    * \brief Return total bytes in flight
    *
    * \returns total bytes in flight
    */
-  uint32_t BytesInFlight (uint8_t pathId);
+  uint32_t BytesInFlight () const;
 
   /**
    * \brief Get the maximum amount of data that can be sent on the connection
@@ -496,7 +431,7 @@ public:
   /**
    * \brief Schedule a queue ACK has if needed
    */
-  void MaybeQueueAck (uint8_t pathId);
+  void MaybeQueueAck ();
 
   /**
    * \brief Callback function to hook to QuicSocketState congestion window
@@ -505,16 +440,7 @@ public:
    * \param newValue new cWnd value
    */
   void UpdateCwnd (uint32_t oldValue, uint32_t newValue);
-  void UpdateCwnd1 (uint32_t oldValue, uint32_t newValue);
 
-  // void TraceCwnd0 (uint32_t oldValue, uint32_t newValue);
-  // void TraceCwnd1 (uint32_t oldValue, uint32_t newValue);
-
-  // void TraceThroughput0 (double oldValue, double newValue);
-  // void TraceThroughput1 (double oldValue, double newValue);
-
-  void TraceRTT0 (Time oldValue, Time newValue);
-  void TraceRTT1 (Time oldValue, Time newValue);
   /**
    * \brief Callback function to hook to QuicSocketState slow start threshold
    *
@@ -522,8 +448,7 @@ public:
    * \param newValue new ssTh value
    */
   void UpdateSsThresh (uint32_t oldValue, uint32_t newValue);
-  void UpdateSsThresh1 (uint32_t oldValue, uint32_t newValue);
-
+  
   /**
    * \brief Callback function to hook to QuicSocketState congestion state
    *
@@ -578,12 +503,8 @@ public:
    */
   uint32_t GetInitialPacketSize (void) const;
 
-  //ywj: a flag to create new udpSocket
-  // bool m_subSocket;                        //!< If true, this subsocket allowed to be created
-  // bool m_sendAnnounce;
-
   // Implementation of ns3::Socket virtuals
-
+  
   /**
    * Send a packet on a stream
    *
@@ -622,37 +543,6 @@ public:
   virtual enum SocketType GetSocketType (void) const;
 
   /**
-   * Set the latency bound for a specified stream
-   *
-   * \param streamId The stream ID
-   * \param latency The stream's maximum latency
-   */
-  void SetLatency (uint32_t streamId, Time latency);
-
-  /**
-   * Get the latency bound for a specified stream
-   *
-   * \param streamId The stream ID
-   * \return The stream's maximum latency, or 0 if the stream is not registered
-   */
-  Time GetLatency (uint32_t streamId);
-
-  /**
-   * Set the default latency bound
-   *
-   * \param latency The default maximum latency
-   */
-  void SetDefaultLatency (Time latency);
-
-  /**
-   * Get the default latency bound
-   *
-   * \param streamId The stream ID
-   * \return The default maximum latency
-   */
-  Time GetDefaultLatency ();
-
-  /**
    * \brief TracedCallback signature for QUIC packet transmission or reception events.
    *
    * \param [in] packet The packet.
@@ -662,30 +552,8 @@ public:
   typedef void (*QuicTxRxTracedCallback)(const Ptr<const Packet> packet, const QuicHeader& header,
                                          const Ptr<const QuicSocketBase> socket);
 
-
-  // Public: ------------ For Multipath Implementation -------------
-
-
-  typedef enum
-  {
-    QuicNewReno,       
-    OLIA            
-  } CcType_t;
-  
-  void SendAddAddress(Address address, uint8_t pathId);
-  void SendPathChallenge(uint8_t pathId);
-  void SendPathResponse (uint8_t pathId);
-
-  void SubflowInsert(Ptr<MpQuicSubFlow> sflow);
-  void AddPath(Address address, Address from, uint8_t pathId);
-
-  // For scheduler use
-  std::vector<Ptr<MpQuicSubFlow>> GetActiveSubflows();
-
-
-
-
 protected:
+
   // Implementation of QuicSocket virtuals
   virtual bool SetAllowBroadcast (bool allowBroadcast);
   virtual bool GetAllowBroadcast (void) const;
@@ -700,17 +568,17 @@ protected:
   /**
    * \brief Set the RTO timer (called when packets or ACKs are sent)
    */
-  void SetReTxTimeout (uint8_t pathId);
+  void SetReTxTimeout ();
 
   /**
    * \brief Handle what happens in case of an RTO
    */
-  void ReTxTimeout (uint8_t pathId);
+  void ReTxTimeout ();
 
   /**
    * \brief Handle retransmission after loss
    */
-  void DoRetransmit (std::vector<Ptr<QuicSocketTxItem> > lostPackets, uint8_t pathId);
+  void DoRetransmit (std::vector<QuicSocketTxItem*> lostPackets);
 
   /**
    * \brief Extract at most maxSize bytes from the TxBuffer at sequence packetNumber, add the
@@ -725,8 +593,8 @@ protected:
    * \param withAck forces an ACK to be sent
    * \returns the number of bytes sent
    */
-  // uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck);
-  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize, bool withAck, uint8_t pathId);
+  uint32_t SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
+                           bool withAck);
 
   /**
    * \brief Send a Connection Close frame
@@ -800,22 +668,12 @@ protected:
   /**
    * \brief Send an ACK packet
    */
-  void SendAck (uint8_t pathId);
+  void SendAck ();
 
   /**
    * \brief Call Socket::NotifyConnectionSucceeded()
    */
   void ConnectionSucceeded (void);
-
-  /**
-   * \brief Notify Pacing
-   */
-  void NotifyPacingPerformed (void);
-  /**
-   * Send the connection close packet and schedule
-   * the DoClose method
-   */
-  void ScheduleCloseAndSendConnectionClosePacket ();
 
   // Connections to other layers of the Stack
   Ipv4EndPoint* m_endPoint;      //!< the IPv4 endpoint
@@ -830,8 +688,6 @@ protected:
   uint32_t m_socketTxBufferSize;                          //!< Size of the socket TX buffer
   uint32_t m_socketRxBufferSize;                          //!< Size of the socket RX buffer
   std::vector<SequenceNumber32> m_receivedPacketNumbers;  //!< Received packet number vector
-  TypeId m_schedulingTypeId;                                                      //!< The socket type of the packet scheduler
-  Time m_defaultLatency;                                                                  //!< The default latency bound (only used by the EDF scheduler)
 
   // State-related attributes
   TracedValue<QuicStates_t> m_socketState;  //!< State in the Congestion state machine
@@ -850,11 +706,11 @@ protected:
   uint32_t m_initial_max_stream_id_bidi; //!< The the initial maximum number of application-owned bidirectional streams the peer may initiate
   TracedValue<Time> m_idleTimeout;       //!< The idle timeout value in seconds
   bool m_omit_connection_id;             //!< The flag that indicates if the connection id is required in the upcoming connection
-  /*uint128_t  m_stateless_reset_token;*/  //!< The stateless reset token
+/*uint128_t  m_stateless_reset_token;*/  //!< The stateless reset token
   uint8_t m_ack_delay_exponent;          //!< The exponent used to decode the ack delay field in the ACK frame
   uint32_t m_initial_max_stream_id_uni;  //!< The initial maximum number of application-owned unidirectional streams the peer may initiate
   uint32_t m_maxTrackedGaps;             //!< The maximum number of gaps in an ACK
-
+  
   // Transport Parameters management
   bool m_receivedTransportParameters;      //!< Check if Transport Parameters are already been received
   bool m_couldContainTransportParameters;  //!< Check if in the actual conditions can receive Transport Parameters
@@ -868,42 +724,26 @@ protected:
   TracedValue<Time> m_drainingPeriodTimeout;  //!< Draining Period timeout
   EventId m_sendAckEvent;                     //!< Send ACK timeout event
   EventId m_delAckEvent;                      //!< Delayed ACK timeout event
-  bool m_flushOnClose;                        //!< Control behavior on connection close
-  bool m_closeOnEmpty;                        //!< True if the socket will close after sending the buffered packets
 
   // Congestion Control
-  // Ptr<QuicSocketState> m_tcb;                     //!< Congestion control informations
+  Ptr<QuicSocketState> m_tcb;                     //!< Congestion control informations
   Ptr<TcpCongestionOps> m_congestionControl;      //!< Congestion control
   TracedValue<Time> m_lastRtt;                                 //!< Latest measured RTT
   bool m_quicCongestionControlLegacy;             //!< Quic Congestion control if true, TCP Congestion control if false
   bool m_queue_ack;                               //!< Indicates a request for a queue ACK if true
   uint32_t m_numPacketsReceivedSinceLastAckSent;  //!< Number of packets received since last ACK sent
-  uint32_t m_lastMaxData;                                                 //!< Last MaxData ACK
-  uint32_t m_maxDataInterval;                                     //!< Interval between successive MaxData frames in ACKs
 
   uint32_t m_initialPacketSize; //!< size of the first packet to be sent durin the handshake (at least 1200 bytes, per RFC)
-
-  // Pacing timer
-  Timer m_pacingTimer       {Timer::REMOVE_ON_DESTROY}; //!< Pacing Event
 
   /**
   * \brief Callback pointer for cWnd trace chaining
   */
   TracedCallback<uint32_t, uint32_t> m_cWndTrace;
-  TracedCallback<uint32_t, uint32_t> m_cWndTrace1;
-
-  // TracedCallback<double, double> m_thputTrace0;
-  // TracedCallback<double, double> m_thputTrace1;
-
-  
-  TracedCallback<Time, Time> m_rttTrace0;
-  TracedCallback<Time, Time> m_rttTrace1;
 
   /**
   * \brief Callback pointer for ssTh trace chaining
   */
   TracedCallback<uint32_t, uint32_t> m_ssThTrace;
-   TracedCallback<uint32_t, uint32_t> m_ssThTrace1;
 
   /**
   * \brief Callback pointer for congestion state trace chaining
@@ -926,36 +766,7 @@ protected:
 
   TracedCallback<Ptr<const Packet>, const QuicHeader&,
                  Ptr<const QuicSocketBase> > m_rxTrace; //!< Trace of received packets
-
-
-  // Protected: ------------ For Multipath Implementation -------------
-  
-  bool m_enableMultipath;
-  CcType_t m_ccType;
-  Ptr<MpQuicPathManager> m_pathManager;
-  Ptr<MpQuicScheduler> m_scheduler;
-  std::vector <Ptr<MpQuicSubFlow>> m_subflows;
-  uint8_t m_currentPathId;
-  Address m_currentFromAddress;
-  
-
-  void CreatePathManager ();
-  void CreateScheduler ();
-  void CreateNewSubflows ();
-  void OnReceivedAddAddressFrame (QuicSubheader &sub);
-  void OnReceivedPathChallengeFrame (QuicSubheader &sub);
-  void OnReceivedPathResponseFrame (QuicSubheader &sub);
-  
-  double GetOliaAlpha(uint8_t pathId);
-
-  int m_appCloseSentListNoEmpty;
-  uint8_t m_streamSize;
-  
-  // int FindMinRttPath();
-  // uint16_t getSubflowToUse ();
-  // uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
 };
-
 
 } //namespace ns3
 #endif /* QUIC_SOCKET_BASE_H_ */

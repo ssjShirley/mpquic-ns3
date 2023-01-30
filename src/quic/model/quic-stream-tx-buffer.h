@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *
+ *          
  */
 
 #ifndef QUICSTREAMTXBUFFER_H
@@ -38,12 +38,11 @@ namespace ns3 {
  *
  * \brief Item that encloses the frame packet and some flags for it
  */
-class QuicStreamTxItem : public Object
+class QuicStreamTxItem
 {
 public:
   QuicStreamTxItem ();
   QuicStreamTxItem (const QuicStreamTxItem &other);
-  ~QuicStreamTxItem ();
 
   /**
    * \brief Print the Item
@@ -119,7 +118,7 @@ public:
    * \param numBytes number of bytes of the QuicSocketTxItem requested
    * \return the item that contains the right packet
    */
-  Ptr<QuicStreamTxItem> GetNewSegment (uint32_t numBytes);
+  QuicStreamTxItem* GetNewSegment (uint32_t numBytes);
 
   /**
    * Process an acknowledgment, set the frames in the send buffer as acknowledged, mark
@@ -169,7 +168,7 @@ public:
   uint32_t BytesInFlight () const;
 
 private:
-  typedef std::list<Ptr<QuicStreamTxItem>> QuicTxPacketList;  //!< container for data stored in the buffer
+  typedef std::list<QuicStreamTxItem*> QuicTxPacketList;  //!< container for data stored in the buffer
 
   /**
    * \brief Merge two QuicStreamTxItem

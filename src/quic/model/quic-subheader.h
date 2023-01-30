@@ -19,7 +19,7 @@
  *          Federico Chiariotti <chiariotti.federico@gmail.com>
  *          Michele Polese <michele.polese@gmail.com>
  *          Davide Marcato <davidemarcato@outlook.com>
- *          Shengjie Shu <shengjies@uvic.ca>
+ *          
  */
 
 #ifndef QUICSUBHEADER_H
@@ -130,12 +130,7 @@ public:
     STREAM100 = 0x14,          //!< Stream (offset=1, length=0, fin=0)
     STREAM101 = 0x15,          //!< Stream (offset=1, length=0, fin=1)
     STREAM110 = 0x16,          //!< Stream (offset=1, length=1, fin=0)
-    STREAM111 = 0x17,          //!< Stream (offset=1, length=1, fin=1)
-    ADD_ADDRESS = 0x18,        //!< Multipath Implementation: Add address
-    REMOVE_ADDRESS = 0x19,     //!< Multipath Implementation: Remove address
-    MP_ACK = 0x1A,             //!< Multipath Implementation: Mp Ack
-    PATH_ABANDON = 0X1B        //!< Multipath Implementation: Path Abandon
-
+    STREAM111 = 0x17           //!< Stream (offset=1, length=1, fin=1)
   } TypeFrame_t;
 
   /**
@@ -728,100 +723,6 @@ public:
    */
   uint32_t CalculateSubHeaderLength () const;
 
-
-  // For multipath implementation
-
-  /**
-   * @brief 
-   * 
-   * @return true 
-   * @return false 
-   */
-  bool IsMpAck () const;
-
-  /**
-   * @brief 
-   * 
-   * @return true 
-   * @return false 
-   */
-  bool IsAddAddress () const;
-
-  /**
-   * @brief 
-   * 
-   * @return true 
-   * @return false 
-   */
-  bool IsRemoveAddress () const;
-
-  
-  /**
-   * Create a Add Address object
-   * 
-   * \param addr 
-   * \return QuicSubheader 
-   */
-  static QuicSubheader CreateAddAddress(Address addr, uint8_t pathId);
-
-
-  /**
-   * Create a Remove Address object
-   * 
-   * \param addr 
-   * \return QuicSubheader 
-   */
-  static QuicSubheader CreateRemoveAddress(Address addr, uint8_t pathId);
-
-
-  /**
-   * Create a Ack subheader
-   *
-   * \param largestAcknowledged the largest packet number the peer is acknowledging
-   * \param ackDelay the time in microseconds that the largest acknowledged packet, was received by this peer to when this ACK was sent
-   * \param firstAckBlock the number of contiguous packets preceding the Largest Acknowledged that are being acknowledged
-   * \param gaps the vector where each field contains the number of contiguous unacknowledged packets preceding the packet number one lower than the smallest in the preceding ack block
-   * \param additionalAckBlocks the vector where each field contains the number of contiguous acknowledged packets preceding the largest packet number
-   * \param pathId subflow identification
-   *
-   * 
-   * \return the generated QuicSubheader
-   */
-  static QuicSubheader CreateMpAck (uint32_t largestAcknowledged, uint64_t ackDelay, uint32_t firstAckBlock, std::vector<uint32_t>& gaps, std::vector<uint32_t>& additionalAckBlocks,uint8_t pathId);
-
-  static QuicSubheader CreatePathAbandon (uint8_t pathId, uint16_t m_errorCode);
-
-
-  /**
-   * @brief Get the Path Id object
-   * 
-   * @return uint32_t 
-   */
-  uint8_t GetPathId() const;
-
-  /**
-   * @brief Set the Path Id object
-   * 
-   * @param pathId 
-   */
-  void SetPathId(uint8_t pathId);
-
-
-  /**
-   * @brief Get the Address object
-   * 
-   * @return Address 
-   */
-  Address GetAddress () const;
-
-  /**
-   * @brief Set the Address object
-   * 
-   * @param address 
-   */
-  void SetAddress (Address address);
-
-
 private:
   uint8_t m_frameType;                          //!< Frame type
   uint64_t m_streamId;                          //!< Stream id
@@ -843,8 +744,6 @@ private:
   std::vector<uint32_t> m_gaps;                 //!< Gaps vector
   uint8_t m_data;                               //!< Data word
   uint64_t m_length;                            //!< Length
-  uint8_t m_pathId;                            //!< Multipath Implementation: Path Id
-  Address m_address;                            //!< Multipath Implementation: Address
 };
 
 } // namespace ns3
