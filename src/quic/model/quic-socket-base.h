@@ -948,12 +948,8 @@ protected:
   
   double GetOliaAlpha(uint8_t pathId);
   
-  TracedCallback<uint32_t, uint32_t> m_rewardTrace;
   void UpdateReward (uint32_t oldValue, uint32_t newValue);
   int m_appCloseSentListNoEmpty;
-  // int FindMinRttPath();
-  // uint16_t getSubflowToUse ();
-  // uint32_t TotalData (double T,uint32_t sFlowIdx,uint32_t cwnd,int sst,double p,double p0,int flag, double RTT, double RTO, double totalData);
   Time lastAckTime;
 };
 

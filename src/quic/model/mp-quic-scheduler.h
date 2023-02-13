@@ -30,22 +30,6 @@ using Eigen::VectorXd;
 
 namespace ns3 {
 
-// class MpQuicSchedulerState : public Object
-// {
-// public:
-//   static TypeId GetTypeId (void);
-
-//   MpQuicSchedulerState ();
-//   MpQuicSchedulerState (const MpQuicSchedulerState &other);
-//   virtual  ~MpQuicSchedulerState (void)
-//   {}
-//   TracedValue<uint32_t> m_reward; 
-
-// };
-
-
-
-
 class MpQuicScheduler : public Object
 {
 public:
@@ -56,8 +40,7 @@ public:
       MIN_RTT,
       BLEST,
       ECF,
-      PEEKABOO,
-      MAB_DELAY
+      PEEKABOO
     } SchedulerType_t;
   
   /**
@@ -95,14 +78,7 @@ private:
   std::vector<double> MabDelay();
   std::vector<double> Blest();
   std::vector<double> Ecf();
-  std::vector<double> LocalOpt();
 
-  std::vector <uint64_t> m_rewards;
-  std::vector <uint64_t> m_rewardTemp;
-  std::vector <uint64_t> m_rewardTemp0;
-  std::vector <uint64_t> m_rewardAvg;
-  uint32_t m_rounds;
-  TracedValue<uint32_t> m_reward {0}; 
   uint32_t m_rate;
   uint16_t m_lostPackets;
   uint16_t m_lambda;
@@ -123,29 +99,6 @@ private:
   VectorXd peek_x = VectorXd::Constant(6,0);
   double T_r, g = 1, R = 0, T_e;
   double rtt[8];
-  // int rounds;
-
-
-  // int c_index;  // the index of context combinations
-  // uint8_t lastCtxId[8]; //the context ID in the last time slot on path j \in [0,7]
-  // uint8_t lastActId[8]; //the action ID in the last time slot on path j \in [0,7]
-  // std::map <std::string, uint8_t> ctxIdPair;  // context combination vs ID
-  // double currBw, currRtt, currLoss;     //current BW, RTT and Loss rate each time when receiving ACK
-  // bool isFirstTime = true;
-  // double bw[8], rtt[8], loss[8];
-  // static const int maxC2 = 27;
-  // static const int maxA2 = 2;
-  // double rewardTotal2[maxC2][maxA2];
-  // double H2[maxC2][maxA2];
-  // uint32_t N2[maxC2][maxA2];
-  // uint32_t totalN2 = 1;
-  // uint8_t lastCtxId2;
-  // uint8_t lastActId2;
-  // Time lastActTime;
-  // void Permutation_With_Repetition(const char str[],std::string prefix,const int n, const int length);
-  // void iniH2();
-  // uint8_t ctxClass(uint8_t, double rtt);
-  
 };
 
 } // namespace ns3

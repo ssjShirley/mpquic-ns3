@@ -114,7 +114,6 @@ public:
   Time m_firstSentTime { Seconds (0) };      //!< Connection's first sent time at the time the packet was sent
   bool m_isAppLimited { false };       //!< Connection's app limited at the time the packet was sent
   uint32_t m_ackBytesSent { 0 };       //!< Connection's ACK-only bytes sent at the time the packet was sent
-  uint32_t m_round { 0 };       //!< Connection's ACK-only bytes sent at the time the packet was sent
 };
 
 /**
@@ -170,7 +169,7 @@ public:
    * \param Q the estimated data amount Q 
    * \return the next packet to transmit
    */
-  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint8_t pathId, uint32_t currentRound);
+  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint8_t pathId);
 
 
   /**
@@ -379,7 +378,6 @@ public:
   //For multipath Implementation
   
   void AddSentList (uint8_t pathId);
-  // void FindSentList (uint8_t pathId);
 
   int SentListIsEmpty();
 
@@ -391,7 +389,6 @@ private:
    */
   void CleanSentList (uint8_t pathId);
 
-  // QuicTxPacketList m_sentList;        //!< List of sent packets with additional info
 
   QuicTxPacketList m_streamZeroList;       //!< List of waiting stream 0 packets with additional info
   uint32_t m_maxBuffer;            //!< Max number of data bytes in buffer (SND.WND)

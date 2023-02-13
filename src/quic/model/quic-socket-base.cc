@@ -307,11 +307,7 @@ QuicSocketBase::GetTypeId (void)
     .AddTraceSource ("CongestionWindow1",
                      "The QUIC connection's congestion window",
                      MakeTraceSourceAccessor (&QuicSocketBase::m_cWndTrace1),
-                     "ns3::TracedValueCallback::Uint32")
-    .AddTraceSource ("MabRewardTrace",
-                     "The average reward get by mab",
-                     MakeTraceSourceAccessor (&QuicSocketBase::m_rewardTrace),
-                     "ns3::TracedValueCallback::Uint32")    
+                     "ns3::TracedValueCallback::Uint32")   
     // .AddTraceSource ("Throughput0",
     //                  "TCP slow start threshold (bytes)",
     //                  MakeTraceSourceAccessor (&QuicSocketBase::m_thputTrace0),
@@ -973,15 +969,6 @@ QuicSocketBase::AppendingTx (Ptr<Packet> frame)
 {
   NS_LOG_FUNCTION (this);
 
-  //ywj: 
-  // uint32_t win = AvailableWindow (m_lastUsedsFlowIdx); 
-
-  // if (win == 0){
-  //   m_lastUsedsFlowIdx = getSubflowToUse ();
-  // }
-  //ywj: before using m_txBuffer, have to set its state to the current used subflow's socket state
-  // m_txBuffer->SetQuicSocketState(m_subflows[m_lastUsedsFlowIdx]->m_tcb);
-
   if (m_socketState != IDLE)
     {
       bool done = m_txBuffer->Add (frame);
@@ -1105,16 +1092,6 @@ QuicSocketBase::SendPendingData (bool withAck)
 
     ++nPacketsSent;
   }
-
-   // For multipath Implementaion
-  // scheduler: select which subflow to use.
-
-  // uint8_t sendingPathId = m_scheduler->GetNextPathIdToUse();
-  // uint8_t sendingPathId = getSubflowToUse();
-  // uint32_t availableWindow = AvailableWindow (sendingPathId); // mark: to be AvailableWindow (m_lastUsedsFlowIdx)
-  // uint32_t connWin = ConnectionWindow (sendingPathId);
-  // uint32_t bytesInFlight = BytesInFlight (sendingPathId);
-
 
 
   std::vector<double> sendP = m_scheduler->GetNextPathIdToUse();
@@ -1249,12 +1226,6 @@ QuicSocketBase::MaybeQueueAck (uint8_t pathId)
       return;
     }
 
-  // if(m_txBuffer->AppSize() > 0)
-  // {
-  //   NS_LOG_INFO("There are packets to be transmitted in the TX buffer, piggyback the ACK");
-  //   return;
-  // }
-
   if (m_subflows[pathId]->m_numPacketsReceivedSinceLastAckSent > m_subflows[pathId]->m_tcb->m_kMaxPacketsReceivedBeforeAckSend)
     {
       NS_LOG_INFO ("immediately send ACK - max number of unacked packets reached");
@@ -1375,7 +1346,7 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
     {
       NS_LOG_LOGIC (this << " SendDataPacket - sending packet " << packetNumber.GetValue () << " of size " << maxSize << " at time " << Simulator::Now ().GetSeconds ());
       m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout, &QuicSocketBase::Close, this);
-      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId, m_scheduler->GetCurrentRound());
+      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId);
     }
 
   uint32_t sz = p->GetSize ();
@@ -2577,7 +2548,6 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
                 }
             }
         }
-      m_scheduler->UpdateRewardMab(pathId,m_txBuffer->GetLost (pathId), m_txBuffer->BytesInFlight (pathId), lastAcked->m_round);
       m_scheduler->PeekabooReward(pathId, lastAckTime);
       lastAckTime = Now();
     }
@@ -3267,40 +3237,6 @@ QuicSocketBase::UpdateCwnd1 (uint32_t oldValue, uint32_t newValue)
   m_cWndTrace1 (oldValue, newValue);
 }
 
-// void
-// QuicSocketBase::TraceCwnd0 (uint32_t oldValue, uint32_t newValue)
-// {
-//   m_cWndTrace0 (oldValue, newValue);
-//   // std::cout<<"0"<<oldValue<<","<<newValue<<"\n";
-// }
-
-
-// void
-// QuicSocketBase::TraceCwnd1 (uint32_t oldValue, uint32_t newValue)
-// {
-//   m_cWndTrace1 (oldValue, newValue);
-//   // std::cout<<"1"<<oldValue<<","<<newValue<<"\n";
-// }
-
-// void
-// QuicSocketBase::TraceThroughput0 (double oldValue, double newValue)
-// {
-//   m_thputTrace0 (oldValue, newValue);
-//   // std::cout<<"1"<<oldValue<<","<<newValue<<"\n";
-// }
-
-// void
-// QuicSocketBase::TraceThroughput1 (double oldValue, double newValue)
-// {
-//   m_thputTrace1 (oldValue, newValue);
-//   // std::cout<<"1"<<oldValue<<","<<newValue<<"\n";
-// }
-
-void
-QuicSocketBase::UpdateReward (uint32_t oldValue, uint32_t newValue)
-{
-  m_rewardTrace (oldValue, newValue);
-}
 
 
 void
@@ -3410,7 +3346,6 @@ QuicSocketBase::CreateScheduler ()
   NS_LOG_FUNCTION (this);
   m_scheduler = CreateObject<MpQuicScheduler> ();
   m_scheduler->SetSocket(this);
-  m_scheduler->TraceConnectWithoutContext ("MabReward", MakeCallback (&QuicSocketBase::UpdateReward, this));
 }
 
 void
@@ -3475,8 +3410,6 @@ QuicSocketBase::OnReceivedAddAddressFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   uint8_t pathId = sub.GetPathId();
-  // Address peerAddr = InetSocketAddress("10.1.7.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
-  // Address peerAddr = InetSocketAddress("10.1.2.2",49154); // TODO: sub.GetAddress(); address from buffer connot connection correctly
 
   InetSocketAddress transport = InetSocketAddress::ConvertFrom (sub.GetAddress());
   Ipv4Address ipv4 = transport.GetIpv4 ();
@@ -3505,7 +3438,6 @@ QuicSocketBase::SendPathChallenge(uint8_t pathId)
   head.SetPathId(pathId);
 
   NS_LOG_INFO ("Send PATH_CHALLENGE packet with header " << head);
-  // m_subflows[pathId]->Add(packetNumber);
   m_quicl4->SendPacket (this, p, head);
 }
 
@@ -3533,7 +3465,6 @@ QuicSocketBase::SendPathResponse (uint8_t pathId)
   QuicHeader head;
   head = QuicHeader::CreateShort (m_connectionId, packetNumber,!m_omit_connection_id, m_keyPhase);
   head.SetPathId(pathId);
-  // m_subflows[pathId]->Add(packetNumber);
   NS_LOG_INFO ("Send PATH_RESPONSE packet with header " << head);
 
   m_quicl4->SendPacket (this, p, head);

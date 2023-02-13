@@ -50,7 +50,7 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("wns3-two-flow-topo");
+NS_LOG_COMPONENT_DEFINE("wns3-mpquic-four-path");
 
 // static void
 // CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
@@ -209,7 +209,7 @@ main (int argc, char *argv[])
     LogComponentEnableAll (LOG_PREFIX_NODE);
 //  LogComponentEnable ("QuicEchoClientApplication", log_precision);
 //  LogComponentEnable ("QuicEchoServerApplication", log_precision);
-    LogComponentEnable ("wns3-two-flow-topo", log_precision);
+    LogComponentEnable ("wns3-mpquic-four-path", log_precision);
 //  LogComponentEnable ("QuicHeader", log_precision);
 //  LogComponentEnable ("QuicSocketBase", log_precision);
 //  LogComponentEnable ("QuicStreamBase", LOG_LEVEL_LOGIC);
