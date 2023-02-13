@@ -18,15 +18,13 @@
  * n0                     n2
  *   \        TCP        /
  *    n1 -------------- n8
- *   /         S0        \
+ *   /         P0        \
  * n4                     n5
- *   \         S1        /
+ *   \         P1        /
  *    n6 -------------- n9
  *   /        TCP        \
  * n3                     n7
  *
- * Sample script:
- *   ./waf --run "scratch/wns3-two-flow-topo.cc --SchedulerType=0 --Rate0="10Mbps" --Rate1="10Mbps"" >log.out 2>d1
  * 
  * Authors: Alvise De Biasio <alvise.debiasio@gmail.com>
  *          Federico Chiariotti <whatever@blbl.it>

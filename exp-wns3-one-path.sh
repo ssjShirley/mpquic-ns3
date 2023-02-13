@@ -27,7 +27,3 @@ rm $LOG1
 
 cp $LOG2 "${DIR}${LOG2}"
 rm $LOG2
-
-
-
-# python3 results-icc/draw.py $DIR

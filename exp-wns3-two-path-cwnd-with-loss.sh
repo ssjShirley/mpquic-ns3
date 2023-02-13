@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 FOLD="cwndA-$1-$2"
@@ -45,5 +44,3 @@ do
     rm $LOG2
 
 done
-
-# python3 results-icc/draw.py $DIR

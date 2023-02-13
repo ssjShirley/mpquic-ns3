@@ -18,15 +18,9 @@
  * n0                     n2
  *   \        TCP        /
  *    n1 -------------- n8
- *   /         S0        \
+ *   /         P0        \
  * n4                     n5
- *   \         S1        /
- *    n6 -------------- n9
- *   /        TCP        \
- * n3                     n7
  *
- * Sample script:
- *   ./waf --run "scratch/wns3-two-flow-topo.cc --SchedulerType=0 --Rate0="10Mbps" --Rate1="10Mbps"" >log.out 2>d1
  * 
  * Authors: Alvise De Biasio <alvise.debiasio@gmail.com>
  *          Federico Chiariotti <whatever@blbl.it>
@@ -173,7 +167,7 @@ main (int argc, char *argv[])
     CommandLine cmd;
 
 
-    cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT, 2 - BLEST, 3 - MAB)", schedulerType);
+    cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT, 2 - BLEST, 3 - ECF, 4 - Peekaboo)", schedulerType);
     cmd.AddValue ("BVar", "e.g. 100", bVar);
     cmd.AddValue ("BLambda", "e.g. 100", bLambda);
     cmd.AddValue ("MabRate", "e.g. 100", mrate);
@@ -256,17 +250,11 @@ main (int argc, char *argv[])
     rateVal0->SetAttribute ("Min", DoubleValue (rate0a));
     rateVal0->SetAttribute ("Max", DoubleValue (rate0b));
 
-    // Ptr<UniformRandomVariable> rateVal1 = CreateObject<UniformRandomVariable> ();
-    // rateVal1->SetAttribute ("Min", DoubleValue (rate1a));
-    // rateVal1->SetAttribute ("Max", DoubleValue (rate1b));
 
     Ptr<UniformRandomVariable> delayVal0 = CreateObject<UniformRandomVariable> ();
     delayVal0->SetAttribute ("Min", DoubleValue (delay0a));
     delayVal0->SetAttribute ("Max", DoubleValue (delay0b));
 
-    // Ptr<UniformRandomVariable> delayVal1 = CreateObject<UniformRandomVariable> ();
-    // delayVal1->SetAttribute ("Min", DoubleValue (delay1a));
-    // delayVal1->SetAttribute ("Max", DoubleValue (delay1b));
 
 
     int simulationEndTime = 30;

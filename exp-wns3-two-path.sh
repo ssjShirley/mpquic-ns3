@@ -36,5 +36,3 @@ do
     rm $LOG2
 
 done
-
-# python3 results-icc/draw.py $DIR
