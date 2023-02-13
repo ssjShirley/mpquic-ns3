@@ -47,9 +47,9 @@ void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon)
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator stats = flowStats.begin (); stats != flowStats.end (); ++stats)
     {
         // Ipv4FlowClassifier::FiveTuple fiveTuple = classing->FindFlow (stats->first);
-        if (stats->first == 1 || stats->first == 3 || stats->first == 4 || stats->first == 5 || stats->first == 6 || stats->first == 1 ||stats->first == 7 || stats->first == 8 || stats->first == 9){
+        // if (stats->first == 1 || stats->first == 3 || stats->first == 4 || stats->first == 5 || stats->first == 6 || stats->first == 1 ||stats->first == 7 || stats->first == 8 || stats->first == 9){
             std::cout << " Flow: " << stats->first  << " Seconds: " << stats->second.timeLastRxPacket.GetSeconds()  << " Received Bytes: " << stats->second.rxBytes << " Throughput: " << stats->second.rxBytes * 8.0 / (stats->second.timeLastRxPacket.GetSeconds()-stats->second.timeFirstTxPacket.GetSeconds())/1024/1024  << std::endl;
-        }
+        // }
     }
     Simulator::Schedule(Seconds(0.005),&ThroughputMonitor, fmhelper, flowMon);
 }
@@ -102,9 +102,9 @@ main (int argc, char *argv[])
     Config::SetDefault ("ns3::QuicStreamBase::StreamRcvBufSize",UintegerValue (40000000));
 
 
-    Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
-    Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(QuicSocketBase::OLIA));
-    Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
+    // Config::SetDefault ("ns3::QuicSocketBase::EnableMultipath",BooleanValue(true));
+    // Config::SetDefault ("ns3::QuicSocketBase::CcType",IntegerValue(QuicSocketBase::OLIA));
+    // Config::SetDefault ("ns3::QuicL4Protocol::SocketType",TypeIdValue (MpQuicCongestionOps::GetTypeId ()));
     Config::SetDefault ("ns3::MpQuicScheduler::SchedulerType", IntegerValue(MpQuicScheduler::ROUND_ROBIN));   
 
     NodeContainer nodes;

@@ -8,7 +8,7 @@
             "name": "(gdb) mpquic",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/scratch/mpquic-scheduler-nbg-ndy",
+            "program": "${workspaceFolder}/build/scratch/wns3-mpquic-single-path",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -23,7 +23,7 @@
                     "${debuggerCommand}",                       // gdb path and --interpreter arg already in debuggerCommand 
                     "--args", "%s",                             // Need to add --args %s to the gdb call
                     "\"",                                       // closing quote for command template
-                    "--run", "mpquic-example",                  // Run call with the filename
+                    "--run", "wns3-mpquic-single-path",                  // Run call with the filename
                     ],
                     "quoteArgs":false,
                     "pipeCwd": ""
