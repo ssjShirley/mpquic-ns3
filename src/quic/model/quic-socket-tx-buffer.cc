@@ -906,12 +906,14 @@ Time QuicSocketTxBuffer::GetDefaultLatency ()
 
 //For multipath implementation
 
-void QuicSocketTxBuffer::AddSentList()
+void QuicSocketTxBuffer::AddSentList(uint8_t pathId)
 {
-    QuicTxPacketList sentList = QuicTxPacketList();
-    m_subflowSentList.insert(m_subflowSentList.end(), sentList);
-    uint32_t sentSize = 0;
-    m_sentSizeList.insert(m_sentSizeList.end(), sentSize);
+    while (m_subflowSentList.size() <= pathId){
+      QuicTxPacketList sentList = QuicTxPacketList();
+      m_subflowSentList.insert(m_subflowSentList.end(), sentList);
+      uint32_t sentSize = 0;
+      m_sentSizeList.insert(m_sentSizeList.end(), sentSize);
+    }
 }
 
 

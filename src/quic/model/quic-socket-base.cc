@@ -3516,7 +3516,7 @@ QuicSocketBase::OnReceivedPathChallengeFrame (QuicSubheader &sub)
   m_subflows[m_currentPathId]->m_peerAddr = m_currentFromAddress;
   m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::Active;
   m_quicl4->ReDoUdpConnect(m_currentPathId, m_currentFromAddress);
-  m_txBuffer->AddSentList();
+  m_txBuffer->AddSentList(m_currentPathId);
   SendPathResponse(m_currentPathId);
 }
 
@@ -3544,7 +3544,7 @@ QuicSocketBase::OnReceivedPathResponseFrame (QuicSubheader &sub)
 {
   NS_LOG_FUNCTION (this);
   m_subflows[m_currentPathId]->m_subflowState = MpQuicSubFlow::Active;
-  m_txBuffer->AddSentList();
+  m_txBuffer->AddSentList(m_currentPathId);
 }
 
 

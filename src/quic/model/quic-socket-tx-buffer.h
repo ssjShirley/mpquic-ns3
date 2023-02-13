@@ -378,7 +378,7 @@ public:
 
   //For multipath Implementation
   
-  void AddSentList ();
+  void AddSentList (uint8_t pathId);
   // void FindSentList (uint8_t pathId);
 
   int SentListIsEmpty();
