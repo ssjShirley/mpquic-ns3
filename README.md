@@ -47,6 +47,13 @@ Configure and build mpquic from the folder:
 ./waf --run scratch/mpquic-example.cc
 ```
 
+### Run Experiments ###
+```bash
+./exp-wns3-one-path.sh [seed]
+```
+
+
+
 QUIC implementation for ns-3
 ================================
 
