@@ -44,4 +44,5 @@ version.cache
 *.png
 *.eps
 *.out
+*.ipynb
 *.pdf
