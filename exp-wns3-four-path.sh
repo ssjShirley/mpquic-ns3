@@ -3,8 +3,8 @@
 
 FOLD="four-$1"
 DIR="results-wns3/$FOLD/"
-RATE0="10.0"
-RATE1="11.0"
+RATE0="5.0"
+RATE1="6.0"
 DELAY0="50.0"
 DELAY1="55.0"
 LOSS="0.000000"
