@@ -41,8 +41,6 @@
 #include "ns3/flow-monitor-module.h"
 #include "ns3/gnuplot.h"
 
-#include <boost/assign/list_of.hpp>
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wns3-mpquic-one-path");
