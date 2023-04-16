@@ -89,17 +89,13 @@ public:
 
     // Congestion Control
     Ptr<QuicSocketState> m_tcb;                     //!< Congestion control informations
-    // Ptr<TcpCongestionOps> m_congestionControl;      //!< Congestion control
-    // TracedValue<Time> m_lastRtt;                    //!< Latest measured RTT
-    // bool m_quicCongestionControlLegacy;             //!< Quic Congestion control if true, TCP Congestion control if false
     bool m_queue_ack;                               //!< Indicates a request for a queue ACK if true
     uint32_t m_numPacketsReceivedSinceLastAckSent;  //!< Number of packets received since last ACK sent
     uint32_t m_lastMaxData;                         //!< Last MaxData ACK
     uint32_t m_maxDataInterval;                     //!< Interval between successive MaxData frames in ACKs
-    // uint32_t m_initialPacketSize;                   //!< size of the first packet to be sent durin the handshake (at least 1200 bytes, per RFC)
 
     // Pacing timer
-    Timer m_pacingTimer       {Timer::REMOVE_ON_DESTROY}; //!< Pacing Event
+    Timer m_pacingTimer       {Timer::REMOVE_ON_DESTROY};   //!< Pacing Event
     std::vector<SequenceNumber32> m_receivedPacketNumbers;  //!< Received packet number vector
 
     uint32_t m_rounds;

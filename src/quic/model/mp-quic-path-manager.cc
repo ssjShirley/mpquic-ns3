@@ -84,8 +84,6 @@ MpQuicPathManager::InitialSubflow0 (Address localAddress, Address peerAddress)
   sFlow->m_subflowState = MpQuicSubFlow::Active;
   sFlow->SetSegSize(m_segSize);
   sFlow->m_tcb->m_initialSsThresh = m_initialSsThresh;
-  // sFlow->m_tcb->m_cWnd = sFlow->m_tcb->m_initialCWnd;
-  // sFlow->m_tcb->m_ssThresh = sFlow->m_tcb->m_initialSsThresh;
   m_socket->SubflowInsert(sFlow);
   bool ok;
   ok = sFlow->m_tcb->TraceConnectWithoutContext ("CongestionWindow", MakeCallback (&QuicSocketBase::UpdateCwnd, m_socket));

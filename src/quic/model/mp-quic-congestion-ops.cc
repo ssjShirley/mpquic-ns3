@@ -236,13 +236,11 @@ MpQuicCongestionOps::OnPacketAckedCC (Ptr<TcpSocketState> tcb,
       NS_LOG_LOGIC ("In congestion avoidance");
       // Congestion Avoidance.
       m_inCCAvoid = true;
-      if (tcbd->m_cWnd > (uint32_t) 0 /*&& tcbd->m_cWnd < tcbd->m_segmentSize*5*/) {
+      if (tcbd->m_cWnd > (uint32_t) 0) {
         double increase = (tcbd->m_cWnd/tcbd->m_segmentSize/pow(tcbd->m_lastRtt.Get().GetSeconds(),2))/pow(sum_rate,2)
                         + alpha/(tcbd->m_cWnd/tcbd->m_segmentSize);
         tcbd->m_cWnd += fabs(increase)*tcbd->m_segmentSize;
-          // tcbd->m_cWnd += tcbd->m_segmentSize * ackedPacket->m_packet->GetSize () / tcbd->m_cWnd;
       } else {
-          // tcbd->m_cWnd = tcbd->m_segmentSize;
           tcbd->m_cWnd = tcbd->m_kMinimumWindow;
       }
     }

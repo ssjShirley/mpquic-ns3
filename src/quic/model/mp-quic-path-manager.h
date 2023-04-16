@@ -55,7 +55,6 @@ public:
   Ptr<MpQuicSubFlow> AddSubflow(Address address, Address from, uint8_t pathId);
   Ptr<MpQuicSubFlow> AddSubflowWithPeerAddress(Address localAddress, Address peerAddress, uint8_t pathId);
  
-  // uint8_t LookUpByAddr (Address &address);
   void SetSocket(Ptr<QuicSocketBase> sock);
   void SetSegSize(uint32_t size);
   uint32_t GetSegSize() const;

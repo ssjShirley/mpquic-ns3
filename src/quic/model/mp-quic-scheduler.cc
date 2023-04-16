@@ -259,7 +259,6 @@ MpQuicScheduler::Blest() //only allow two subflows
     double_t cwndF = m_subflows[fastPathId]->m_tcb->m_cWnd/mss;
     double_t X = mss * (cwndF + (rtts-1)/2) * rtts;
     double_t comp = m_socket->GetTxAvailable() - (m_socket->BytesInFlight(slowPathId)+mss);
-    // std::cout<<"available: "<<m_socket->GetTxAvailable()<<" cwnd: "<<m_subflows[fastPathId]->m_tcb->m_cWnd.Get()<<" X: "<<X<<" comp: "<<comp<<std::endl;
     m_lambda = m_lambda + m_bVar;
     if(X * m_lambda > comp) { //not send on slow path
       m_lastUsedPathId = fastPathId;

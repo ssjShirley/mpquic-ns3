@@ -50,80 +50,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wns3-mpquic-two-path-2");
 
-// static void
-// CwndChange (Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd, uint32_t newCwnd)
-// {
-//     *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldCwnd << "\t" << newCwnd << std::endl;
-// }
-
-// static void
-// RewardChange (Ptr<OutputStreamWrapper> stream1, uint32_t oldReward, uint32_t newReward)
-// {
-//     *stream1->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldReward << "\t" << newReward << std::endl;
-// }
-
-// static void
-// RTTChange (Ptr<OutputStreamWrapper> stream, Time oldValue, Time newValue)
-// {
-//     *stream->GetStream () << Simulator::Now ().GetSeconds () << "\t" << oldValue.GetSeconds() << "\t" << newValue.GetSeconds()<< std::endl;
-// }
-
-// static void
-// Traces(uint32_t serverId, std::string pathVersion, std::string finalPart)
-// {
-//     AsciiTraceHelper asciiTraceHelper;
-
-//     std::ostringstream path0CW;
-//     path0CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0CW.str().c_str()).GetN());
-
-//     std::ostringstream path1CW;
-//     path1CW << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/CongestionWindow1";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1CW.str().c_str()).GetN());
-
-//     std::ostringstream path0rtt;
-//     path0rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT0";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path0rtt.str().c_str()).GetN());
-
-//     std::ostringstream path1rtt;
-//     path1rtt << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/RTT1";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(path1rtt.str().c_str()).GetN());
-
-//     std::ostringstream reward;
-//     reward << "/NodeList/" << serverId << "/$ns3::QuicL4Protocol/SocketList/0/QuicSocketBase/MabRewardTrace";
-//     // reward << "/NodeList/" << serverId << "/$ns3::QuicL5Protocol/StreamList/*/QuicStreamBase/RxBufferTrace";
-//     NS_LOG_INFO("Matches cw " << Config::LookupMatches(reward.str().c_str()).GetN());
-
-//     std::ostringstream file0CW;
-//     file0CW << pathVersion << "-cwnd-change-0" << "" << finalPart;
-//     std::ostringstream file1CW;
-//     file1CW << pathVersion << "-cwnd-change-1"<< "" << finalPart;
-//     std::ostringstream file0rtt;
-//     file0rtt << pathVersion << "-rtt-change-0" << "" << finalPart;
-//     std::ostringstream file1rtt;
-//     file1rtt << pathVersion << "-rtt-change-1"<< "" << finalPart;
-//     std::ostringstream fileReward;
-//     fileReward << pathVersion << "-reward"<< "" << finalPart;
-
-
-//     Ptr<OutputStreamWrapper> stream = asciiTraceHelper.CreateFileStream (file0CW.str ().c_str ());
-//     Config::ConnectWithoutContext (path0CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream));
-
-//     Ptr<OutputStreamWrapper> stream0 = asciiTraceHelper.CreateFileStream (file1CW.str ().c_str ());
-//     Config::ConnectWithoutContext (path1CW.str ().c_str (), MakeBoundCallback(&CwndChange, stream0));
-
-//     Ptr<OutputStreamWrapper> stream1 = asciiTraceHelper.CreateFileStream (fileReward.str ().c_str ());
-//     Config::ConnectWithoutContext (reward.str ().c_str (), MakeBoundCallback(&CwndChange, stream1));
-
-//     Ptr<OutputStreamWrapper> stream2 = asciiTraceHelper.CreateFileStream (file0rtt.str ().c_str ());
-//     Config::ConnectWithoutContext (path0rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream2));
-
-//     Ptr<OutputStreamWrapper> stream3 = asciiTraceHelper.CreateFileStream (file1rtt.str ().c_str ());
-//     Config::ConnectWithoutContext (path1rtt.str ().c_str (), MakeBoundCallback(&RTTChange, stream3));
-
-// }
-
-
 void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, Ptr<OutputStreamWrapper> stream)
 {
     std::map<FlowId, FlowMonitor::FlowStats> flowStats = flowMon->GetFlowStats();
@@ -196,30 +122,7 @@ main (int argc, char *argv[])
     LogComponentEnableAll (LOG_PREFIX_TIME);
     LogComponentEnableAll (LOG_PREFIX_FUNC);
     LogComponentEnableAll (LOG_PREFIX_NODE);
-//  LogComponentEnable ("QuicEchoClientApplication", log_precision);
-//  LogComponentEnable ("QuicEchoServerApplication", log_precision);
     LogComponentEnable ("wns3-mpquic-two-path-2", log_precision);
-//  LogComponentEnable ("QuicHeader", log_precision);
-//  LogComponentEnable ("QuicSocketBase", log_precision);
-//  LogComponentEnable ("QuicStreamBase", LOG_LEVEL_LOGIC);
-//  LogComponentEnable ("Socket", log_precision);
-//  LogComponentEnable ("Application", log_precision);
-//  LogComponentEnable ("Node", log_precision);
-//  LogComponentEnable ("InternetStackHelper", log_precision);
-//  LogComponentEnable ("QuicSocketFactory", log_precision);
-//  LogComponentEnable ("ObjectFactory", log_precision);
-//  LogComponentEnable ("TypeId", log_precision);
-//  LogComponentEnable ("QuicL4Protocol", log_precision);
-//  LogComponentEnable ("QuicL5Protocol", log_precision);
-//  LogComponentEnable ("ObjectBase", log_precision);
-//  LogComponentEnable ("QuicEchoHelper", log_precision);
-//  LogComponentEnable ("QuicSocketTxScheduler", log_precision);
-//  LogComponentEnable ("QuicSocketRxBuffer", log_precision);
-//  LogComponentEnable ("QuicHeader", log_precision);
-//  LogComponentEnable ("QuicSubheader", log_precision);
-//  LogComponentEnable ("Header", log_precision);
-//  LogComponentEnable ("PacketMetadata", log_precision);
-
     RngSeedManager::SetSeed (seed);  
 
     if (ccType == QuicSocketBase::OLIA){
@@ -318,8 +221,6 @@ main (int argc, char *argv[])
     NetDeviceContainer d6d9 = p2p.Install (n6n9);
     d6d9.Get (1)->SetAttribute ("ReceiveErrorModel", PointerValue (em));
 
-
-    //background traffic
     p2p.SetDeviceAttribute ("DataRate", StringValue ("100Mbps"));
     p2p.SetChannelAttribute ("Delay", StringValue ("0ms"));
     NetDeviceContainer d4d1 = p2p.Install (n4n1);
@@ -352,8 +253,6 @@ main (int argc, char *argv[])
     ipv4.SetBase ("10.1.7.0", "255.255.255.0");
     Ipv4InterfaceContainer i9i5 = ipv4.Assign (d9d5);
     
-
-    //background
     ipv4.SetBase ("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer i0i1 = ipv4.Assign (d0d1);
 
@@ -392,9 +291,7 @@ main (int argc, char *argv[])
     sourceApps.Start (Seconds (start_time));
     sourceApps.Stop (Seconds(simulationEndTime));
 
-    //
-    // Create a PacketSinkApplication and install it on node 1
-    //
+
     PacketSinkHelper sink2 ("ns3::QuicSocketFactory",
                             InetSocketAddress (Ipv4Address::GetAny (), port2));
     ApplicationContainer sinkApps2 = sink2.Install (c.Get (5));
@@ -404,8 +301,6 @@ main (int argc, char *argv[])
 
     std::ostringstream file;
     file<<"./scheduler" << schedulerType;
-    // Simulator::Schedule (Seconds (start_time+0.0000001), &Traces, c.Get (4)->GetId(),
-    // file.str (), ".txt");
 
     AsciiTraceHelper asciiTraceHelper;
     std::ostringstream fileName;
@@ -432,9 +327,6 @@ main (int argc, char *argv[])
     NS_LOG_INFO("\n\n#################### STARTING RUN ####################\n\n");
     Simulator::Run ();
 
-
-    // flowmon.SerializeToXmlFile("flow", false, false);
-
     monitor->CheckForLostPackets ();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
     FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats ();
@@ -457,12 +349,8 @@ main (int argc, char *argv[])
                 "\npath 0: rate "<< rate0a <<", delay "<< delay0a << 
                 "\npath 1: rate " << rate1a << ", delay " << delay1a );
 
-    // std::cout
-    //     << "\n\n#################### RUN FINISHED ####################\n\n\n";
     Simulator::Destroy ();
 
-    // std::cout
-    //     << "\n\n#################### SIMULATION END ####################\n\n\n";
     return 0;
 }
 
