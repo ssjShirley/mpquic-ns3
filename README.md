@@ -5,7 +5,8 @@ A Multipath Extension to the QUIC Module in ns-3
 
 ## MPQUIC code base
 This repository contains in the `src/quic` for a multipath extension to the QUIC protocol for ns-3.
-`src/quic/Readme` details the code structure and the implementation align the [IETF draft](https://datatracker.ietf.org/doc/draft-ietf-quic-multipath/04/).
+
+[src/quic/Readme](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/src/quic/README.md) details the code structure and the implementation align the [IETF draft](https://datatracker.ietf.org/doc/draft-ietf-quic-multipath/04/).
 
 
 <!-- The implementation is described in [this paper](https://arxiv.org/abs/1902.06121). -->
@@ -72,10 +73,8 @@ docker run -it ns3-mpquic
 ```
 
 
-QUIC implementation for ns-3
-================================
 
-## QUIC code base
+## Original QUIC code base
 The ns-3 QUIC module can be found at https://github.com/signetlabdei/quic.
 
 The implementation is described in [this paper](https://arxiv.org/abs/1902.06121).
