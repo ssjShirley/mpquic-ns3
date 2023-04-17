@@ -58,4 +58,4 @@ plt.setp(ltext, fontsize=20, fontweight='bold')
 
 plt.savefig('./ins_throughput_scheduler_unstable.pdf', format='pdf')
 plt.savefig('./ins_throughput_scheduler_unstable.png', format='png')
-plt.show()
+plt.close()

@@ -56,4 +56,4 @@ plt.setp(ltext, fontsize=20, fontweight='bold')
 
 plt.savefig('./ins_throughput_scheduler.pdf', format='pdf')
 plt.savefig('./ins_throughput_scheduler.png', format='png') 
-plt.show()
+plt.close()

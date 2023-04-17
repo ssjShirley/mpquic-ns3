@@ -1,10 +1,12 @@
 #!/bin/bash
 
 ## generate all required data
-./figure7-8-data-generate.sh
-./figure9-12-data-generate.sh
+echo "...generate all required data"
+# ./figure7-8-data-generate.sh
+# ./figure9-12-data-generate.sh
 
 ## draw the figures
+echo "...draw the figures"
 cd results-wns3
 python3 figure7a.py
 python3 figure7b.py

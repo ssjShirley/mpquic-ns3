@@ -50,7 +50,7 @@ def drawU(i):
 
     plt.savefig('./received_bytes_scheduler_unstable'+str(i)+'.pdf', format='pdf',bbox_inches ="tight",pad_inches = 0,transparent = False) 
     plt.savefig('./received_bytes_scheduler_unstable'+str(i)+'.png', format='png')  
-    plt.show()
+    plt.close()
 
 for i in range(0,5):
     drawU(i)

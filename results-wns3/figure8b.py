@@ -53,4 +53,4 @@ plt.setp(ltext, fontsize=20, fontweight='bold')
 
 plt.savefig('./cwnd_OLIA.pdf', format='pdf')
 plt.savefig('./cwnd_OLIA.png', format='png')
-plt.show()
+plt.close()

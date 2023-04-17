@@ -108,4 +108,4 @@ plt.setp(ltext, fontsize=26, fontweight='bold')
 
 plt.savefig('./ins_throughput_scalable.pdf', format='pdf')
 plt.savefig('./ins_throughput_scalable.png', format='png')
-plt.show()
+plt.close()

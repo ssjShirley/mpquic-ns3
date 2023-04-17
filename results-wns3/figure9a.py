@@ -95,4 +95,4 @@ plt.ylim(7, 18)
 
 plt.savefig('./comTime_scheduler.pdf', format='pdf')
 plt.savefig('./comTime_scheduler.png', format='png')
-plt.show()
+plt.close()

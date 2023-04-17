@@ -57,4 +57,4 @@ plt.setp(ltext, fontsize=20, fontweight='bold')
 
 plt.savefig('./cwnd_newreno.pdf', format='pdf')
 plt.savefig('./cwnd_newreno.png', format='png') 
-plt.show()
+plt.close()

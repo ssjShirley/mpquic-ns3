@@ -65,11 +65,11 @@ Please use the following script to reproduce the experimental results in WNS3 pa
 
 For docker users, `Dockerfile` is provided. Please build the image by
 ```bash
-docker build -t ns3-mpquic .
+docker build -t mpquic .
 ```
 and then run the image by
 ```bash
-docker run -it ns3-mpquic
+docker run -it mpquic
 ```
 
 

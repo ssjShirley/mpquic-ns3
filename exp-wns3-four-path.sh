@@ -13,7 +13,7 @@ SEED=$1
 
 
 mkdir ${DIR}
-for i in {0}
+for i in 0
 do
     LOG="$i"
     LOG1="scheduler${LOG}-queue.txt"

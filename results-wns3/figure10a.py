@@ -99,4 +99,4 @@ plt.ylim(4, 12.5)
 
 plt.savefig('./comTime_scheduler_unstable.pdf', format='pdf')
 plt.savefig('./comTime_scheduler_unstable.png', format='png')
-plt.show()
+plt.close()
