@@ -1743,13 +1743,6 @@ void QuicSubheader::SetPathId(uint8_t pathId) {
 	m_pathId = pathId;
 }
 
-// uint32_t QuicSubheader::GetLargestSeq() const {
-// 	return m_largestSeq;
-// }
-
-// void QuicSubheader::SetLargestSeq(uint32_t largestSeq) {
-// 	m_largestSeq = largestSeq;
-// }
 
 } // namespace ns3
 
