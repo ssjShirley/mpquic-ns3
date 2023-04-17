@@ -2,8 +2,8 @@
 
 ## generate all required data
 echo "...generate all required data"
-# ./figure7-8-data-generate.sh
-# ./figure9-12-data-generate.sh
+./figure7-8-data-generate.sh
+./figure9-12-data-generate.sh
 
 ## draw the figures
 echo "...draw the figures"
