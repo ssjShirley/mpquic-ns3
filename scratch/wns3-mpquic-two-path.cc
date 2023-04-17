@@ -49,7 +49,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wns3-mpquic-two-path");
 
-
 void ThroughputMonitor (FlowMonitorHelper *fmhelper, Ptr<FlowMonitor> flowMon, Ptr<OutputStreamWrapper> stream)
 {
     std::map<FlowId, FlowMonitor::FlowStats> flowStats = flowMon->GetFlowStats();
@@ -280,7 +279,6 @@ main (int argc, char *argv[])
     // Create router nodes, initialize routing database and set up the routing
     // tables in the nodes.
     Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
     
     uint16_t port2 = 9;  // well-known echo port number
     
@@ -319,11 +317,9 @@ main (int argc, char *argv[])
     }
 
 
-
     Simulator::Stop (Seconds(simulationEndTime));
     NS_LOG_INFO("\n\n#################### STARTING RUN ####################\n\n");
     Simulator::Run ();
-
 
     monitor->CheckForLostPackets ();
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());

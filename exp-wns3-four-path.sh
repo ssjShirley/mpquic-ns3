@@ -8,13 +8,12 @@ RATE1="6.0"
 DELAY0="50.0"
 DELAY1="55.0"
 LOSS="0.000000"
-# Size=0
 Size=5242800
 SEED=$1
 
 
 mkdir ${DIR}
-for i in {0..1}
+for i in {0}
 do
     LOG="$i"
     LOG1="scheduler${LOG}-queue.txt"

@@ -25,7 +25,6 @@
  *   /        TCP        \
  * n3                     n7
  *
-
  * 
  * Authors: Alvise De Biasio <alvise.debiasio@gmail.com>
  *          Federico Chiariotti <whatever@blbl.it>
@@ -72,10 +71,10 @@ ModifyLinkRate(NetDeviceContainer *ptp, DataRate lr, Time delay) {
 int
 main (int argc, char *argv[])
 {
-    int schedulerType = MpQuicScheduler::PEEKABOO;
+    int schedulerType = MpQuicScheduler::ROUND_ROBIN;
     
     string myRandomNo = "5242880";
-    string lossrate = "0.00001";
+    string lossrate = "0.0000";
 
     double rate0a = 5.0;
     double rate1a = 10.0;
@@ -96,7 +95,7 @@ main (int argc, char *argv[])
     CommandLine cmd;
 
 
-    cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT, 2 - BLEST, 3 - ECF, 4 - Peekaboo)", schedulerType);
+    cmd.AddValue ("SchedulerType", "in use scheduler type (0 - ROUND_ROBIN, 1 - MIN_RTT, 2 - BLEST, 3 - ECF, 4 - Peekaboo", schedulerType);
     cmd.AddValue ("BVar", "e.g. 100", bVar);
     cmd.AddValue ("BLambda", "e.g. 100", bLambda);
     cmd.AddValue ("MabRate", "e.g. 100", mrate);
@@ -190,7 +189,6 @@ main (int argc, char *argv[])
 
     NodeContainer n4n6 = NodeContainer (c.Get (4), c.Get (6));
     NodeContainer n9n5 = NodeContainer (c.Get (9), c.Get (5));
-
 
  
     InternetStackHelper internet;
@@ -290,7 +288,6 @@ main (int argc, char *argv[])
     ApplicationContainer sourceApps = source.Install (c.Get (4));
     sourceApps.Start (Seconds (start_time));
     sourceApps.Stop (Seconds(simulationEndTime));
-
 
     PacketSinkHelper sink2 ("ns3::QuicSocketFactory",
                             InetSocketAddress (Ipv4Address::GetAny (), port2));

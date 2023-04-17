@@ -18,7 +18,7 @@ Size=5242800
 SEED=$1
 
 mkdir ${DIR}
-for i in {0..1}
+for i in {0}
 do
     LOG="$i"
     LOG1="scheduler${LOG}-queue.txt"

@@ -14,7 +14,7 @@ DELAY1b="10.0"
 LOSS="0.00000"
 BLambda="200"
 BVar="0"
-Size=0
+Size="0"
 SEED=$2
 CWND=$1
 

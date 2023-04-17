@@ -8,7 +8,6 @@ RATE0b="6.0"
 DELAY0a="50.0"
 DELAY0b="55.0"
 LOSS="0.000000"
-# Size=0
 Size=5242800
 SEED=$1
 
