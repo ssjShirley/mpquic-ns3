@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive 
 
 RUN apt-get update && apt-get install -y \
-    build-essential python3 python3-dev git libeigen3-dev
+    build-essential python3 python3-dev git libeigen3-dev python3-pandas python3-numpy python3-matplotlib
 
 RUN mkdir ~/workspace && cd ~/workspace && \
     git clone https://github.com/ssjShirley/mpquic-ns3.git mpquic
