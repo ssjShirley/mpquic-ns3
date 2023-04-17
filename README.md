@@ -46,10 +46,10 @@ cd mpquic
 
 Following jupyter files present the Figures 7 to 13 in the paper.
 
-`results-wns3/scalable-draw-figure7.ipynb`
-`results-wns3/cwnd-draw-figure8.ipynb`
-`results-wns3/schedule-draw-figure9-10.ipynb`
-`results-wns3/scheduler-cpr-two-path-figure11-13.ipynb`
+1. `results-wns3/scalable-draw-figure7.ipynb`
+2. `results-wns3/cwnd-draw-figure8.ipynb`
+3. `results-wns3/schedule-draw-figure9-10.ipynb`
+4. `results-wns3/scheduler-cpr-two-path-figure11-13.ipynb`
 
 
 ### Reproduce Experimental Results for WNS3 ###
@@ -64,11 +64,11 @@ Please use the following script to reproduce the experimental results in WNS3 pa
 
 For docker users, `Dockerfile` is provided. Please build the image by
 ```bash
-    docker build -t ns3-mpquic .
+docker build -t ns3-mpquic .
 ```
 and then run the image by
 ```bash
-	docker run -it ns3-mpquic
+docker run -it ns3-mpquic
 ```
 
 
