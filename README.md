@@ -70,12 +70,12 @@ docker pull ssjshirley/mpquic-ns3:latest
 
 Or, you can build the image with `Dockerfile` by
 ```bash
-docker build -t mpquic .
+docker build -t ssjshirley/mpquic-ns3 .
 ```
 
-To run the docker image and the data and figures will be stored in `$PWD/results-wns3`. (This may take few hours.)
+To run the docker image and the data and figures will be stored in `$PWD/results`. (This may take few hours.)
 ```bash
-docker run -it -v $PWD/results:/root/workspace/mpquic/results-wns3 mpquic
+docker run -it -v $PWD/results:/root/workspace/mpquic/results-wns3 ssjshirley/mpquic-ns3:latest
 ```
 
 
