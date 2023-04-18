@@ -22,7 +22,7 @@ Our implementation requires basic environment settings for ns-3. For Ubuntu22.04
 
 ```bash
 apt-get update 
-apt-get install -y build-essential python3 python3-dev git libeigen3-dev
+apt-get install -y build-essential python3 python3-dev git libeigen3-dev python3-pandas python3-numpy python3-matplotlib font-manager
 ```
 
 ### Downloading ####
@@ -63,15 +63,20 @@ Please use the following script to reproduce the experimental results in WNS3 pa
 
 #### Reproduce Results with Docker ####
 
-For docker users, `Dockerfile` is provided. Please build the image by
+<!-- For docker users, please load the image by
+```bash
+docker load < mpquic-ns3-image.tar.gz
+``` -->
+
+For docker users, you can build the image with `Dockerfile` by
 ```bash
 docker build -t mpquic .
 ```
-and then run the image by
-```bash
-docker run -it mpquic
-```
 
+To run the docker image and the data and figures will be stored in `$PWD/results-wns3`. (This may take few hours.)
+```bash
+docker run -it -v $PWD/results-wns3:/root/workspace/mpquic/results-wns3 mpquic
+```
 
 
 ## Original QUIC code base

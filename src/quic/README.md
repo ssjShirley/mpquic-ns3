@@ -49,16 +49,24 @@ Align with the IETF Draft
 ### Edited Files ####
 
 New File Created:
-1. mp-quic-congestion-ops
-2. mp-quic-path-manager
-3. mp-quic-scheduler
-4. mp-quic-subflow
+1. mp-quic-congestion-ops.cc
+1. mp-quic-congestion-ops.h
+2. mp-quic-path-manager.cc
+2. mp-quic-path-manager.h
+3. mp-quic-scheduler.cc
+3. mp-quic-scheduler.h
+4. mp-quic-subflow.cc
+4. mp-quic-subflow.h
 
 Quic File Modified:
-1. quic-socket-base
-2. quic-l4-protocol
-3. quic-header
-4. quic-subheader
+1. quic-socket-base.cc
+1. quic-socket-base.h
+2. quic-l4-protocol.cc
+2. quic-l4-protocol.h
+4. quic-subheader.cc
+4. quic-subheader.h
+3. quic-header.h
 
 Application:
-1. mpquic-bulk-send-application
+1. mpquic-bulk-send-application.cc
+1. mpquic-bulk-send-application.h
