@@ -9,4 +9,4 @@ done
 
 ## set seed=2
 ./exp-wns3-two-path-scheduler-flip.sh 2
-echo "...figure 9-13 data generated"
+echo "...figure 9-13 data generated in results-wns3"
