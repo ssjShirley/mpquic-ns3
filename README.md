@@ -75,7 +75,7 @@ docker build -t mpquic .
 
 To run the docker image and the data and figures will be stored in `$PWD/results-wns3`. (This may take few hours.)
 ```bash
-docker run -it -v $PWD/results-wns3:/root/workspace/mpquic/results-wns3 mpquic
+docker run -it -v $PWD/results:/root/workspace/mpquic/results-wns3 mpquic
 ```
 
 
