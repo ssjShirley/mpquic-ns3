@@ -1,8 +1,8 @@
 
-Align with the IETF Draft
+Align with the MPQUIC IETF Draft
 ================================
 
-`mpquic-1.2` implements most of the basic features mentioned in [IETF draft](https://datatracker.ietf.org/doc/draft-ietf-quic-multipath/04/).
+`mpquic-1.2` implements most of the basic features mentioned in [IETF draft](https://datatracker.ietf.org/doc/draft-ietf-quic-multipath/04/) (March 2023).
 
 ![alt text](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/results-wns3/mpquic_uml_diagram.png)
 
