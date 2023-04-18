@@ -63,12 +63,12 @@ Please use the following script to reproduce the experimental results in WNS3 pa
 
 #### Reproduce Results with Docker ####
 
-<!-- For docker users, please load the image by
+For docker users, please load the image by
 ```bash
-docker load < mpquic-ns3-image.tar.gz
-``` -->
+docker pull ssjshirley/mpquic-ns3:latest
+```
 
-For docker users, you can build the image with `Dockerfile` by
+Or, you can build the image with `Dockerfile` by
 ```bash
 docker build -t mpquic .
 ```
