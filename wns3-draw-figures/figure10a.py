@@ -1,4 +1,4 @@
-## figure 9a stable completion time
+## figure 10a unstable completion time
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,8 +6,8 @@ import numpy as np
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Times New Roman"
 
-schedulerTypes = [0,1,2,3,4]
 
+schedulerTypes = [0,1,2,3,4]
 comTime = []
 
 for j in range(1,201):
@@ -15,7 +15,7 @@ for j in range(1,201):
         continue
     c_time = []
     for i in schedulerTypes:
-        dir = 'scheduler-'+str(j)
+        dir = 'schedulerU-'+str(j)
         file = open(dir+'/scheduler'+str(i)+'-queue.txt', 'r')
         last_line = file.readlines()[-1]
         if (int(last_line.split('\t')[3]) > 5000000):
@@ -26,7 +26,7 @@ for j in range(1,201):
 
 dataTotal = pd.DataFrame (comTime, columns = ['RR', 'MRTT', 'BLEST', 'ECF', 'PEEK'])
 
-## clean data
+
 toDrop = dataTotal.loc[dataTotal["BLEST"] == 0.0].index.tolist()
 dataTotal = dataTotal.drop(toDrop)
 toDrop = dataTotal.loc[dataTotal["RR"] == 0.0].index.tolist()
@@ -38,13 +38,16 @@ dataTotal = dataTotal.drop(toDrop)
 toDrop =dataTotal.loc[dataTotal["PEEK"] == 0.0].index.tolist()
 dataTotal = dataTotal.drop(toDrop)
 
+
 ct0 = [dataTotal['RR']]
 ct1 = [dataTotal['MRTT']]
 ct2 = [dataTotal['BLEST']]
 ct3 = [dataTotal['ECF']]
 ct4 = [dataTotal['PEEK']]
 
+
 bar_width = 0.9
+
 
 boxprops = dict(linestyle='-', linewidth=4)
 whiskerprops = dict(linestyle='-', linewidth=4)
@@ -68,14 +71,14 @@ ct_plot4 = plt.boxplot(ct4,positions=np.array(np.arange(len(ct4)))+bar_width*4+0
 for box in ct_plot4['boxes']:
     box.set(hatch = '|', fill=False) 
 
-
+    
 def define_box_properties(plot_name, color_code, label):
     for k, v in plot_name.items():
         plt.setp(plot_name.get(k), color=color_code)
-         
+
     plt.plot([], c=color_code, label=label)
- 
- 
+
+
 # setting colors for each groups
 define_box_properties(ct_plot0, 'green', 'RR')
 define_box_properties(ct_plot1, 'red', 'MRTT')
@@ -86,13 +89,13 @@ define_box_properties(ct_plot4, 'orange', 'PEEK')
 # set the x label values
 ticks = ['RR', 'MRTT', 'BLEST', 'ECF', 'Peekaboo']
 plt.xticks([0,1,2,3,4], ticks)
-plt.xticks(fontsize=15, fontweight='bold')
+
+plt.xticks(fontsize=15, fontweight='bold') 
 plt.yticks(fontsize=14, fontweight='bold')
-plt.ylabel("Complete Time (seconds)", fontsize=20, fontweight='bold')
+plt.ylabel("Completion Time (Seconds)", fontsize=20, fontweight='bold')
 
 plt.xlim(-1, len(ticks))
-plt.ylim(7, 18)
+plt.ylim(4, 12.5)
 
-plt.savefig('./comTime_scheduler.pdf', format='pdf')
-plt.savefig('./comTime_scheduler.png', format='png')
+plt.savefig('../results-wns3/comTime_scheduler_unstable.png', format='png')
 plt.close()

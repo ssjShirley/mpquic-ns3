@@ -56,6 +56,5 @@ leg = plt.gca().get_legend()
 ltext = leg.get_texts()
 plt.setp(ltext, fontsize=20, fontweight='bold')
 
-plt.savefig('./ins_throughput_scheduler_unstable.pdf', format='pdf')
-plt.savefig('./ins_throughput_scheduler_unstable.png', format='png')
+plt.savefig('../results-wns3/ins_throughput_scheduler_unstable.png', format='png')
 plt.close()

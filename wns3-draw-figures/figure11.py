@@ -48,8 +48,7 @@ def draw(i):
     ltext = leg.get_texts()
     plt.setp(ltext, fontsize=20, fontweight='bold')
 
-    plt.savefig('./received_bytes_scheduler'+str(i)+'.pdf', format='pdf',bbox_inches ="tight",pad_inches = 0,transparent = False) 
-    plt.savefig('./received_bytes_scheduler'+str(i)+'.png', format='png')  
+    plt.savefig('../results-wns3/received_bytes_scheduler'+str(i)+'.png', format='png')  
     plt.close()
 
 for i in range(0,5):

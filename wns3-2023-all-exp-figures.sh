@@ -7,7 +7,7 @@ echo "...generate all required data"
 
 ## draw the figures
 echo "...draw the figures"
-cd results-wns3
+cd wns3-draw-figures
 
 python3 figure7a.py
 echo "...figure7a saved in results-wns3/scalable_comtime.png"

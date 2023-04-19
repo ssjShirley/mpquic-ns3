@@ -55,6 +55,5 @@ leg = plt.gca().get_legend()
 ltext = leg.get_texts()
 plt.setp(ltext, fontsize=20, fontweight='bold')
 
-plt.savefig('./cwnd_newreno.pdf', format='pdf')
-plt.savefig('./cwnd_newreno.png', format='png') 
+plt.savefig('../results-wns3/cwnd_newreno.png', format='png') 
 plt.close()
