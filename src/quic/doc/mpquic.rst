@@ -51,16 +51,6 @@ model, or if readers should read a particular specification or other work.
 Usage
 *****
 
-This section is principally concerned with the usage of your model, using
-the public API.  Focus first on most common usage patterns, then go
-into more advanced topics.
-
-Building New Module
-===================
-
-Include this subsection only if there are special build instructions or
-platform limitations.
-
 Helpers
 =======
 
@@ -83,6 +73,16 @@ It is able to trace the received bytes for each node, the receiver buffer size, 
 Examples
 ========
 The sample scripts are located in scratch/
+
+Take ``wns3-mpquic-two-path.cc`` as an example. line 18-26 shows the network topology. ThroughputModitor in line 52 traces the total received bytes of the node and the simulation time. 
+
+ModifyLinkRate in line 66 is used to set the point-to-point bandwidth and delay along the time of the simulation. It is used in line 315 and 316.
+
+line 98-115 are used for set different experiment scenarios from cmd. ``exp-wns3-two-path-scheduler.sh`` shows how to set them.
+
+line 177-277 are used to create the network topology.
+
+We use the MpquicBulkSendHelper to bind the application to the sender side in line 285 and use PacketSinkHelper to set the receiver side. 
 
 Troubleshooting
 ===============
