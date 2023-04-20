@@ -1,4 +1,4 @@
-Example Module Documentation
+Multipath QUIC Module Documentation
 ----------------------------
 
 .. include:: replace.txt
@@ -10,36 +10,39 @@ Example Module Documentation
    ============= Subsection (#.#.#)
    ############# Paragraph (no number)
 
-This is a suggested outline for adding new module documentation to |ns3|.
-See ``src/click/doc/click.rst`` for an example.
+This is an outline for the modified module ``src/quic``. Specifically, this 
+document discribes the added feature of multipath functions over the original 
+quic module in |ns3|. 
 
 The introductory paragraph is for describing what this code is trying to
 model.
 
-For consistency (italicized formatting), please use |ns3| to refer to
-ns-3 in the documentation (and likewise, |ns2| for ns-2).  These macros
-are defined in the file ``replace.txt``.
-
 Model Description
 *****************
 
-The source code for the new module lives in the directory ``src/quic``.
+The source code for the modified module lives in the directory ``src/quic``.
 
-Add here a basic description of what is being modeled.
+Add here a basic description of what is being modified.
 
 Design
 ======
 
-Briefly describe the software design of the model and how it fits into 
-the existing ns-3 architecture. 
+The existing quic module has the basic functions to supporting single path transmission between client and server, which includes the basic transmission features, like quic headers and frames, establishment with handshake, reliability with acknowledgment, flow control and different congestion control algorithms. Based on these valuable functions, we aim to implement the multipath features, including the multiple path establishment, path management, realiable transmission with multipath acknowledgment, path scheduler, and congestion control algorithm. 
+
+To realize this goal, we need to add new headers and frames that work for multipath, modify the original data flow and make it run over the path management layer, solve the reordering issue for different paths, and implement scheduling and congestion control algorithms that fit in the multipath scenarios.
+
 
 Scope and Limitations
 =====================
 
-What can the model do?  What can it not do?  Please use this section to
-describe the scope and limitations of the model.
+This module is currently able to support multiple paths connection between client and server. As a transport layer protocol, it is able to utilized bulk-send and other |ns3| supported applications. It is also able to build upon different topologies as long as the quic stack is installed on the sender and recever side.
 
-References
+It likes the other transport layer protocols in |ns3|, supporting most of the transmission and multipath features, including handshake negotiation and transport parameters , path setup and removal, multipath operation with multiple packet number spaces, path scheduling, and congestion control.
+
+Since the IETF MPQUIC is still under discussion, our current version 1.2 tries to align the latest IETF draft (2023.03). Here are some minor different features that we will consider for our future work. IETF introduces a ``PATH_STATUS`` frame that informs the peer to send packets in the preference. Our implementation is able to have the path status locally, however, we do not support transmitting the path status between peers currently. In the path close stage, IETF includes a ``RETIRE_CONNECTION_ID`` frame to indicate to the receiving peer that the sender will not send any packets associated with the Connection ID used on that path anymore, which is not included in our current version. On the other hand, our implementation of MPQUIC currently only supports transmitting ``MP_ACK`` with the path given by the coming packets. An ``MP_ACK`` frame that can be returned via a different path is considered as our future work. Additionally, IETF indicates the packet protection with TLS and AEAD for connection ID, while the security features are not considered in our current stage. We will continue to improve our implementation to align with the latest IETF Draft.
+
+
+References [Will update later]
 ==========
 
 Add academic citations here, such as if you published a paper on this
@@ -61,38 +64,27 @@ platform limitations.
 Helpers
 =======
 
-What helper API will users typically use?  Describe it here.
+quic_helper is used to install the internet stack on the end-host. This should be utilized when you want to run a mpquic connection between end-hosts.
 
 Attributes
 ==========
 
-What classes hold attributes, and what are the key ones worth mentioning?
+Here introduces some of the usable attributes. For the full attributes list, please check each .cc file.
+
+1. QuicSocketBase::EnableMultipath enables the multipath features only when it is true.
+2. QuicSocketBase::CcType supports different congestion control algorithms.
+3. MpQuicScheduler::SchedulerType supports different scheduling algorithms.  
+
 
 Output
 ======
-
-What kind of data does the model generate?  What are the key trace
-sources?   What kind of logging output can be enabled?
-
-Advanced Usage
-==============
-
-Go into further details (such as using the API outside of the helpers)
-in additional sections, as needed.
+It is able to trace the received bytes for each node, the receiver buffer size, the congestion window, and the transmission complete time. 
 
 Examples
 ========
-
-What examples using this new code are available?  Describe them here.
+The sample scripts are located in scratch/
 
 Troubleshooting
 ===============
 
-Add any tips for avoiding pitfalls, etc.
-
-Validation
-**********
-
-Describe how the model has been tested/validated.  What tests run in the
-test suite?  How much API and code is covered by the tests?  Again, 
-references to outside published work may help here.
+To report a bug, please open a GitHub Issue.
