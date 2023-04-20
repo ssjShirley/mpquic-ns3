@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Times New Roman"
 
+topDir = '../results-wns3/'
+
 i = 0
 dir = 'cwnd-0-1'
-file = open(dir+'/scheduler'+str(i)+'-cwnd-change-0.txt', 'r')
+file = open(topDir+dir+'/scheduler'+str(i)+'-cwnd-change-0.txt', 'r')
 lines = file.readlines()
 goodput = []
 c_time = []
@@ -21,7 +23,7 @@ for line in lines:
 dataTotal0 = pd.DataFrame (goodput, columns = ['Time', 'cwnd1', 'cwnd2'])        
 
 
-file = open(dir+'/scheduler'+str(i)+'-cwnd-change-1.txt', 'r')
+file = open(topDir+dir+'/scheduler'+str(i)+'-cwnd-change-1.txt', 'r')
 lines = file.readlines()
 goodput = []
 c_time = []

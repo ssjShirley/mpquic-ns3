@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Times New Roman"
 
+topDir = '../results-wns3/'
+
 def drawP(i):
-    file = open('schedulerP-2'+'/scheduler'+str(i)+'-queue.txt', 'r')
+    file = open(topDir+'schedulerP-2'+'/scheduler'+str(i)+'-queue.txt', 'r')
     finish_time = float(file.readlines()[-1].split('\t')[0])
-    file = open('schedulerP-2'+'/scheduler'+str(i)+'-rx.txt', 'r')
+    file = open(topDir+'schedulerP-2'+'/scheduler'+str(i)+'-rx.txt', 'r')
     lines = file.readlines()
     goodput = []
     c_time = []

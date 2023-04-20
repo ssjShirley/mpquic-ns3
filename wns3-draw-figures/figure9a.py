@@ -6,6 +6,8 @@ import numpy as np
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Times New Roman"
 
+topDir = '../results-wns3/'
+
 schedulerTypes = [0,1,2,3,4]
 
 comTime = []
@@ -15,7 +17,7 @@ for j in range(1,201):
         continue
     c_time = []
     for i in schedulerTypes:
-        dir = 'scheduler-'+str(j)
+        dir = topDir+'scheduler-'+str(j)
         file = open(dir+'/scheduler'+str(i)+'-queue.txt', 'r')
         last_line = file.readlines()[-1]
         if (int(last_line.split('\t')[3]) > 5000000):

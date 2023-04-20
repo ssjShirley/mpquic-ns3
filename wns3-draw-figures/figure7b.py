@@ -7,10 +7,10 @@ plt.rcParams["font.serif"] = "Times New Roman"
 
 schedulerTypes = [0]
 
-topdir = "./"
+topDir = '../results-wns3/'
 
 def helpone(num,i):
-    dir = topdir+'one-'+str(num)
+    dir = topDir+'one-'+str(num)
     file = open(dir+'/scheduler'+str(i)+'-queue.txt', 'r')
     finish_time = float(file.readlines()[-1].split('\t')[0])
     file = open(dir+'/scheduler'+str(i)+'-rx.txt', 'r')
@@ -31,7 +31,7 @@ def helpone(num,i):
     return dataTotal
 
 def helptwo(num,i):
-    dir = topdir+'two-'+str(num)
+    dir = topDir+'two-'+str(num)
     file = open(dir+'/scheduler'+str(i)+'-queue.txt', 'r')
     finish_time = float(file.readlines()[-1].split('\t')[0])
     file = open(dir+'/scheduler'+str(i)+'-rx.txt', 'r')
@@ -55,7 +55,7 @@ def helptwo(num,i):
 
 
 def helpfour(num,i):
-    dir = topdir+'four-'+str(num)
+    dir = topDir+'four-'+str(num)
     file = open(dir+'/scheduler'+str(i)+'-queue.txt', 'r')
     finish_time = float(file.readlines()[-1].split('\t')[0])
     file = open(dir+'/scheduler'+str(i)+'-rx.txt', 'r')

@@ -7,7 +7,7 @@ plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.serif"] = "Times New Roman"
 
 comTime = []
-topDir = './'
+topDir = '../results-wns3/'
 
 for j in range(1,50):
     c_time = []
