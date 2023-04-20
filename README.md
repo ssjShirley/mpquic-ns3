@@ -47,10 +47,10 @@ cd mpquic
 
 Following jupyter files present the Figures 7 to 13 in the paper.
 
-1. `results-wns3/scalable-draw-figure7.ipynb`
-2. `results-wns3/cwnd-draw-figure8.ipynb`
-3. `results-wns3/schedule-draw-figure9-10.ipynb`
-4. `results-wns3/scheduler-cpr-two-path-figure11-13.ipynb`
+1. [`scalable-draw-figure7.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/scalable-draw-figure7.ipynb)
+2. [`cwnd-draw-figure8.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/cwnd-draw-figure8.ipynb)
+3. [`schedule-draw-figure9-10.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/schedule-draw-figure9-10.ipynb)
+4. [`scheduler-cpr-two-path-figure11-13.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/scheduler-cpr-two-path-figure11-13.ipynb)
 
 
 ### Reproduce Experimental Results for WNS3 ###
