@@ -150,23 +150,13 @@ public:
    */
   bool Add (Ptr<Packet> p);
 
-  /**
-   * \brief Request the next packet to transmit
-   *
-   * \param numBytes the number of bytes of the next packet to transmit requested
-   * \param seq the sequence number of the next packet to transmit
-   * \return the next packet to transmit
-   */
-  Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq);
-
-  /** ywj added
+  /** 
    * 
    * \brief Request the next packet to transmit
    *
    * \param numBytes the number of bytes of the next packet to transmit requested
    * \param seq the sequence number of the next packet to transmit
    * \param pathId the path on which the packet will be sent 
-   * \param Q the estimated data amount Q 
    * \return the next packet to transmit
    */
   Ptr<Packet> NextSequence (uint32_t numBytes, const SequenceNumber32 seq, uint8_t pathId);
