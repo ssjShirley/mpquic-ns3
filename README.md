@@ -39,7 +39,7 @@ Please compile and build mpquic with the following cmd:
 
 ```bash
 cd mpquic
-./waf configure
+./waf configure --enable-example --enable-tests
 ./waf build
 ```
 
