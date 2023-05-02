@@ -3093,7 +3093,11 @@ QuicSocketBase::UpdateCwnd1 (uint32_t oldValue, uint32_t newValue)
   m_cWndTrace1 (oldValue, newValue);
 }
 
-
+void
+QuicSocketBase::UpdateReward (uint32_t oldValue, uint32_t newValue)
+{
+  m_rewardTrace (oldValue, newValue);
+}
 
 void
 QuicSocketBase::TraceRTT0 (Time oldValue, Time newValue)
@@ -3202,7 +3206,7 @@ QuicSocketBase::CreateScheduler ()
   NS_LOG_FUNCTION (this);
   m_scheduler = CreateObject<MpQuicScheduler> ();
   m_scheduler->SetSocket(this);
-  // m_scheduler->TraceConnectWithoutContext ("MabReward", MakeCallback (&QuicSocketBase::UpdateReward, this));
+  m_scheduler->TraceConnectWithoutContext ("MabReward", MakeCallback (&QuicSocketBase::UpdateReward, this));
 }
 
 void
