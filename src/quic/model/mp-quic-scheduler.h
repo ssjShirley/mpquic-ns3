@@ -40,7 +40,8 @@ public:
       MIN_RTT,
       BLEST,
       ECF,
-      PEEKABOO
+      PEEKABOO,
+      MAB_DELAY
     } SchedulerType_t;
   
   /**
@@ -78,6 +79,14 @@ private:
   std::vector<double> MabDelay();
   std::vector<double> Blest();
   std::vector<double> Ecf();
+  std::vector<double> LocalOpt();
+
+  std::vector <uint64_t> m_rewards;
+  std::vector <uint64_t> m_rewardTemp;
+  std::vector <uint64_t> m_rewardTemp0;
+  std::vector <uint64_t> m_rewardAvg;
+  uint32_t m_rounds;
+  TracedValue<uint32_t> m_reward {0}; 
 
   uint32_t m_rate;
   uint16_t m_lostPackets;

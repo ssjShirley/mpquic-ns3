@@ -948,6 +948,7 @@ protected:
   
   double GetOliaAlpha(uint8_t pathId);
   
+  TracedCallback<uint32_t, uint32_t> m_rewardTrace;
   void UpdateReward (uint32_t oldValue, uint32_t newValue);
   int m_appCloseSentListNoEmpty;
   Time lastAckTime;

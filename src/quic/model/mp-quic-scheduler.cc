@@ -42,6 +42,8 @@
 #include "ns3/random-variable-stream.h"
 
 
+#include <eigen3/Eigen/Dense>
+
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
@@ -82,7 +84,11 @@ MpQuicScheduler::GetTypeId (void)
                    "string of select",
                    UintegerValue (0),
                    MakeUintegerAccessor (&MpQuicScheduler::m_select),
-                   MakeUintegerChecker<uint16_t> ())            
+                   MakeUintegerChecker<uint16_t> ())  
+    .AddTraceSource ("MabReward",
+                     "The average reward get by mab",
+                     MakeTraceSourceAccessor (&MpQuicScheduler::m_reward),
+                     "ns3::TracedValueCallback::Uint32")          
      
   ;
   return tid;
@@ -92,11 +98,17 @@ MpQuicScheduler::MpQuicScheduler ()
   : Object (),
   m_socket(0),
   m_lastUsedPathId(0),
+  m_rounds(0),
+  m_reward(0),
   m_select(0)
 {
   NS_LOG_FUNCTION_NOARGS ();
   m_lastUpdateRounds = 1;
   m_e = 0;
+  m_rewards.push_back(0);
+  m_rewardTemp.push_back(0);
+  m_rewardTemp0.push_back(0);
+  m_rewardAvg.push_back(0);
 }
 
 MpQuicScheduler::~MpQuicScheduler ()
@@ -136,6 +148,10 @@ MpQuicScheduler::GetNextPathIdToUse()
 
     case PEEKABOO:
       tosend = Peekaboo();
+      break;
+            
+    case MAB_DELAY:
+      tosend = MabDelay();
       break;
 
     default:
@@ -442,6 +458,126 @@ MpQuicScheduler::PeekabooReward(uint8_t pathId, Time lastActTime)
   
   
 }
+
+
+std::vector<double>
+MpQuicScheduler::MabDelay()
+{
+  NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
+  m_rounds++;
+  uint8_t K = m_subflows.size();
+  if(m_cost.size() < K)
+  {
+    m_cost.push_back(0.0);
+    m_L.push_back(0.0);
+    m_eL.push_back(0.0);
+    m_p.push_back(0.0);
+    for (uint8_t i = 0; i < K; i++)
+    {
+      m_p[i] = 1.0/K;
+    }
+  }
+
+  if (K < 2)
+  {
+    m_lastUsedPathId = 0;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
+  }
+
+  
+  if (m_p[0] == 1.0/K)
+  {
+    Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
+    m_lastUsedPathId = x->GetInteger (0,K-1);
+  }
+  else
+  {
+    m_lastUsedPathId = std::max_element(m_p.begin(),m_p.end()) - m_p.begin();
+  }
+  
+  return m_p;
+}
+
+
+void
+MpQuicScheduler::UpdateRewardMab(uint8_t pathId, uint32_t lostOut, uint32_t inflight, uint32_t round)
+{
+  if (m_schedulerType != MAB_DELAY){
+    return;
+  }
+  uint8_t K = m_subflows.size();
+  m_missingRounds.insert(m_missingRounds.end(), m_rounds - round);
+
+  if (std::accumulate(m_missingRounds.begin(), m_missingRounds.end(), 0.0) / m_missingRounds.size() >= std::pow(2, m_e))
+  {
+    m_e = m_e+1;
+    for (uint8_t i = 0; i < K; i++)
+    {
+      m_L[i] = 0.0;
+    }
+  }
+
+  double ln = std::log(K);
+  double eta = std::sqrt(ln/std::pow(2, m_e));
+
+  Time rtt = m_subflows[pathId]->m_tcb->m_lastRtt;
+  m_cost[pathId] = rtt.GetSeconds() + (double)lostOut/10 + (double)inflight/m_subflows[pathId]->m_tcb->m_cWnd.Get()/10;
+  if (m_cost[pathId] > 1){
+    m_cost[pathId] = 1;
+  }
+
+  m_L[pathId] = eta * m_cost[pathId]/m_p[pathId];
+
+  for (uint8_t i = 0; i < m_subflows.size(); i++)
+  {
+    m_eL[i] = std::exp(-m_L[i]);
+  }
+
+  double pSumTemp = std::accumulate(m_eL.begin(), m_eL.end(), 0.0);
+
+  for (uint8_t i = 0; i < m_subflows.size(); i++)
+  {
+    m_p[i] = m_eL[i]/pSumTemp;
+  }
+}
+
+
+uint32_t 
+MpQuicScheduler::GetCurrentRound()
+{
+  NS_LOG_FUNCTION (this);
+  return m_rounds;
+}
+
+
+std::vector<double>
+MpQuicScheduler::LocalOpt()
+{
+  NS_LOG_FUNCTION (this);
+  std::vector<double> tosend(m_subflows.size(), 0.0);
+  if (m_subflows.size() < 2){
+    m_lastUsedPathId = 0;
+    tosend[m_lastUsedPathId] = 1.0;
+    return tosend;
+  }
+  bitset<12> binary(m_select);
+
+  if (m_rounds > 12){
+    m_rounds = 0;
+  }
+  char temp = binary.to_string().at(m_rounds);
+  string s;
+  s.push_back(temp);
+  m_lastUsedPathId = stoi(s);
+  m_rounds++;
+
+  tosend[m_lastUsedPathId] = 1.0;
+  return tosend;
+}
+
+
 
 
 void

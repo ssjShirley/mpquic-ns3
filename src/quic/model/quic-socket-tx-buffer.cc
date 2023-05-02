@@ -48,10 +48,6 @@ TypeId QuicSocketTxItem::GetTypeId (void)
     .SetParent<Object>()
     .SetGroupName ("Internet")
     .AddConstructor<QuicSocketTxItem>()
-//    .AddTraceSource ("UnackSequence",
-//                     "First unacknowledged sequence number (SND.UNA)",
-//                     MakeTraceSourceAccessor (&QuicSocketTxBuffer::m_sentSize),
-//                     "ns3::SequenceNumber32TracedValueCallback")
   ;
   return tid;
 }
@@ -172,7 +168,7 @@ void QuicSocketTxItem::SplitItems (QuicSocketTxItem &t1, QuicSocketTxItem &t2,
   t2.m_packet = t1.m_packet->Copy ();
   // Remove the first size bytes from t2
   t2.m_packet->RemoveAtStart (size);
-  // t2.m_round = t1.m_round;
+  t2.m_round = t1.m_round;
 
   // Change subheader
   QuicSubheader qsb;
@@ -330,7 +326,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextStream0Sequence (
 
 Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
                                               const SequenceNumber32 seq,
-                                              uint8_t pathId)
+                                              uint8_t pathId, uint32_t currentRound)
 {
   NS_LOG_FUNCTION (this << numBytes << seq);
 
@@ -343,7 +339,7 @@ Ptr<Packet> QuicSocketTxBuffer::NextSequence (uint32_t numBytes,
       outItem->m_packetNumber = seq;
       outItem->m_lastSent = Now ();
       Ptr<Packet> toRet = outItem->m_packet;
-      // outItem->m_round = currentRound;
+      outItem->m_round = currentRound;
       return toRet;
     }
   else

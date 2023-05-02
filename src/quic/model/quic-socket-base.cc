@@ -304,6 +304,10 @@ QuicSocketBase::GetTypeId (void)
                      "The QUIC connection's congestion window",
                      MakeTraceSourceAccessor (&QuicSocketBase::m_cWndTrace),
                      "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("MabRewardTrace",
+                     "The average reward get by mab",
+                     MakeTraceSourceAccessor (&QuicSocketBase::m_rewardTrace),
+                     "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("CongestionWindow1",
                      "The QUIC connection's congestion window",
                      MakeTraceSourceAccessor (&QuicSocketBase::m_cWndTrace1),
@@ -1289,7 +1293,7 @@ QuicSocketBase::SendDataPacket (SequenceNumber32 packetNumber, uint32_t maxSize,
     {
       NS_LOG_LOGIC (this << " SendDataPacket - sending packet " << packetNumber.GetValue () << " of size " << maxSize << " at time " << Simulator::Now ().GetSeconds ());
       m_idleTimeoutEvent = Simulator::Schedule (m_idleTimeout, &QuicSocketBase::Close, this);
-      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId);
+      p = m_txBuffer->NextSequence (maxSize, packetNumber, pathId, m_scheduler->GetCurrentRound());
     }
 
   uint32_t sz = p->GetSize ();
@@ -2434,6 +2438,7 @@ QuicSocketBase::OnReceivedAckFrame (QuicSubheader &sub)
                 }
             }
         }
+      m_scheduler->UpdateRewardMab(pathId,m_txBuffer->GetLost (pathId), m_txBuffer->BytesInFlight (pathId), lastAcked->m_round);
       m_scheduler->PeekabooReward(pathId, lastAckTime);
       lastAckTime = Now();
     }
@@ -3197,6 +3202,7 @@ QuicSocketBase::CreateScheduler ()
   NS_LOG_FUNCTION (this);
   m_scheduler = CreateObject<MpQuicScheduler> ();
   m_scheduler->SetSocket(this);
+  // m_scheduler->TraceConnectWithoutContext ("MabReward", MakeCallback (&QuicSocketBase::UpdateReward, this));
 }
 
 void

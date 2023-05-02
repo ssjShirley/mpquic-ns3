@@ -216,7 +216,7 @@ QuicTxBufferTestCase::TestRetransmission ()
   p1->AddHeader (sub);
   txBuf.Add (p1);
 
-  Ptr<Packet> ptx = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
+  Ptr<Packet> ptx = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200, "TxBuf miscalculates size");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200, "TxBuf miscalculates size of in flight segments");
 
@@ -244,7 +244,7 @@ QuicTxBufferTestCase::TestRetransmission ()
   p2->AddHeader (sub);
   txBuf.Add (p2);
 
-  ptx = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
+  ptx = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200, "TxBuf miscalculates size");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200, "TxBuf miscalculates size of in flight segments");
 
@@ -254,7 +254,7 @@ QuicTxBufferTestCase::TestRetransmission ()
   p3->AddHeader (sub);
   txBuf.Add (p3);
 
-  ptx = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
+  ptx = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200, "TxBuf miscalculates size");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 2400, "TxBuf miscalculates size of in flight segments");
 
@@ -279,7 +279,7 @@ QuicTxBufferTestCase::TestRetransmission ()
   NS_TEST_ASSERT_MSG_EQ(toRetx, 1200, "wrong number of lost bytes");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200, "TxBuf miscalculates size of in flight segments");
 
-  ptx = txBuf.NextSequence (toRetx, SequenceNumber32 (4),pathId);
+  ptx = txBuf.NextSequence (toRetx, SequenceNumber32 (4),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200, "TxBuf miscalculates size");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 2400, "TxBuf miscalculates size of in flight segments");
 
@@ -504,7 +504,7 @@ QuicTxBufferTestCase::TestNewBlock ()
   NS_TEST_ASSERT_MSG_EQ(p1->GetSize (), 1200, "Wrong header size");
 
   
-  Ptr<Packet> ptx = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
+  Ptr<Packet> ptx = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
   
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200, "TxBuf miscalculates size");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200,
@@ -533,13 +533,13 @@ QuicTxBufferTestCase::TestNewBlock ()
   p2->AddHeader (sub);
   txBuf.Add (p2);
   
-  ptx = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
+  ptx = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1200,
                         "Returned packet has different size than requested");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200,
                         "TxBuf miscalculates size of in flight segments");
   
-  ptx = txBuf.NextSequence (3000, SequenceNumber32 (3),pathId);
+  ptx = txBuf.NextSequence (3000, SequenceNumber32 (3),pathId,1);
   // Expecting 3000 (added, including QuicSubheader 4) - 1200 (extracted, including QuicSubheader 4)
   // + 6 (QuicSubheader of the new packet, with both the length and the offset)
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 1806, 
@@ -558,7 +558,7 @@ QuicTxBufferTestCase::TestNewBlock ()
                                               true, false);
   p4->AddHeader (sub);
   txBuf.Add (p4);
-  ptx = txBuf.NextSequence (2400, SequenceNumber32 (4),pathId);
+  ptx = txBuf.NextSequence (2400, SequenceNumber32 (4),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(ptx->GetSize (), 2400,
                         "Returned packet has different size than requested");
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 5406,
@@ -607,12 +607,12 @@ QuicTxBufferTestCase::TestPartialAck ()
   txBuf.Add (p6);
 
   // send the packets with successive sequence numbers
-  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
-  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
-  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
-  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId);
-  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId);
-  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId);
+  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
+  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
+  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
+  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId,1);
+  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId,1);
+  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId,1);
 
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 7200,
                         "TxBuf miscalculates size of in flight segments");
@@ -690,12 +690,12 @@ QuicTxBufferTestCase::TestAckLoss ()
   txBuf.Add (p6);
 
   // send the packets with successive sequence numbers
-  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
-  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
-  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
-  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId);
-  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId);
-  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId);
+  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
+  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
+  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
+  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId,1);
+  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId,1);
+  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId,1);
 
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 7200,
                         "TxBuf miscalculates size of in flight segments");
@@ -777,12 +777,12 @@ QuicTxBufferTestCase::TestSetLoss ()
   txBuf.Add (p6);
 
   // send the packets with successive sequence numbers
-  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
-  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
-  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
-  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId);
-  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId);
-  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId);
+  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
+  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
+  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
+  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId,1);
+  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId,1);
+  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId,1);
 
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 7200,
                         "TxBuf miscalculates size of in flight segments");
@@ -855,12 +855,12 @@ QuicTxBufferTestCase::TestAddBlocks ()
   NS_TEST_ASSERT_MSG_EQ(extra, false, "TxBuf adds a packet in overflow");
 
   // send the packets with successive sequence numbers
-  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
-  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId);
-  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
-  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId);
-  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId);
-  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId);
+  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
+  Ptr<Packet> ptx2 = txBuf.NextSequence (1200, SequenceNumber32 (2),pathId,1);
+  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
+  Ptr<Packet> ptx4 = txBuf.NextSequence (1200, SequenceNumber32 (4),pathId,1);
+  Ptr<Packet> ptx5 = txBuf.NextSequence (1200, SequenceNumber32 (5),pathId,1);
+  Ptr<Packet> ptx6 = txBuf.NextSequence (1200, SequenceNumber32 (6),pathId,1);
 
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 6000,
                         "TxBuf miscalculates size of in flight segments");
@@ -896,7 +896,7 @@ QuicTxBufferTestCase::TestStream0 ()
   txBuf.Add (p3);
   uint8_t pathId = 0;
   // send the packets with successive sequence numbers
-  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId);
+  Ptr<Packet> ptx1 = txBuf.NextSequence (1200, SequenceNumber32 (1),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200,
                         "TxBuf miscalculates size of in flight segments");
 
@@ -904,7 +904,7 @@ QuicTxBufferTestCase::TestStream0 ()
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 1200,
                         "TxBuf miscalculates size of in flight segments");
 
-  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId);
+  Ptr<Packet> ptx3 = txBuf.NextSequence (1200, SequenceNumber32 (3),pathId,1);
   NS_TEST_ASSERT_MSG_EQ(txBuf.BytesInFlight (pathId), 2400,
                         "TxBuf miscalculates size of in flight segments");
 
