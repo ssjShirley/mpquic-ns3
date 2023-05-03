@@ -469,10 +469,12 @@ MpQuicScheduler::MabDelay()
   uint8_t K = m_subflows.size();
   if(m_cost.size() < K)
   {
-    m_cost.push_back(0.0);
-    m_L.push_back(0.0);
-    m_eL.push_back(0.0);
-    m_p.push_back(0.0);
+    while (m_cost.size() < K){
+      m_cost.push_back(0.0);
+      m_L.push_back(0.0);
+      m_eL.push_back(0.0);
+      m_p.push_back(0.0);
+    }
     for (uint8_t i = 0; i < K; i++)
     {
       m_p[i] = 1.0/K;
