@@ -11,7 +11,7 @@ This repository contains in the `src/quic` for a multipath extension to the QUIC
 
 <!-- The implementation is described in [this paper](https://arxiv.org/abs/1902.06121). -->
 
-<!-- Please use the issue tracker for bugs/questions. -->
+Please use the issue tracker for bugs/questions.
 
 
 ## Install
@@ -33,6 +33,11 @@ Please download the repository by https, ssh, or other options.
 git clone git@github.com:ssjShirley/mpquic-ns3.git mpquic
 ```
 
+For the implementation of MSAB scheduler, please checkout the the branch `mpquic-msab`.
+```bash
+git checkout mpquic-msab
+```
+
 ### Compilation ###
 
 Please compile and build mpquic with the following cmd:
@@ -43,9 +48,28 @@ cd mpquic
 ./waf build
 ```
 
+### Reproduce Experimental Results for MSAB ###
+
+Following jupyter files present the experimental results of MSAB.
+
+1. [`draw-low-dominate.ipynb`]()
+1. [`draw-low-compete.ipynb`]()
+2. [`draw-medium-dominate.ipynb`]()
+2. [`draw-medium-compete.ipynb`]()
+3. [`draw-high-dominate.ipynb`]()
+3. [`draw-high-compete.ipynb`]()
+4. [`draw-four-path-scenario.ipynb`]()
+
+Please use the following script to generate the data of experimental results of MSAB. It might take few hours to generate all required data.
+```bash
+./exp-globecom-2023.sh
+```
+
+
+
 ### View Experimental Results for WNS3 ###
 
-Following jupyter files present the Figures 7 to 13 in the paper.
+Following jupyter files present the Figures 7 to 13 in the WNS3 paper.
 
 1. [`scalable-draw-figure7.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/scalable-draw-figure7.ipynb)
 2. [`cwnd-draw-figure8.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-1.2/wns3-draw-figures/cwnd-draw-figure8.ipynb)
