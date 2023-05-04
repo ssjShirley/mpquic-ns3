@@ -52,13 +52,13 @@ cd mpquic
 
 Following jupyter files present the experimental results of MSAB.
 
-1. [`draw-low-dominate.ipynb`]()
-1. [`draw-low-compete.ipynb`]()
-2. [`draw-medium-dominate.ipynb`]()
-2. [`draw-medium-compete.ipynb`]()
-3. [`draw-high-dominate.ipynb`]()
-3. [`draw-high-compete.ipynb`]()
-4. [`draw-four-path-scenario.ipynb`]()
+1. [`draw-low-dominate.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-low-dominate.ipynb)
+1. [`draw-low-compete.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-low-compete.ipynb)
+2. [`draw-medium-dominate.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-medium-dominate.ipynb)
+2. [`draw-medium-compete.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-medium-compete.ipynb)
+3. [`draw-high-dominate.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-high-dominate.ipynb)
+3. [`draw-high-compete.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-high-compete.ipynb)
+4. [`draw-four-path-scenario.ipynb`](https://github.com/ssjShirley/mpquic-ns3/blob/mpquic-msab/msab-figures/draw-four-paths-scenario.ipynb)
 
 Please use the following script to generate the data of experimental results of MSAB. It might take few hours to generate all required data.
 ```bash
